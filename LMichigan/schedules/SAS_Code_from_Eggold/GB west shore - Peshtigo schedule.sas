@@ -1,0 +1,47 @@
+filename macros 'C:\Documents and Settings\eggolb\My Documents\SAS programs\creel\schedules\Macro_open_water_creel.sas';
+
+*Starting in 2012, W route was incorporated into M route and then M was paired with P route. 
+The G route was given its own day due to travel time.
+June, July and August were expanded to 5 days per week.
+Other months expanded to 6 days per week.;
+
+%INCLUDE MACROS;
+OPTIONS NOSOURCE2 YEARCUTOFF=1950;
+
+TITLE '2017 WEST SHORE GREEN BAY - PESHTIGO CREEL SURVEY RANDOMIZATION';
+%LET SDATE='15MAR17'D;    /*FIRST DAY OF CALENDAR*/
+%LET FDATE='15NOV17'D;    /*LAST DAY OF CALENDAR*/
+%LET UNITS=2;             /*NUMBER OF WORK GROUPS TO BE COVERED*/
+%LET SITES1=2;            /*NUMBER OF SITES ON FIRST GROUP*/
+%LET SITES2=2;            /*NUMBER OF SITES ON SECOND GROUP*/
+%LET COUNTS=2;            /*NUMBER OF INSTANTANEOUS COUNTS PER SHIFT*/
+%LET SEED=124525255;
+PROC FORMAT;
+VALUE $SITE '11'='G-G'  '12'='G-G'
+            '21'='P-M'  '22'='M-P';
+OPTIONS NODATE NONUMBER;
+%SHIFTS
+CARDS;      /*INSERT DAYLENGTH TIMES - MUST ACCOUNT FOR DST*/
+03/01/17 03/11/17 06:00 18:30 6.25 4
+03/12/17 03/31/17 07:00 19:30 6.25 4
+04/01/17 04/30/17 06:00 20:00 7.0  4
+05/01/17 05/31/17 05:30 21:00 7.75 4
+06/01/17 08/31/17 05:30 21:00 7.75 4
+09/01/17 09/30/17 06:00 20:00 7.0  4
+10/01/17 10/31/17 06:00 19:00 6.5  4
+11/01/17 11/04/17 07:00 18:30 5.75 4
+11/05/17 11/30/17 06:00 17:30 5.75 4
+;
+
+%MOORED2
+CARDS;
+05/17/17 MOORED BOAT COUNT   1
+06/14/17 MOORED BOAT COUNT   1
+07/12/17 MOORED BOAT COUNT   1
+08/16/17 MOORED BOAT COUNT   1
+09/12/17 MOORED BOAT COUNT   1
+;
+
+%INTCOUNT
+
+RUN;
