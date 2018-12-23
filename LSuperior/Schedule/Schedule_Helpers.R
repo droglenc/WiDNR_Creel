@@ -117,3 +117,59 @@ busRoute <- function(data,sites,visit,travel,peffort,
   df
 }
 
+
+## Determine if a date is one of the identified holidays
+is.holiday <- function(x) {
+  ## Find the month, weekday name, and day of the month for use below ----------
+  MONTH <- lubridate::month(x,label=TRUE,abbr=FALSE)
+  WDAY <- lubridate::wday(x,label=TRUE,abbr=FALSE)
+  MDAY <- lubridate::mday(x)
+  ## Identify if it is one of the following holidays ---------------------------
+  dplyr::case_when(
+    MONTH=="January" & MDAY==1 ~ TRUE,                      # New Years Day
+    MONTH=="May" & MDAY>=25 & WDAY=="Monday" ~ TRUE,        # Memorial Day
+    MONTH=="July" & MDAY==4 ~ TRUE,                         # 4th of July
+    MONTH=="September" & MDAY<=7 & WDAY=="Monday" ~ TRUE,   # Labor Day
+    MONTH=="November" & MDAY>=22 & WDAY=="Thursday" ~ TRUE, # Thanksgiving
+    MONTH=="December" & MDAY==25 ~ TRUE,                    # Christmas
+    TRUE ~ FALSE                                            # Not a holiday
+  )
+}
+
+
+## Use to find the days for which a creel survey should be conducted
+## Assumes:
+##   1) Creel survey for every weekend day and holiday
+##   2) Two consecutive weekdays will be "off" during each week
+findWeeklyCreelDays <- function(data) {
+  ## Start a vector to hold the results of whether to creel or not
+  ##   Initialize with all "YES"es (will turn some to "NO"s below)
+  CREEL <- rep("YES",nrow(data))
+  
+  ## Cycle through the weeks ---------------------------------------------------
+  for (i in unique(data$WEEK)) {
+    ### Isolate just that weeks data
+    x <- dplyr::filter(data,WEEK==i)
+    ## Find the weekdays in x
+    tmp <- x[x$DAYTYPE=="WEEKDAY",]
+    ## Find two consecutive weekdays "off" (no creel)
+    ### Find all indices where there are two consecutive weekdays
+    ### i.e., don't give one day off between a holiday and a weekend
+    ### also ignore the last weekeday because it cannot be the first weekday
+    ###      of the two days off
+    ind <- which(diff(tmp$WDAYn)==1)
+    ### randomly sample a "starting day off"
+    ind <- sample(ind,1)
+    ### then find the next day off (i.e., the day after the starting day off)
+    ind <- c(ind,ind+1)
+    ## Add a "NO" to CREEL for the two days off
+    CREEL[data$WEEK==i & data$WDAY %in% tmp$WDAY[ind]] <- "NO"
+  }
+  ## Assess the lengths of runs of "YESes"
+  tmp <- rle(CREEL)
+  tmp <- table(tmp$values,tmp$lengths)["YES",]
+  cat("Frequency of Consecutive Days Worked\n")
+  print(tmp)
+  ## Return the vector
+  CREEL
+}
