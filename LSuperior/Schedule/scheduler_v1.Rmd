@@ -1,0 +1,48 @@
+---
+title: "Lake Superior Creel Schedule"
+output: pdf_document
+---
+
+```{r input, echo=FALSE}
+## User Inputs
+YEAR <- 2019
+LAKE <- "Superior"
+ROUTE <- c("Corny-PW")
+SEED <- 34583489
+```
+
+## Information
+* Year: `r YEAR`
+* Lake: `r LAKE`
+* Route: `r ROUTE`
+* Seed: `r formatC(SEED,format="d")`
+* Ran: `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+fldr <- ""
+source(paste0(fldr,"Schedule_Helpers.R"))
+
+## Read in Route and Shift information
+f <- paste0(fldr,"Schedule_Info_LS.xlsx")
+print(f)
+LSroutes <- readRoutes(f,sheet="Routes") %>%
+  dplyr::filter(route %in% ROUTE)
+LSshifts <- readShifts(f,sheet="Shifts") %>%
+  dplyr::filter(route %in% ROUTE)
+
+## Set the random number seed
+set.seed(SEED)
+```
+
+```{r makeSchedule, include=FALSE}
+## Make the schedule
+fn <- makeSchedule(YEAR,LAKE,ROUTE,LSroutes)
+```
+
+\newpage
+
+```{r makeCalendars, echo=FALSE}
+
+```
+

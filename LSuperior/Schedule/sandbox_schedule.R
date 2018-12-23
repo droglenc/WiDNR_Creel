@@ -1,24 +1,20 @@
-source("LSuperior/Schedule/Schedule_Helpers.R")
+here::here()
+fldr <- "LSuperior/Schedule/"
+source(paste0(fldr,"Schedule_Helpers.R"))
 
-year <- 2019
-start_date <- "1-Apr"
-end_date <- "6-Oct"
-start_date <- lubridate::dmy(paste(start_date,year))
-end_date <- lubridate::dmy(paste(end_date,year))
+## User Inputs
+YEAR <- 2019
+LAKE <- "Superior"
+ROUTE <- c("Corny-PW")
 
-## Find all dates between the start and end date
-sched <- data.frame(date=start_date+0:(end_date-start_date)) %>%
-  dplyr::mutate(WEEK=lubridate::isoweek(date)-lubridate::isoweek(date[1])+1,
-         WDAYn=lubridate::wday(date,week_start=1),
-         WDAY=lubridate::wday(date,label=TRUE),
-         DAYTYPE=dplyr::case_when(
-           chron::is.weekend(date) ~ "WEEKEND",
-           is.holiday(date) ~ "HOLIDAY",
-           TRUE ~ "WEEKDAY")) %>%
-  tibble::add_column(CREEL=findWeeklyCreelDays(.),
-                     shift=sample(c("am","pm"),nrow(.),replace=TRUE)) %>%
-  dplyr::mutate(shift=ifelse(CREEL=="NO",NA,shift),
-                schedule="STOPS",
-                route="ROUTE")
+## Read in Route and Shift information
+f <- paste0(fldr,"Schedule_Info_LS.xlsx")
+LSroutes <- readRoutes(f,sheet="Routes") %>%
+  dplyr::filter(route %in% ROUTE)
+LSshifts <- readShifts(f,sheet="Shifts") %>%
+  dplyr::filter(route %in% ROUTE)
 
-write.csv(sched,"LSuperior/Schedule/Test_Dates.csv",quote=FALSE,row.names=FALSE)
+## Make the schedule
+fn <- makeSchedule(YEAR,LAKE,ROUTE,LSroutes)
+
+makeCalendar(file=fn)
