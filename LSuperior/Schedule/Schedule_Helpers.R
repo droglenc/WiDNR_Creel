@@ -1,39 +1,41 @@
-## Load often used packages
+## Load Packages ----
 library(dplyr)
 library(ggplot2)
+library(huxtable)
 
 
-## General helpers ----
-### Determine if a date is one of the identified holidays
+## General ----
+### Determine if date is a holiday
 is.holiday <- function(x) {
   if (!lubridate::is.Date(x)) stop("'x' must be a 'Date' object.",call.=FALSE)
   ## Find the month, weekday name, and day of the month for use below
-  MONTH <- lubridate::month(x,label=TRUE,abbr=FALSE)
-  WDAY <- lubridate::wday(x,label=TRUE,abbr=FALSE)
+  MONTH <- lubridate::month(x,label=TRUE)
+  WDAY <- lubridate::wday(x,label=TRUE)
   MDAY <- lubridate::mday(x)
-  ## Identify if it is one of the following holidays
+  ## Identify if one of the following holidays
   dplyr::case_when(
-    MONTH=="January" & MDAY==1 ~ TRUE,                      # New Years Day
-    MONTH=="May" & MDAY>=25 & WDAY=="Monday" ~ TRUE,        # Memorial Day
-    MONTH=="July" & MDAY==4 ~ TRUE,                         # 4th of July
-    MONTH=="September" & MDAY<=7 & WDAY=="Monday" ~ TRUE,   # Labor Day
-    MONTH=="November" & MDAY>=22 & WDAY=="Thursday" ~ TRUE, # Thanksgiving
-    MONTH=="December" & MDAY==25 ~ TRUE,                    # Christmas
-    TRUE ~ FALSE                                            # Not a holiday
+    MONTH=="Jan" & MDAY==1 ~ TRUE,                 # New Years Day
+    MONTH=="May" & MDAY>=25 & WDAY=="Mon" ~ TRUE,  # Memorial Day
+    MONTH=="Jul" & MDAY==4 ~ TRUE,                 # 4th of July
+    MONTH=="Sep" & MDAY<=7 & WDAY=="Mon" ~ TRUE,   # Labor Day
+    MONTH=="Nov" & MDAY>=22 & WDAY=="Thu" ~ TRUE,  # Thanksgiving
+    MONTH=="Dec" & MDAY==25 ~ TRUE,                # Christmas
+    TRUE ~ FALSE                                   # Not a holiday
   )
 }
 
-### Converts month number to abbreviation
+
+### Convert month number to abbreviation
 iCheckMonth <- function(x) {
   if (is.numeric(x)) {
     if (x<1 | x>12) 
-      stop("Month number in 'x' is incorrect (<0 or >12).",call.=FALSE)
+      stop("Month number in 'x' must be in 1:12.",call.=FALSE)
     x <- month.abb[x]
   }
   x
 }
 
-### Make sure year is appropriate and within range of acceptable years
+### Check if year is appropriate and within acceptable range
 iCheckYear <- function(x,min.year=2010,max.year=2099) {
   if (length(x)>1) stop("Only one 'year' is allowed.",call.=FALSE)
   if (!is.numeric(x)) stop("'year' is not numeric.",call.=FALSE)
@@ -47,43 +49,42 @@ iCheckYear <- function(x,min.year=2010,max.year=2099) {
 
 
 
-## Helpers for making the schedule ----
-### Finds the Monday closest to the beginning of the given month
-iFindStartDate <- function(month,year) {
+## Scheduling ----
+### Find Monday closest to beginning of the month
+iFindStartDate <- function(MONTH,YEAR) {
   ## Check inputs
-  month <- iCheckMonth(month)
-  year <- iCheckYear(year)
+  MONTH <- iCheckMonth(MONTH)
+  YEAR <- iCheckYear(YEAR)
   ## Make the first of the month a date
-  tmp <- lubridate::dmy(paste(1,month,year,sep="-"))
+  tmp <- lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))
   ## Move that date back to the previous Monday
   tmp - (lubridate::wday(tmp,week_start=1)-1)
 }
 
-### Finds the Sunday closest to the end of the given month
-iFindLastDate <- function(month,year) {
+### Finds Sunday closest to end of the month
+iFindLastDate <- function(MONTH,YEAR) {
   ## Check inputs
-  month <- iCheckMonth(month)
-  year <- iCheckYear(year)
+  MONTH <- iCheckMonth(MONTH)
+  YEAR <- iCheckYear(YEAR)
   ## Find the last day of the month
-  ### Find the day of the first day of the following month ...
-  m <- lubridate::month(lubridate::dmy(paste(1,month,year,sep="-")))
-  if (m<12) {
-    m <- m+1
-  } else {
-    m <- 1
-    year <- year+1
+  ### Find the first day of following month ...
+  NEXT_MONTH <- lubridate::month(lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))) + 1
+  if (NEXT_MONTH>12) {
+    NEXT_MONTH <- 1
+    YEAR <- YEAR+1
   }
-  ### ... and then subtract one to get the last day of the month
-  tmp <- lubridate::dmy(paste(1,m,year,sep="-")) - 1
+  ### ... and subtract one for last day of month
+  tmp <- lubridate::dmy(paste(1,NEXT_MONTH,YEAR,sep="-")) - 1
   ## Find day of the week and add what it takes to make it a Sunday
   tmp + (7-lubridate::wday(tmp,week_start=1))
 }
 
-### Find the days for which a creel survey should be conducted. Assumes:
-###   - Determination is on a weekly basis
-###   - Creel survey for every weekend day and holiday
-###   - Two consecutive weekdays will be "off" during each week
+### Days for which a creel survey should be conducted.
 iFindDays2Creel <- function(data) {
+  ## Assumes: - Determination is on a weekly basis
+  ##          - Creel survey for every weekend day and holiday
+  ##          - Two consecutive weekdays will be "off" during each week
+  
   ## Vector to hold results ... initialize with "YES"es ("NO"s added below)
   CREEL <- rep("YES",nrow(data))
   ## Cycle through the weeks
@@ -122,25 +123,25 @@ iFindShifts <- function(data) {
 }
 
 ### Assigns letter for a particular randomized bus route within a month.
-iAssignBusRouteLetters <- function(data) {
-  mons <- lubridate::month(data$date)
-  BR <- character(nrow(data))
-  for (i in unique(mons)) {
-    tmp <- data[lubridate::month(data$date)==i & data$CREEL=="YES",]
-    BR[lubridate::month(data$date)==i & data$CREEL=="YES"] <- sample(LETTERS[1:nrow(tmp)])
-  }
-  BR
+iAssignBusRouteIDs <- function(data) {
+  ## Initialize vector of IDs with blanks
+  IDs <- character(nrow(data))
+  ## Isolate those days that will have a creel survey
+  tmp <- data[data$CREEL=="YES",]
+  ## Fill in IDs on creel days with a unique number
+  IDs[data$CREEL=="YES"] <- 1:nrow(tmp)
+  ## Return the IDs vector
+  IDs
 }
 
-makeSchedule <- function(YEAR,LAKE,ROUTE,info,show_summary=TRUE) {
+makeSchedule <- function(YEAR,LAKE,ROUTE,info,fout,show_summary=TRUE) {
   ## Check inputs
   YEAR <- iCheckYear(YEAR)
-  
   ## Get start and end data from the information in info
   start_date <- iFindStartDate(info$month[1],YEAR)
   end_date <- iFindLastDate(info$month[nrow(info)],YEAR)
   
-  ## Create the schedule0
+  ## Create the schedule
   ### Find all dates between the start and end date
   ### Add a variable that contains the ROUTE name
   ### Find the week since start_date (beginning of the survey)
@@ -149,20 +150,20 @@ makeSchedule <- function(YEAR,LAKE,ROUTE,info,show_summary=TRUE) {
   ### Determine on which days a creel survey should be conducted
   ### Randomly choose an am or pm shift for each day
   ### Add random bus route timing letters (within a month)
-  sched <- data.frame(date=start_date+0:(end_date-start_date)) %>%
-    dplyr::mutate(route=ROUTE,
-                  WEEK=lubridate::isoweek(date)-lubridate::isoweek(date[1])+1,
-                  WDAYn=lubridate::wday(date,week_start=1),
-                  WDAY=lubridate::wday(date,week_start=1,label=TRUE),
+  sched <- data.frame(DATE=start_date+0:(end_date-start_date)) %>%
+    dplyr::mutate(ROUTE=ROUTE,
+                  MONTH=lubridate::month(DATE,label=TRUE),
+                  WEEK=lubridate::isoweek(DATE)-lubridate::isoweek(DATE[1])+1,
+                  WDAYn=lubridate::wday(DATE,week_start=1),
+                  WDAY=lubridate::wday(DATE,week_start=1,label=TRUE),
                   DAYTYPE=dplyr::case_when(
-                    chron::is.weekend(date) ~ "WEEKEND",
-                    is.holiday(date) ~ "HOLIDAY",
+                    chron::is.weekend(DATE) ~ "WEEKEND",
+                    is.holiday(DATE) ~ "HOLIDAY",
                     TRUE ~ "WEEKDAY")) %>%
     tibble::add_column(CREEL=iFindDays2Creel(.)) %>%
-    tibble::add_column(shift=iFindShifts(.)) %>%
-    tibble::add_column(schedule=iAssignBusRouteLetters(.))
+    tibble::add_column(SHIFT=iFindShifts(.)) %>%
+    tibble::add_column(DAILY_SCHED=iAssignBusRouteIDs(.))
   ## Write the result out to a file
-  fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_Schedule.csv")
   write.csv(sched,paste0(fldr,fout),quote=FALSE,row.names=FALSE)
   ## Show summaries if asked to
   if (show_summary) {
@@ -172,15 +173,14 @@ makeSchedule <- function(YEAR,LAKE,ROUTE,info,show_summary=TRUE) {
     cat("Frequency of Consecutive Days Worked\n")
     print(tmp)
     ## Show frequency of day types by month
-    sched <- mutate(sched,MON=droplevels(lubridate::month(date,label=TRUE)))
     cat("\nFrequency of Days by Month and Day Type\n")
-    print(addmargins(xtabs(~MON+DAYTYPE,data=filter(sched,CREEL=="YES"))))
+    print(addmargins(xtabs(~MONTH+DAYTYPE,data=FSA::filterD(sched,CREEL=="YES"))))
     ## Show frequency of days of the week by month
     cat("\nFrequency of Days by Month and Day of the Week\n")
-    print(addmargins(xtabs(~MON+WDAY,data=filter(sched,CREEL=="YES"))))
+    print(addmargins(xtabs(~MONTH+WDAY,data=FSA::filterD(sched,CREEL=="YES"))))
     ## Show frequency of ams and pms by month
     cat("\nFrequency of Days by Month and Day Type\n")
-    print(addmargins(xtabs(~MON+shift,data=filter(sched,CREEL=="YES"))))
+    print(addmargins(xtabs(~MONTH+SHIFT,data=FSA::filterD(sched,CREEL=="YES"))))
     cat("\n")
   }
   ## Return the filename
@@ -192,7 +192,7 @@ makeSchedule <- function(YEAR,LAKE,ROUTE,info,show_summary=TRUE) {
 
 
 
-## Helpers for making the calendar
+## Calendar ----
 ### Makes the calendar header
 iMakeCalHeader <- function(pth) {
   g <- grid::rasterGrob(magick::image_read(paste0(pth,"WiDNR_logo.jpg")),
@@ -208,206 +208,247 @@ iMakeCalHeader <- function(pth) {
 }
 
 
-makeCalendar <- function(file,pth="LSuperior//Schedule//",width,height) {
-  ## Make calendar header ------------------------------------------------------
+makeCalendar <- function(sched,MONTH1,pth="",width,height,PDF=FALSE) {
+  ## Make calendar header
   header <- iMakeCalHeader(pth)
   
-  ## Read and modify schedule file ---------------------------------------------
+  ## Read and modify schedule file
   ### Add an "activity" variable that combines route and shift (for printing)
-  sched <- read.csv(paste0(pth,file),stringsAsFactors=FALSE) %>%
-    mutate(date=lubridate::ymd(date),
+  sched <- read.csv(paste0(pth,sched),stringsAsFactors=FALSE) %>%
+    mutate(DATE=lubridate::ymd(DATE),
            activity=ifelse(CREEL=="NO","NO CREEL",
-                           paste0(route,"\n",shift,"\n(",schedule,")")))
-  ## Find year and starting and ending months from the schedule
-  year <- unique(lubridate::year(sched$date))
-  start_mon <- lubridate::month(sched$date[1])
-  end_mon <- lubridate::month(sched$date[nrow(sched)])
-  
-  ## Gets Jan-1 of current year
-  JAN1 <- lubridate::make_date(year)
-  ## Gets number of days in the year
-  days <- ifelse(lubridate::leap_year(JAN1),365,364)
+                           paste0(ROUTE,"\n",SHIFT,"\n(",DAILY_SCHED,")"))) %>%
+    dplyr::filter(MONTH==MONTH1)
+  ## Find year from the schedule
+  YEAR <- lubridate::year(sched$DATE[1])
+  ## Get first and last days of this month
+  start_date <- lubridate::make_date(YEAR,which(month.abb==MONTH1))
+  end_date <- start_date + months(1) - 1
+  ## Get number of days in the month
+  days <- lubridate::mday(end_date)-lubridate::mday(start_date)
   ## List of dates ...
   ## ... with date and activity
-  year_cal <- data.frame(date=JAN1+0:days,x=0L,y=0L) %>%
-    left_join(sched,by="date") %>%
+  mon_cal <- data.frame(DATE=start_date+0:days,x=0L,y=0L) %>%
+    left_join(sched,by="DATE") %>%
     mutate(color=as.factor(ifelse(CREEL=="NO",1,0)),
-           title=lubridate::month(date,label=TRUE,abbr=FALSE))
+           title=lubridate::month(DATE,label=TRUE,abbr=FALSE))
+  ## Make calendar page for "this" month
+  cal <- ggplot(mon_cal,aes(x=x,y=y)) + 
+    ### makes each individual day (faceted below)
+    geom_text(aes(label=activity,color=color),
+              data=filter(mon_cal,!is.na(activity)),
+              size=3,fontface="bold") +
+    sugrrants::facet_calendar(~DATE,format="%a-%e") +
+    labs(x="",y="",title=paste0(mon_cal$title[[1]],", ",YEAR)) +
+    theme_bw() +
+    theme(
+      strip.background=element_rect(fill="yellow"),
+      strip.text=element_text(color="black",face="bold"),
+      panel.grid.major=element_blank(),
+      panel.grid.minor=element_blank(),
+      axis.ticks=element_blank(),
+      axis.text=element_blank()
+    ) +
+    guides(color="none") +
+    scale_color_manual(values=c("black","red")) +
+    scale_x_continuous(expand=c(0,0)) +
+    scale_y_continuous(expand=c(0,0))
   
-  pdf(paste0(pth,tools::file_path_sans_ext(file),"_SCHEDULE.pdf"),
-      width=width,height=height)
-  
-  for (i in (start_mon:end_mon)) {
-    ## Get first and last days of the "this" month
-    start_date <- lubridate::make_date(year,i)
-    end_date <- start_date + months(1)
-    ## Get list of dates for just "this" month
-    tbl_cal <- filter(year_cal,date >= start_date,date < end_date)
-    ## Make calendar page for "this" month
-    cal <- ggplot(tbl_cal,aes(x=x,y=y)) + 
-      ### makes each individual day (faceted below)
-      geom_text(aes(label=activity,color=color),
-                data=filter(tbl_cal,!is.na(activity)),
-                size=3,fontface="bold") +
-      sugrrants::facet_calendar(~date,format="%a-%e") +
-      labs(x="",y="",title=paste0(tbl_cal$title[[1]],", ",year)) +
-      theme_bw() +
-      theme(
-        strip.background=element_rect(fill="yellow"),
-        strip.text=element_text(color="black",face="bold"),
-        panel.grid.major=element_blank(),
-        panel.grid.minor=element_blank(),
-        axis.ticks=element_blank(),
-        axis.text=element_blank()
-      ) +
-      guides(color="none") +
-      scale_color_manual(values=c("black","red")) +
-      scale_x_continuous(expand=c(0,0)) +
-      scale_y_continuous(expand=c(0,0))
-    
-    
-    page <- header + patchwork::plot_spacer() + cal +
-      patchwork::plot_layout(ncol=1,heights=c(0.4,0.2,3))
-    print(page)
-  }
-  dev.off()
+  page <- header + patchwork::plot_spacer() + cal +
+    patchwork::plot_layout(ncol=1,heights=c(0.4,0.2,3))
+  print(page)
 }
 
 
 
 
-## Helpers for making the bus routes ----
+## Bus Routes ----
+### Reads route specific information.
+readRoutes <- function(f,sheet="Routes") {
+  ## Expland the list of months to individual months
+  ## Add a site variable that is combo of site number & description
+  ## Make months an ordered factor variable
+  ## Order rows
+  ## Reduce and reorder data.frame variables
+  df <- readxl::read_excel(f,sheet=sheet) %>%
+    iExpandMonthsList() %>%
+    dplyr::mutate(site=paste0(site_descrip," (#",site_no,")"),
+                  month=factor(month,levels=month.abb)) %>%
+    dplyr::arrange(area,creel,route,month,visit) %>%
+    dplyr::select(area,creel,route,month,site,visit,travel,peffort) %>%
+    as.data.frame()
+  df
+}
 
+### Reads shift specific information
+readShifts <- function(f,sheet="Shifts") {
+  ## Expand the list of months to individual months
+  ## Make months an ordered factor variable
+  ## Order rows
+  df <- readxl::read_excel(f,sheet=sheet,col_types="text") %>%
+    iExpandMonthsList() %>%
+    dplyr::mutate(month=factor(month,levels=month.name)) %>%
+    dplyr::arrange(area,creel,route,month,shift) %>%
+    as.data.frame()
+  df
+}
+
+### The information files contains lists of months in one cell of the
+### spreadsheet. This expands those lists by putting months in one row and
+### repeating the other pertinent information.
 iExpandMonthsList <- function(data) {
+  ## Make empty data.frame with same structure as data
   data2 <- data[FALSE,]
+  ## Expland the list of months
   for (i in 1:nrow(data)) {
     mons <- unlist(strsplit(data$month[i],", "))
     tmp <- data[rep(i,each=length(mons)),] 
     tmp$month <- mons
     data2 <- rbind(data2,tmp)
   }
+  ## Return the expanded data.frame
   data2
 }
 
-
-readRoutes <- function(f,sheet="Routes") {
-  ## Read in route information from Excel
-  ### Expland the list of months to individual months
-  ### Add a site variable that is combo of site number & description
-  ### Make months an ordered factor variable
-  ### Order rows
-  ### Reduce and reorder data.frame variables
-  df <- readxl::read_excel(f,sheet=sheet) %>%
-    iExpandMonthsList() %>%
-    dplyr::mutate(site=paste0(site_descrip," (#",site_no,")"),
-                  month=factor(month,levels=month.name)) %>%
-    dplyr::arrange(area,creel,route,month,visit) %>%
-    dplyr::select(area,creel,route,month,site,visit,travel,peffort) %>%
-    as.data.frame()
-  ## Return the data.frame
-  df
+## Reverse order of route information
+iReverseRoute <- function(data) {
+  ### adjust inter-site travel times
+  data$travel <- c(data$travel[nrow(data)],data$travel[-nrow(data)])
+  ### Reverse visit order
+  data <- data[order(data$visit,decreasing=TRUE),]
+  ### ... and then adjust the visit order (though this is not needed again)
+  data$visit <- seq.int(nrow(data))
+  data
 }
 
-readShifts <- function(f,sheet="Shifts") {
-  ## Read in route information from Excel
-  ### Expand the list of months to individual months
-  ### Make months an ordered factor variable
-  ### Order rows
-  df <- readxl::read_excel(f,sheet=sheet,col_types="text") %>%
-    iExpandMonthsList() %>%
-    dplyr::mutate(month=factor(month,levels=month.name)) %>%
-    dplyr::arrange(area,creel,route,month,shift) %>%
-    as.data.frame()
-  ## Return the data.frame
-  df
-}
-
-
-
-
-busRoute <- function(data,sites,visit,travel,peffort,
-                     start,end,allow_reverse=TRUE) {
-  ## Possibly (if allowed) change the visit order (based on a coin-flip)
-  if (allow_reverse & runif(1)<0.5) {
-    ### adjust inter-site travel times
-    data$travel <- c(data$travel[nrow(data)],data$travel[-nrow(data)])
-    ### Reverse visit order
-    data <- data[order(data$visit,decreasing=TRUE),]
-    ### ... and then adjust the visit order (though this is not needed again)
-    data$visit <- seq.int(nrow(data))
+## Adjusts efforts when rounding caused total effort to != total time in shift
+iAdjustTimeAtSite <- function(ttlEffort,ttlTime,sites,peffort) {
+  ### Find total effor time (after rounding)
+  ttlTime2 <- sum(ttlEffort)
+  ### If the two sum of the effort does not equal ttlTime (total time in the
+  ### shift) then randomly select sites according to their peffort to either
+  ### subtract or add a minute (depending how the sum matches the time in shift)
+  ### from the total effort. Basically randomly adds or subtracts minutes from
+  ### the most probable sites.
+  if (ttlTime2!=ttlTime) {
+    #### make a table of number of minutes to add/subtract from each site
+    tmp <- table(sample(unique(sites),abs(ttlTime-ttlTime2),
+                        replace=TRUE,prob=peffort/100))
+    #### get indices of which sites will received the addition/subtraction
+    tmp2 <- unique(sites) %in% rownames(tmp)
+    #### do the addition/subtraction
+    if (ttlTime<ttlTime2) ttlEffort[tmp2] <- ttlEffort[tmp2]-tmp
+    else teffort[tmp2] <- ttlEffort[tmp2]+tmp
   }
-  
-  ## Get vectors of information
-  sites <- data[,sites]
-  travel <- data[,travel]
-  peffort <- data[,peffort]
+  ## Return the adjusted effort vector
+  ttlEffort
+}
 
+## Make a route from first site to end (i.e., follow order of sites for route)
+iMakeOrderedRoute <- function(sites,travel,ttlEffort) {
+  ### Create "locations"
+  #### Interleave sites with inter-site travel time notes
+  ### And add first site onto end (like traveling back to beginning)
+  locs <- ggplot2:::interleave(sites,paste0("TRAVEL (",travel," mins)"))
+  locs <- c(locs,sites[1])
+
+  ### Create times at each "location"
+  #### Interleave times at site with travel times
+  #### Put 0 at beginning (for beginning of route)
+  #### Then find cumulative sum of times to show day progression
+  times <- ggplot2:::interleave(ttlEffort,travel)
+  times <- cumsum(c(0,times))
+  
+  ### Put together as a data.frame to return
+  data.frame(TIME=times,LOCATION=locs)
+}
+
+## Adjust (wrap the route) for a random starting time
+iAdjustRoute4RandomStart <- function(data,mins) {
+  ### Find random starting time
+  rnd <- base::sample(0:data$TIME[length(data$TIME)],1)
+  ### Which "location" is split (last negative diff b/w times and random #)
+  ### Add a new line for this time if no time equals random time
+  if (!any((data$TIME-rnd)==0)) {
+    data <- rbind(data,data[Position(isTRUE,(data$TIME-rnd)<0,right=TRUE),])
+    data$TIME[nrow(data)] <- rnd
+  }
+  ### All times before rnd should have max time added to them
+  ###   and then subtract rnd from each so that rnd time is set to 0
+  data$TIME[data$TIME<rnd] <- data$TIME[data$TIME<rnd] + max(data$TIME)
+  data$TIME <- data$TIME - rnd
+  ### Add an "End of Shift" line
+  data <- rbind(data,data.frame(TIME=mins,LOCATION="END OF SHIFT"))
+  ### Then reorder, remove duplicate rows (from wrapping df), fix row numbers
+  data <- data[order(data$TIME),]
+  data <- data[!duplicated(data),]
+  rownames(data) <- seq.int(nrow(data))
+  ### Returned adjusted data.frame
+  data
+}
+
+
+iMakeBusRoute <- function(routes,shifts,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
+
+  ## Isolate the pertintent route information
+  routeInfo <- dplyr::filter(routes,route==ROUTE,month==MONTH1)
+  ## Possibly (if allowed) change the visit order (based on a coin-flip)
+  if (allow_reverse & runif(1)<0.5) routeInfo <- iReverseRoute(routeInfo)
+  ## Get vectors of route information
+  sites <- routeInfo$site
+  travel <- routeInfo$travel
+  peffort <- routeInfo$peffort
+  
+  ### Isolate the pertinent shift information
+  shiftInfo <- dplyr::filter(shifts,route==ROUTE,month==MONTH1,shift==SHIFT)
   ## Find total minutes from start to end
-  start <- as.POSIXct(start,format="%H:%M")
-  end <- as.POSIXct(end,format="%H:%M")
+  start <- as.POSIXct(shiftInfo$start,format="%H:%M")
+  end <- as.POSIXct(shiftInfo$end,format="%H:%M")
   mins <- unclass(difftime(end,start,units="mins"))
   
   ## Convert peffort into minutes at each site
   ### Find total effort exclusive of total travel time
   ttlTime <- mins-sum(travel)
-  teffort <- round(ttlTime*peffort/100,0)
+  ttlEffort <- round(ttlTime*peffort/100,0)
   ### Adjust effort slightly if the sum of rounded efforts != total time in shift
-  #### Randomly select sites according to their probability to either subtract
-  ####   or add a minute (depending how the sum matches the time in shift) from
-  ####   the total effort.
-  ttlTime2 <- sum(teffort)
-  if (ttlTime!=ttlTime2) {
-    ##### make a table of number of minutes to add/subtract from each site
-    tmp <- table(sample(unique(sites),abs(ttlTime-ttlTime2),
-                        replace=TRUE,prob=peffort/100))
-    ##### get indices of which sites will received the addition/subtraction
-    tmp2 <- unique(sites) %in% rownames(tmp)
-    ##### do the addition/subtraction
-    if (ttlTime<ttlTime2) teffort[tmp2] <- teffort[tmp2]-tmp
-      else teffort[tmp2] <- teffort[tmp2]+tmp
-  }
-  
-  ## Make a route from first site to end
-  ### Create vector of "locations"
-  #### Interleave sites with travel time notes
-  locs <- ggplot2:::interleave(sites,paste0("TRAVEL (",travel," mins)"))
-  #### And add first site onto end (like traveling back to beginning)
-  locs <- c(locs,sites[1])
-  ### Get vector of times for each "location"
-  #### Interleave times at site with travel times
-  times <- ggplot2:::interleave(teffort,travel)
-  #### Put 0 at beginning (for beginning of route)
-  times <- c(0,times)
-  #### Then find cumulative sum of times to show day progression
-  times <- cumsum(times)
-  
-  ## Put together as a data.frame
-  df <- data.frame(Time=times,Location=locs)
+  ttlEffort <- iAdjustTimeAtSite(ttlEffort,ttlTime,sites,peffort)
 
+  ## Make a route from first site to end
   ## Adjust (wrap the route) for a random starting time
-  ### Find random starting time
-  rnd <- base::sample(0:times[length(times)],1)
-  ### Which "location" is split (last negative diff b/w times and random #)
-  ### Add a new line for this time if no time equals random time
-  if (!any((times-rnd)==0)) {
-    df <- rbind(df,df[Position(isTRUE,(times-rnd)<0,right=TRUE),])
-    df$Time[nrow(df)] <- rnd
-  }
-  ### All times before rnd should have max time added to them
-  ###   and then subtract rnd from each so that rnd time is set to 0
-  df$Time[df$Time<rnd] <- df$Time[df$Time<rnd] + max(df$Time)
-  df$Time <- df$Time - rnd
-  ### Add an "End of Shift" line
-  df <- rbind(df,data.frame(Time=mins,Location="END OF SHIFT"))
-  ### Then reorder, remove duplicate rows (from wrapping df), fix row numbers
-  df <- df[order(df$Time),]
-  df <- df[!duplicated(df),]
-  rownames(df) <- seq.int(nrow(df))
+  df <- iMakeOrderedRoute(sites,travel,ttlEffort)
+  df <- iAdjustRoute4RandomStart(df,mins)
   
   ## Convert mins to actual time-of-day (must convert mins to secs)
-  df$Time <- format(start+df$Time*60,format="%H:%M")
+  df$TIME <- format(start+df$TIME*60,format="%H:%M")
   
   ## Return data.frame
   df
 }
 
+iPrintBusRoute <- function(brdf) {
+  ## Make blanks template
+  blnks1 <- "_ _ : _ _"
+  blnks2 <- "_ _ _"
+  
+  ## Add the ARRIVED, DEPARTED, and COUNT columns
+  brdf$ARRIVED <- ifelse(grepl("TRAVEL",brdf$LOCATION) | grepl("END",brdf$LOCATION),
+                         "",blnks1)
+  brdf$DEPARTED <- brdf$ARRIVED
+  brdf$COUNT <- ifelse(grepl("TRAVEL",brdf$LOCATION) | grepl("END",brdf$LOCATION),
+                       "",blnks2)
+  ## Make the huxtable
+  ht <- as_hux(brdf,add_colnames=TRUE) %>%
+    rbind(c("","","TIME","TIME","WEIGHTED"),.) %>%      # Extra label at the top
+    set_position("left") %>%                            # Left justify entire table
+    set_font_size(row=everywhere,col=everywhere,14) %>%
+    set_align(row=everywhere,col=-(1:2),"center") %>%   # Center all but leftmost two columns
+    set_row_height(row=everywhere,.03) %>%              # Control row height
+    set_row_height(row=3,.04) %>%                       # Slightly taller third row
+    set_top_border(row=1,col=everywhere,3) %>%          # Line above top of table
+    set_bottom_border(row=final(),col=everywhere,3) %>% # Line below bottom of table
+    set_bottom_border(row=2,col=everywhere,1) %>%       # Line below variable names
+    set_bold(row=1:2,col=everywhere,TRUE) %>%           # Bold first two rows of labels
+    set_bold(row=everywhere,col=1,TRUE)                 # Bold first column of labels
+  ## Return the huxtable
+  ht
+}

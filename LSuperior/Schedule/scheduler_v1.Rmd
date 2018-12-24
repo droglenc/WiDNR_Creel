@@ -1,7 +1,11 @@
 ---
-title: "Lake Superior Creel Schedule"
+title: "Lake Superior Creel Scheduler"
 output: pdf_document
 ---
+
+\fontsize{18}{24}
+\selectfont
+\pagenumbering{gobble}
 
 ```{r input, echo=FALSE}
 ## User Inputs
@@ -11,38 +15,89 @@ ROUTE <- c("Corny-PW")
 SEED <- 34583489
 ```
 
-## Information
-* Year: `r YEAR`
-* Lake: `r LAKE`
-* Route: `r ROUTE`
-* Seed: `r formatC(SEED,format="d")`
-* Ran: `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
-
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
 fldr <- ""
 source(paste0(fldr,"Schedule_Helpers.R"))
+knitr::opts_chunk$set(echo = FALSE)
+options(huxtable.knitr_output_format="latex")
 
 ## Read in Route and Shift information
-f <- paste0(fldr,"Schedule_Info_LS.xlsx")
-print(f)
-LSroutes <- readRoutes(f,sheet="Routes") %>%
+finfo <- paste0(fldr,"Schedule_Info_LS.xlsx")
+LSroutes <- readRoutes(finfo,sheet="Routes") %>%
   dplyr::filter(route %in% ROUTE)
-LSshifts <- readShifts(f,sheet="Shifts") %>%
+LSshifts <- readShifts(finfo,sheet="Shifts") %>%
   dplyr::filter(route %in% ROUTE)
 
 ## Set the random number seed
 set.seed(SEED)
+
+## Set filename for schedule data
+fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_Schedule.csv")
 ```
+
+**Year:** `r YEAR`
+
+\vspace{12pt}
+
+**Lake:** `r LAKE`
+
+**Route:** `r ROUTE`
+
+\vspace{12pt}
+
+**Ran:** `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
+
+**Seed:** `r formatC(SEED,format="d")`
+
+\textbf{Schedule File:} `r gsub("_","\\_",fout,fixed=TRUE)`
 
 ```{r makeSchedule, include=FALSE}
 ## Make the schedule
-fn <- makeSchedule(YEAR,LAKE,ROUTE,LSroutes)
+fn <- makeSchedule(YEAR,LAKE,ROUTE,LSroutes,fout)
 ```
 
 \newpage
 
-```{r makeCalendars, echo=FALSE}
-
+```{r makeCalendar, echo=FALSE, fig.width=7, fig.height=7}
+makeCalendar(fn,MONTH1="May")
 ```
+
+\newpage
+
+```{r makeBusRoute, echo=FALSE}
+sched <- read.csv(fn) %>%
+  dplyr::filter(ROUTE==ROUTE,MONTH=="May",CREEL=="YES")
+
+crap <- iMakeBusRoute(LSroutes,LSshifts,
+                      ROUTE=as.character(sched$ROUTE[1]),
+                      SHIFT=as.character(sched$SHIFT[1]),
+                      MONTH1=as.character(sched$MONTH[1]))
+
+junk <- sched[1,c("ROUTE","SHIFT","DATE","DAYTYPE","DAILY_SCHED")]
+junk <- apply(junk,MARGIN=2,as.character)
+
+hdr <- data.frame(attrib=c("Lake","Route","Shift","Date","Day Type","Bus Route"),
+                  value=c(LAKE,t(junk)),stringsAsFactors=FALSE)
+hdr$value[hdr$attrib=="Date"] <- format(lubridate::ymd(hdr$value[hdr$attrib=="Date"]),format="%m-%d-%Y")
+hdr$value[hdr$attrib=="Day Type"] <- paste(hdr$value[hdr$attrib=="Day Type"],
+                     ifelse(hdr$value[hdr$attrib=="Day Type"]=="WEEKDAY","(1)","(2)"),sep=" ")
+hdr
+
+out <- paste("\\textbf{Lake:}",LAKE,"\n\n")
+out <- paste(out,"\\textbf{Route:}",as.character(sched$ROUTE[1]),"\n\n")
+out <- paste(out,"\\textbf{Shift:}",as.character(sched$SHIFT[1]),"\n\n")
+out <- paste(out,"\\textbf{Date:}",
+             format(lubridate::ymd(as.character(sched$DATE[1])),
+                    format="%m-%d-%Y"),"\n\n")
+out <- paste(out,"\\textbf{Day Type:}",paste(as.character(sched$DAYTYPE[1]),
+                     ifelse(sched$DAYTYPE[1]=="WEEKDAY","(1)","(2)"),sep=" "),"\n\n")
+out <- paste(out,"\\textbf{Bus Route:}",as.character(sched$DAILY_SCHED[1]),"\n\n")
+out <- paste(out,"\\vspace{36pt}")
+
+out2 <- "\\vspace{36pt}\n\n\\textbf{Clerk:}"
+```
+
+`r out`
+`r knitr::knit_print(iPrintBusRoute(crap))`
+`r out2`
 
