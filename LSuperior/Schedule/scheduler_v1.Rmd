@@ -1,9 +1,16 @@
 ---
 title: "Lake Superior Creel Scheduler"
-output: pdf_document
+header-includes:
+   - \usepackage{booktabs}
+   - \usepackage[table]{xcolor}
+   - \usepackage{colortbl}
+output: 
+  pdf_document:
+    includes:
+      in_header: preamble.tex
 ---
 
-\fontsize{18}{24}
+\fontsize{14}{18}
 \selectfont
 \pagenumbering{gobble}
 
@@ -16,6 +23,7 @@ SEED <- 34583489
 ```
 
 ```{r setup, include=FALSE}
+library(kableExtra)
 fldr <- ""
 source(paste0(fldr,"Schedule_Helpers.R"))
 knitr::opts_chunk$set(echo = FALSE)
@@ -23,16 +31,17 @@ options(huxtable.knitr_output_format="latex")
 
 ## Read in Route and Shift information
 finfo <- paste0(fldr,"Schedule_Info_LS.xlsx")
-LSroutes <- readRoutes(finfo,sheet="Routes") %>%
+## Load route and shift information
+routes <- readRoutes(finfo,sheet="Routes") %>%
   dplyr::filter(route %in% ROUTE)
-LSshifts <- readShifts(finfo,sheet="Shifts") %>%
+shifts <- readShifts(finfo,sheet="Shifts") %>%
   dplyr::filter(route %in% ROUTE)
 
 ## Set the random number seed
 set.seed(SEED)
 
 ## Set filename for schedule data
-fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_Schedule.csv")
+fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_SCHEDULE.csv")
 ```
 
 **Year:** `r YEAR`
@@ -53,51 +62,30 @@ fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_Schedule.csv")
 
 ```{r makeSchedule, include=FALSE}
 ## Make the schedule
-fn <- makeSchedule(YEAR,LAKE,ROUTE,LSroutes,fout)
+fn <- makeSchedule(YEAR,LAKE,ROUTE,routes,fout)
 ```
 
 \newpage
 
-```{r makeCalendar, echo=FALSE, fig.width=7, fig.height=7}
-makeCalendar(fn,MONTH1="May")
+```{r makeBusRoute, echo=FALSE, fig.width=7, fig.height=7, fig.show="asis", results="asis"}
+## Get the schedule
+sched <- read.csv(fn)
+## Get months in schedule
+mos <- as.character(unique(sched$MONTH))
+
+for (i in mos) {
+  makeCalendar(fn,MONTH1=i)
+  tmp <- sched[sched$MONTH==i & sched$CREEL=="YES",]
+  for (j in seq_len(nrow(tmp))) {
+    br <- iMakeBusRoute(routes,shifts,
+                        ROUTE=as.character(tmp$ROUTE[j]),
+                        SHIFT=as.character(tmp$SHIFT[j]),
+                        MONTH1=as.character(tmp$MONTH[j]))
+    cat("\\newpage\n")
+    print(iPrintBusRouteHeader(tmp[j,]))
+    cat("\\vspace{24pt}\n")
+    print(iPrintBusRoute(br))
+  }
+}
+
 ```
-
-\newpage
-
-```{r makeBusRoute, echo=FALSE}
-sched <- read.csv(fn) %>%
-  dplyr::filter(ROUTE==ROUTE,MONTH=="May",CREEL=="YES")
-
-crap <- iMakeBusRoute(LSroutes,LSshifts,
-                      ROUTE=as.character(sched$ROUTE[1]),
-                      SHIFT=as.character(sched$SHIFT[1]),
-                      MONTH1=as.character(sched$MONTH[1]))
-
-junk <- sched[1,c("ROUTE","SHIFT","DATE","DAYTYPE","DAILY_SCHED")]
-junk <- apply(junk,MARGIN=2,as.character)
-
-hdr <- data.frame(attrib=c("Lake","Route","Shift","Date","Day Type","Bus Route"),
-                  value=c(LAKE,t(junk)),stringsAsFactors=FALSE)
-hdr$value[hdr$attrib=="Date"] <- format(lubridate::ymd(hdr$value[hdr$attrib=="Date"]),format="%m-%d-%Y")
-hdr$value[hdr$attrib=="Day Type"] <- paste(hdr$value[hdr$attrib=="Day Type"],
-                     ifelse(hdr$value[hdr$attrib=="Day Type"]=="WEEKDAY","(1)","(2)"),sep=" ")
-hdr
-
-out <- paste("\\textbf{Lake:}",LAKE,"\n\n")
-out <- paste(out,"\\textbf{Route:}",as.character(sched$ROUTE[1]),"\n\n")
-out <- paste(out,"\\textbf{Shift:}",as.character(sched$SHIFT[1]),"\n\n")
-out <- paste(out,"\\textbf{Date:}",
-             format(lubridate::ymd(as.character(sched$DATE[1])),
-                    format="%m-%d-%Y"),"\n\n")
-out <- paste(out,"\\textbf{Day Type:}",paste(as.character(sched$DAYTYPE[1]),
-                     ifelse(sched$DAYTYPE[1]=="WEEKDAY","(1)","(2)"),sep=" "),"\n\n")
-out <- paste(out,"\\textbf{Bus Route:}",as.character(sched$DAILY_SCHED[1]),"\n\n")
-out <- paste(out,"\\vspace{36pt}")
-
-out2 <- "\\vspace{36pt}\n\n\\textbf{Clerk:}"
-```
-
-`r out`
-`r knitr::knit_print(iPrintBusRoute(crap))`
-`r out2`
-

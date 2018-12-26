@@ -58,7 +58,8 @@ iFindStartDate <- function(MONTH,YEAR) {
   ## Make the first of the month a date
   tmp <- lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))
   ## Move that date back to the previous Monday
-  tmp - (lubridate::wday(tmp,week_start=1)-1)
+  #tmp <- tmp - (lubridate::wday(tmp,week_start=1)-1)
+  tmp
 }
 
 ### Finds Sunday closest to end of the month
@@ -76,7 +77,8 @@ iFindLastDate <- function(MONTH,YEAR) {
   ### ... and subtract one for last day of month
   tmp <- lubridate::dmy(paste(1,NEXT_MONTH,YEAR,sep="-")) - 1
   ## Find day of the week and add what it takes to make it a Sunday
-  tmp + (7-lubridate::wday(tmp,week_start=1))
+  #tmp <- tmp + (7-lubridate::wday(tmp,week_start=1))
+  tmp
 }
 
 ### Days for which a creel survey should be conducted.
@@ -88,23 +90,25 @@ iFindDays2Creel <- function(data) {
   ## Vector to hold results ... initialize with "YES"es ("NO"s added below)
   CREEL <- rep("YES",nrow(data))
   ## Cycle through the weeks
-  for (i in unique(data$WEEK)) {
-    ### Isolate just that week's data
-    x <- dplyr::filter(data,WEEK==i)
-    ## Find the weekdays in x
-    tmp <- x[x$DAYTYPE=="WEEKDAY",]
-    ## Find two consecutive weekdays "off" (no creel)
-    ### Find all indices where there are two consecutive weekdays
-    ### i.e., don't give one day off between a holiday and a weekend
-    ### also ignore the last weekeday because it cannot be the first weekday
-    ###      of the two days off
-    ind <- which(diff(tmp$WDAYn)==1)
-    ### randomly sample a "starting day off"
-    ind <- sample(ind,1)
-    ### then find the next day off (i.e., the day after the starting day off)
-    ind <- c(ind,ind+1)
-    ## Add a "NO" to CREEL for the two days off
-    CREEL[data$WEEK==i & data$WDAY %in% tmp$WDAY[ind]] <- "NO"
+  for (i in seq_len(max(data$WEEK))) {
+    ### Isolate just the weekday of that week
+    x <- data[data$WEEK==i & data$DAYTYPE=="WEEKDAY",]
+    ## If only a three day or less work week at the beginning or end of the
+    ## season then creel all days ... else find two days off
+    if (!((i==1 | i==max(data$WEEK) & nrow(x)<4))) {
+      ## Find two consecutive weekdays "off" (no creel)
+      ### Find all indices where there are two consecutive weekdays
+      ### i.e., don't give one day off between a holiday and a weekend
+      ### also ignore the last weekeday because it cannot be the first weekday
+      ###      of the two days off
+      ind <- which(diff(x$WDAYn)==1)
+      ### randomly sample a "starting day off"
+      ind <- sample(ind,1)
+      ### then find the next day off (i.e., the day after the starting day off)
+      ind <- c(ind,ind+1)
+      ## Add a "NO" to CREEL for the two days off
+      CREEL[data$WEEK==i & data$WDAY %in% x$WDAY[ind]] <- "NO"
+    }
   }
   ## Return the vector
   CREEL
@@ -151,7 +155,8 @@ makeSchedule <- function(YEAR,LAKE,ROUTE,info,fout,show_summary=TRUE) {
   ### Randomly choose an am or pm shift for each day
   ### Add random bus route timing letters (within a month)
   sched <- data.frame(DATE=start_date+0:(end_date-start_date)) %>%
-    dplyr::mutate(ROUTE=ROUTE,
+    dplyr::mutate(LAKE=LAKE,
+                  ROUTE=ROUTE,
                   MONTH=lubridate::month(DATE,label=TRUE),
                   WEEK=lubridate::isoweek(DATE)-lubridate::isoweek(DATE[1])+1,
                   WDAYn=lubridate::wday(DATE,week_start=1),
@@ -194,7 +199,7 @@ makeSchedule <- function(YEAR,LAKE,ROUTE,info,fout,show_summary=TRUE) {
 
 ## Calendar ----
 ### Makes the calendar header
-iMakeCalHeader <- function(pth) {
+iMakeCalHeader <- function(pth="") {
   g <- grid::rasterGrob(magick::image_read(paste0(pth,"WiDNR_logo.jpg")),
                         interpolate=TRUE)
   header <- data.frame(x=1:10,y=1) %>% 
@@ -287,7 +292,7 @@ readShifts <- function(f,sheet="Shifts") {
   ## Order rows
   df <- readxl::read_excel(f,sheet=sheet,col_types="text") %>%
     iExpandMonthsList() %>%
-    dplyr::mutate(month=factor(month,levels=month.name)) %>%
+    dplyr::mutate(month=factor(month,levels=month.abb)) %>%
     dplyr::arrange(area,creel,route,month,shift) %>%
     as.data.frame()
   df
@@ -389,9 +394,8 @@ iAdjustRoute4RandomStart <- function(data,mins) {
 
 
 iMakeBusRoute <- function(routes,shifts,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
-
   ## Isolate the pertintent route information
-  routeInfo <- dplyr::filter(routes,route==ROUTE,month==MONTH1)
+  routeInfo <- routes[routes$route==ROUTE & routes$month==MONTH1,]
   ## Possibly (if allowed) change the visit order (based on a coin-flip)
   if (allow_reverse & runif(1)<0.5) routeInfo <- iReverseRoute(routeInfo)
   ## Get vectors of route information
@@ -400,7 +404,7 @@ iMakeBusRoute <- function(routes,shifts,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
   peffort <- routeInfo$peffort
   
   ### Isolate the pertinent shift information
-  shiftInfo <- dplyr::filter(shifts,route==ROUTE,month==MONTH1,shift==SHIFT)
+  shiftInfo <- shifts[shifts$route==ROUTE & shifts$month==MONTH1 & shifts$shift==SHIFT,]
   ## Find total minutes from start to end
   start <- as.POSIXct(shiftInfo$start,format="%H:%M")
   end <- as.POSIXct(shiftInfo$end,format="%H:%M")
@@ -425,30 +429,37 @@ iMakeBusRoute <- function(routes,shifts,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
   df
 }
 
+iPrintBusRouteHeader <- function(x) {
+  x <- x[,c("LAKE","ROUTE","SHIFT","DATE","DAYTYPE","DAILY_SCHED")]
+  x$DATE <- format(lubridate::ymd(x$DATE),format="%m/%d/%Y")
+  x$DAYTYPE <- paste(x$DAYTYPE,ifelse(x$DAYTYPE=="WEEKDAY","(1)","(2)"),sep=" ")
+  x <- t(x)
+  colnames(x) <- c("Information")
+  ## Make Kable
+  kt <- kable(x,booktabs=TRUE,linesep="") %>%
+    kable_styling(full_width=FALSE,
+                  position="left",
+                  latex_options=c("hold_position")) %>%
+    column_spec(1,bold=TRUE) %>%
+    row_spec(0,bold=TRUE)
+  ## Return huxtable
+  kt
+}
+
 iPrintBusRoute <- function(brdf) {
-  ## Make blanks template
-  blnks1 <- "_ _ : _ _"
-  blnks2 <- "_ _ _"
-  
   ## Add the ARRIVED, DEPARTED, and COUNT columns
-  brdf$ARRIVED <- ifelse(grepl("TRAVEL",brdf$LOCATION) | grepl("END",brdf$LOCATION),
-                         "",blnks1)
+  travORendRows <- grepl("TRAVEL",brdf$LOCATION) | grepl("END",brdf$LOCATION)
+  brdf$ARRIVED <- ifelse(travORendRows,"","_ _ : _ _")
   brdf$DEPARTED <- brdf$ARRIVED
-  brdf$COUNT <- ifelse(grepl("TRAVEL",brdf$LOCATION) | grepl("END",brdf$LOCATION),
-                       "",blnks2)
-  ## Make the huxtable
-  ht <- as_hux(brdf,add_colnames=TRUE) %>%
-    rbind(c("","","TIME","TIME","WEIGHTED"),.) %>%      # Extra label at the top
-    set_position("left") %>%                            # Left justify entire table
-    set_font_size(row=everywhere,col=everywhere,14) %>%
-    set_align(row=everywhere,col=-(1:2),"center") %>%   # Center all but leftmost two columns
-    set_row_height(row=everywhere,.03) %>%              # Control row height
-    set_row_height(row=3,.04) %>%                       # Slightly taller third row
-    set_top_border(row=1,col=everywhere,3) %>%          # Line above top of table
-    set_bottom_border(row=final(),col=everywhere,3) %>% # Line below bottom of table
-    set_bottom_border(row=2,col=everywhere,1) %>%       # Line below variable names
-    set_bold(row=1:2,col=everywhere,TRUE) %>%           # Bold first two rows of labels
-    set_bold(row=everywhere,col=1,TRUE)                 # Bold first column of labels
-  ## Return the huxtable
-  ht
+  brdf$COUNT <- ifelse(travORendRows,"","_ _ _")
+
+  ## Make the kable
+  kt <- kable(brdf,format="latex",booktabs=TRUE,linesep="") %>%
+    kable_styling(full_width=FALSE,
+                  position="left",
+                  latex_options=c("hold_position")) %>%
+    column_spec(1,bold=TRUE) %>%
+    row_spec(0,bold=TRUE)
+  ## Return kable
+  kt
 }
