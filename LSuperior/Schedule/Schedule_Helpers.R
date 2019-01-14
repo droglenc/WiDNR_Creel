@@ -1,10 +1,58 @@
 ## Load Packages ----
 library(dplyr)
 library(ggplot2)
-library(huxtable)
+library(kableExtra)
 
 
 ## General ----
+### Reads clerk specific information.
+readClerks <- function(f,sheet,CLERK) {
+  ## Restrict to the chosen CLERK
+  ## Reduce data.frame variables
+  df <- readxl::read_excel(finfo,sheet) %>%
+    FSA::filterD(clerk==CLERK) %>%
+    dplyr::select(route,clerk,ctime) %>%
+    as.data.frame()
+  df
+}
+
+
+### Reads route specific information.
+readRoutes <- function(f,sheet,clerks) {
+  ## Expand the list of months to individual months
+  ## Add a site variable that is combo of site number & description
+  ## Make months an ordered factor variable
+  ## Restrict to only the routes found in clerks
+  ## Order rows
+  ## Reduce and reorder data.frame variables
+  df <- readxl::read_excel(f,sheet=sheet) %>%
+    iExpandMonthsList() %>%
+    dplyr::mutate(site=paste0(site_descrip," (#",site_no,")"),
+                  month=factor(month,levels=month.abb)) %>%
+    FSA::filterD(route %in% clerks$route) %>%
+    dplyr::arrange(route,month,visit) %>%
+    dplyr::select(route,month,site,visit,travel,peffort) %>%
+    as.data.frame()
+  df
+}
+
+### Reads shift specific information
+readShifts <- function(f,sheet,clerks,CLERK) {
+  ## Expand the list of months to individual months
+  ## Make months an ordered factor variable
+  ## Restrict to the CLERK asked for
+  ## Order rows
+  ## Reduce and reorder data.frame variables
+  df <- readxl::read_excel(f,sheet=sheet,col_types="text") %>%
+    iExpandMonthsList() %>%
+    dplyr::mutate(month=factor(month,levels=month.abb)) %>%
+    FSA::filterD(route %in% clerks$route) %>%
+    dplyr::arrange(route,month,shift) %>%
+    dplyr::select(route,month,shift,start,end) %>%
+    as.data.frame()
+  df
+}
+
 ### Determine if date is a holiday
 is.holiday <- function(x) {
   if (!lubridate::is.Date(x)) stop("'x' must be a 'Date' object.",call.=FALSE)
@@ -47,8 +95,6 @@ iCheckYear <- function(x,min.year=2010,max.year=2099) {
 }
 
 
-
-
 ## Scheduling ----
 ### Find Monday closest to beginning of the month
 iFindStartDate <- function(MONTH,YEAR) {
@@ -86,9 +132,12 @@ iFindDays2Creel <- function(data) {
   ## Assumes: - Determination is on a weekly basis
   ##          - Creel survey for every weekend day and holiday
   ##          - Two consecutive weekdays will be "off" during each week
+  ##          - "Off" days will not be the same on consecutive weeks
   
   ## Vector to hold results ... initialize with "YES"es ("NO"s added below)
   CREEL <- rep("YES",nrow(data))
+  ## Initialize the index for the previous week's day off
+  prevind <- NULL
   ## Cycle through the weeks
   for (i in seq_len(max(data$WEEK))) {
     ### Isolate just the weekday of that week
@@ -97,11 +146,16 @@ iFindDays2Creel <- function(data) {
     ## season then creel all days ... else find two days off
     if (!((i==1 | i==max(data$WEEK) & nrow(x)<4))) {
       ## Find two consecutive weekdays "off" (no creel)
-      ### Find all indices where there are two consecutive weekdays
-      ### i.e., don't give one day off between a holiday and a weekend
-      ### also ignore the last weekeday because it cannot be the first weekday
-      ###      of the two days off
-      ind <- which(diff(x$WDAYn)==1)
+      ### Find first day off of previous week (is in the ind vector)
+      prevind <- ifelse(is.null(prevind),0,ind[1])
+      ### Find weekday indices for the given week, but don't include Fridays
+      ind <- x$WDAYn
+      ind <- ind[ind!=5]
+      ### Find all indices where there are two consecutive weekdays; i.e., don't
+      ###   give one day off between a holiday and a weekend.
+      ind <- ind[which(diff(x$WDAYn)==1)]
+      ### Don't allow 1st day off of previous week to be 1st day off this week
+      ind <- ind[ind!=prevind]
       ### randomly sample a "starting day off"
       ind <- sample(ind,1)
       ### then find the next day off (i.e., the day after the starting day off)
@@ -114,31 +168,123 @@ iFindDays2Creel <- function(data) {
   CREEL
 }
 
-### Randomly shuffles a roughly equal number of "am"s and "pm"s. Thus, the
-### shift for any given day is random but the total number of "am"s and "pm"s
-### is restricted to be very nearly equal
+### Finds daily shifts according to the following assumptions:
+###   1. Approx. equal number of shifts per weekday for the MONTH
+###   2. Randomly select shift for first weekday/holiday of the week and then
+###      alternate so a shift appears on at least one weekend day.
 iFindShifts <- function(data) {
-  tmp <- data[data$CREEL=="YES",]
-  aps <- sample(rep(c("am","pm"),(floor(nrow(tmp))/2)+1),nrow(tmp))
+  ## Initialize vector of SHIFTs with blanks
   SHIFT <- character(nrow(data))
+  ## Fill in SHIFTs on non-creel days with NA
   SHIFT[data$CREEL=="NO"] <- NA
-  SHIFT[data$CREEL=="YES"] <- aps
+  ## Process by month
+  mos <- as.character(unique(data$MONTH))
+  for (i in mos) {
+    ### Handle weekdays
+    #### Find rows to replace (is a creel, weekday, correct month)
+    rows <- which(data$CREEL=="YES" & data$DAYTYPE=="WEEKDAY" & data$MONTH==i)
+    #### Find the number of rows to replace
+    nrows <- length(rows)
+    #### Fill in SHIFTs on creel days with the randomized shift.
+    SHIFT[rows] <- sample(rep(c("am","pm"),(floor(nrows)/2)+1),nrows)
+    ### Handle weekends and holidays (together)
+    rows <- which(data$CREEL=="YES" & data$DAYTYPE!="WEEKDAY" & data$MONTH==i)
+    for (j in unique(data[rows,]$WEEK)) {
+      rows <- which(data$CREEL=="YES" & data$DAYTYPE!="WEEKDAY" &
+                      data$MONTH==i & data$WEEK==j)
+      #### pick random start from 1st 2 positions of am/pm list below
+      tmp <- sample(1:2,1)
+      #### choose am/pm based on random start and number needed
+      SHIFT[rows] <- c("am","pm","am","pm")[tmp:(tmp+length(rows)-1)]
+    }
+  } 
+  ## Return the SHIFTs vector
   SHIFT
 }
 
-### Assigns letter for a particular randomized bus route within a month.
+### Finds daily route according to the following assumptions:
+###   1. For clerks with only one route, same route every day.
+###   2. For clerks with two routes, choose random route for ...
+###      a. first weekday for a two week period and then alternate (thus
+###         same number of routes for two-week period, but not the same days
+###         in more than two consecutive weeks).
+###      b. first weekend/holiday for two-seek period and then other route for
+###         other weekend day, and then reverse for the next weekend (thus
+###         not same order on more than two weekends in a row).
+iFindRoutes <- function(data,clerks) {
+  ## Initialize vector of ROUTEs with blanks & then non-creel days with NA
+  ROUTE <- character(nrow(data))
+  ROUTE[data$CREEL=="NO"] <- NA
+  ## Find the unique routes in data and sampling proportion
+  ROUTES <- clerks$route
+  CTIMES <- clerks$ctime
+  CTIMES <- CTIMES/sum(CTIMES)
+
+  if (length(ROUTES)==1) {
+    ## If only one route, fill in ROUTES on creel days with that name
+    rows <- which(data$CREEL=="YES")
+    ROUTE[rows] <- rep(ROUTES,length(rows))
+  } else {
+    ## If two routes, then must do more work.
+    wks <- seq(1,max(data$WEEK),2) 
+    for (i in wks) {
+      ### Handle weekends/holidays
+      rows <- which(data$CREEL=="YES" & data$DAYTYPE!="WEEKDAY"
+                    & data$WEEK %in% c(i,i+1))
+      #### randomly order routes, then reverse, and add one more random choice
+      #### in case it is a week with five weekends/holidays
+      tmp <- sample(ROUTES,2)
+      tmp <- c(tmp,rev(tmp),sample(ROUTES,1))
+      ROUTE[rows] <- tmp[1:length(rows)]
+      ### Handle weekdays
+      rows <- which(data$CREEL=="YES" & data$DAYTYPE=="WEEKDAY"
+                    & data$WEEK %in% c(i,i+1))
+      #### randomly order routes, repeat as needed, pick as many as needed
+      tmp <- sample(ROUTES,2)
+      ROUTE[rows] <- rep(tmp,4)[1:length(rows)]
+    }
+  }
+  ## Return the ROUTEs vector
+  ROUTE
+}
+
+### Assigns unique number for a particular randomized bus route.
 iAssignBusRouteIDs <- function(data) {
   ## Initialize vector of IDs with blanks
   IDs <- character(nrow(data))
-  ## Isolate those days that will have a creel survey
-  tmp <- data[data$CREEL=="YES",]
+  ## Fill in IDs on non-creel days with NA
+  IDs[data$CREEL=="NO"] <- NA
+  ## Find the number of days that will have a creel survey
+  tmp <- nrow(data[data$CREEL=="YES",])
   ## Fill in IDs on creel days with a unique number
-  IDs[data$CREEL=="YES"] <- 1:nrow(tmp)
+  IDs[data$CREEL=="YES"] <- 1:tmp
   ## Return the IDs vector
   IDs
 }
 
-makeSchedule <- function(YEAR,LAKE,ROUTE,info,fout,show_summary=TRUE) {
+### Produces (and prints) a summary of the generated schedule.
+iSchedSummary <- function(sched) {
+  ## Show lengths of runs of "YESes" (number of consecutive days worked)
+  tmp <- rle(sched$CREEL)
+  tmp <- table(tmp$values,tmp$lengths)["YES",]
+  cat("Frequency of Consecutive Days Worked\n")
+  print(tmp)
+  ## Show frequency of day types by month
+  cat("\nFrequency of Days by Month and Day Type\n")
+  print(addmargins(xtabs(~MONTH+DAYTYPE+ROUTE,data=FSA::filterD(sched,CREEL=="YES")),
+                   margin=1:2))
+  ## Show frequency of days of the week by month
+  cat("\nFrequency of Days by Month and Day of the Week\n")
+  print(addmargins(xtabs(~MONTH+WDAY+ROUTE,data=FSA::filterD(sched,CREEL=="YES")),
+                   margin=1:2))
+  ## Show frequency of ams and pms by month
+  cat("\nFrequency of Days by Month and Day Type\n")
+  print(addmargins(xtabs(~MONTH+SHIFT+ROUTE,data=FSA::filterD(sched,CREEL=="YES")),
+                   margin=1:2))
+  cat("\n")
+}
+
+makeSchedule <- function(LAKE,YEAR,info,clerks,fout,show_summary=TRUE) {
   ## Check inputs
   YEAR <- iCheckYear(YEAR)
   ## Get start and end data from the information in info
@@ -156,7 +302,6 @@ makeSchedule <- function(YEAR,LAKE,ROUTE,info,fout,show_summary=TRUE) {
   ### Add random bus route timing letters (within a month)
   sched <- data.frame(DATE=start_date+0:(end_date-start_date)) %>%
     dplyr::mutate(LAKE=LAKE,
-                  ROUTE=ROUTE,
                   MONTH=lubridate::month(DATE,label=TRUE),
                   WEEK=lubridate::isoweek(DATE)-lubridate::isoweek(DATE[1])+1,
                   WDAYn=lubridate::wday(DATE,week_start=1),
@@ -166,30 +311,13 @@ makeSchedule <- function(YEAR,LAKE,ROUTE,info,fout,show_summary=TRUE) {
                     is.holiday(DATE) ~ "HOLIDAY",
                     TRUE ~ "WEEKDAY")) %>%
     tibble::add_column(CREEL=iFindDays2Creel(.)) %>%
+    tibble::add_column(ROUTE=iFindRoutes(.,clerks)) %>%
     tibble::add_column(SHIFT=iFindShifts(.)) %>%
     tibble::add_column(DAILY_SCHED=iAssignBusRouteIDs(.))
-  ## Write the result out to a file
-  write.csv(sched,paste0(fldr,fout),quote=FALSE,row.names=FALSE)
   ## Show summaries if asked to
-  if (show_summary) {
-    ## Show lengths of runs of "YESes" (number of consecutive days worked)
-    tmp <- rle(sched$CREEL)
-    tmp <- table(tmp$values,tmp$lengths)["YES",]
-    cat("Frequency of Consecutive Days Worked\n")
-    print(tmp)
-    ## Show frequency of day types by month
-    cat("\nFrequency of Days by Month and Day Type\n")
-    print(addmargins(xtabs(~MONTH+DAYTYPE,data=FSA::filterD(sched,CREEL=="YES"))))
-    ## Show frequency of days of the week by month
-    cat("\nFrequency of Days by Month and Day of the Week\n")
-    print(addmargins(xtabs(~MONTH+WDAY,data=FSA::filterD(sched,CREEL=="YES"))))
-    ## Show frequency of ams and pms by month
-    cat("\nFrequency of Days by Month and Day Type\n")
-    print(addmargins(xtabs(~MONTH+SHIFT,data=FSA::filterD(sched,CREEL=="YES"))))
-    cat("\n")
-  }
-  ## Return the filename
-  fout
+  if (show_summary) iSchedSummary(sched)
+  ## Return the schedule
+  sched
 }
 
 
@@ -219,10 +347,10 @@ makeCalendar <- function(sched,MONTH1,pth="",width,height,PDF=FALSE) {
   
   ## Read and modify schedule file
   ### Add an "activity" variable that combines route and shift (for printing)
-  sched <- read.csv(paste0(pth,sched),stringsAsFactors=FALSE) %>%
-    mutate(DATE=lubridate::ymd(DATE),
-           activity=ifelse(CREEL=="NO","NO CREEL",
-                           paste0(ROUTE,"\n",SHIFT,"\n(",DAILY_SCHED,")"))) %>%
+  sched <- sched %>%
+    dplyr::mutate(DATE=lubridate::ymd(DATE),
+                  activity=ifelse(CREEL=="NO","NO CREEL",
+                                  paste0(ROUTE,"\n",SHIFT,"\n(",DAILY_SCHED,")"))) %>%
     dplyr::filter(MONTH==MONTH1)
   ## Find year from the schedule
   YEAR <- lubridate::year(sched$DATE[1])
@@ -268,36 +396,6 @@ makeCalendar <- function(sched,MONTH1,pth="",width,height,PDF=FALSE) {
 
 
 ## Bus Routes ----
-### Reads route specific information.
-readRoutes <- function(f,sheet="Routes") {
-  ## Expland the list of months to individual months
-  ## Add a site variable that is combo of site number & description
-  ## Make months an ordered factor variable
-  ## Order rows
-  ## Reduce and reorder data.frame variables
-  df <- readxl::read_excel(f,sheet=sheet) %>%
-    iExpandMonthsList() %>%
-    dplyr::mutate(site=paste0(site_descrip," (#",site_no,")"),
-                  month=factor(month,levels=month.abb)) %>%
-    dplyr::arrange(area,creel,route,month,visit) %>%
-    dplyr::select(area,creel,route,month,site,visit,travel,peffort) %>%
-    as.data.frame()
-  df
-}
-
-### Reads shift specific information
-readShifts <- function(f,sheet="Shifts") {
-  ## Expand the list of months to individual months
-  ## Make months an ordered factor variable
-  ## Order rows
-  df <- readxl::read_excel(f,sheet=sheet,col_types="text") %>%
-    iExpandMonthsList() %>%
-    dplyr::mutate(month=factor(month,levels=month.abb)) %>%
-    dplyr::arrange(area,creel,route,month,shift) %>%
-    as.data.frame()
-  df
-}
-
 ### The information files contains lists of months in one cell of the
 ### spreadsheet. This expands those lists by putting months in one row and
 ### repeating the other pertinent information.
@@ -343,7 +441,7 @@ iAdjustTimeAtSite <- function(ttlEffort,ttlTime,sites,peffort) {
     tmp2 <- unique(sites) %in% rownames(tmp)
     #### do the addition/subtraction
     if (ttlTime<ttlTime2) ttlEffort[tmp2] <- ttlEffort[tmp2]-tmp
-    else teffort[tmp2] <- ttlEffort[tmp2]+tmp
+    else ttlEffort[tmp2] <- ttlEffort[tmp2]+tmp
   }
   ## Return the adjusted effort vector
   ttlEffort

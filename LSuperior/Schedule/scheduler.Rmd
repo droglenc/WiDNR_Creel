@@ -8,6 +8,19 @@ output:
   pdf_document:
     includes:
       in_header: preamble.tex
+params:
+  YEAR: 
+    value: 2019
+    input: slider
+    min: 2019
+    max: 2025
+    step: 1
+  CLERK: 
+    value: A
+    input: select
+    choices: [A,B,C,D]
+  SEED:
+    value: 34534
 ---
 
 \fontsize{14}{18}
@@ -15,33 +28,33 @@ output:
 \pagenumbering{gobble}
 
 ```{r input, echo=FALSE}
-## User Inputs
-YEAR <- 2019
-LAKE <- "Superior"
-ROUTE <- c("Corny-PW")
-SEED <- 34583489
+## Grab User's Inputs from parameters
+YEAR <- params$YEAR
+CLERK <- params$CLERK
+SEED <- params$SEED
+LAKE <- "SUPERIOR"
 ```
 
-```{r setup, include=FALSE}
-library(kableExtra)
+```{r setup, include=FALSE, message=FALSE}
 fldr <- ""
 source(paste0(fldr,"Schedule_Helpers.R"))
 knitr::opts_chunk$set(echo = FALSE)
-options(huxtable.knitr_output_format="latex")
 
 ## Read in Route and Shift information
 finfo <- paste0(fldr,"Schedule_Info_LS.xlsx")
 ## Load route and shift information
-routes <- readRoutes(finfo,sheet="Routes") %>%
-  dplyr::filter(route %in% ROUTE)
-shifts <- readShifts(finfo,sheet="Shifts") %>%
-  dplyr::filter(route %in% ROUTE)
+clerks <- readClerks(finfo,"Clerks",CLERK)
+routes <- readRoutes(finfo,"Routes",clerks)
+shifts <- readShifts(finfo,"Shifts",clerks)
+
+## Get Routes for this Clerk
+ROUTE <- unique(routes$route)
 
 ## Set the random number seed
-set.seed(SEED)
+if (!is.null(SEED)) set.seed(SEED)
 
 ## Set filename for schedule data
-fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_SCHEDULE.csv")
+fout <- paste(YEAR,toupper(LAKE),paste0(ROUTE,collapse="_"),"schedule.csv",sep="_")
 ```
 
 **Year:** `r YEAR`
@@ -50,7 +63,9 @@ fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_SCHEDULE.csv")
 
 **Lake:** `r LAKE`
 
-**Route:** `r ROUTE`
+**Clerk:** `r CLERK`
+
+**Route(s):** `r paste0(ROUTE,collapse=" and ")`
 
 \vspace{12pt}
 
@@ -62,20 +77,19 @@ fout <- paste0(YEAR,"_",LAKE,"_",ROUTE,"_SCHEDULE.csv")
 
 ```{r makeSchedule, include=FALSE}
 ## Make the schedule
-fn <- makeSchedule(YEAR,LAKE,ROUTE,routes,fout)
+sched <- makeSchedule(LAKE,YEAR,routes,clerks,fout)
 ```
 
 \newpage
 
 ```{r makeBusRoute, echo=FALSE, fig.width=7, fig.height=7, fig.show="asis", results="asis"}
-## Get the schedule
-sched <- read.csv(fn)
-## Get months in schedule
+## Print monthly calendars
 mos <- as.character(unique(sched$MONTH))
+for (i in mos) makeCalendar(sched,MONTH1=i)
 
+## Print the bus routes
 for (i in mos) {
-  makeCalendar(fn,MONTH1=i)
-  tmp <- sched[sched$MONTH==i & sched$CREEL=="YES",]
+  tmp <- dplyr::filter(sched,MONTH==i,CREEL=="YES")
   for (j in seq_len(nrow(tmp))) {
     br <- iMakeBusRoute(routes,shifts,
                         ROUTE=as.character(tmp$ROUTE[j]),
