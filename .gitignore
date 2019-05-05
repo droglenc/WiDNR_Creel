@@ -1,6 +1,14 @@
 zzzAdministrative/
 WiDNR_Creel.Rproj
 
+## Intermediate files not needed in repository
+/LSuperior/Schedule/*files
+/LSuperior/Schedule/*pdf
+/LSuperior/Schedule/*.log
+/LSuperior/Schedule/*.tex
+/LSuperior/Schedule/*.knit.md
+/LSuperior/Schedule/*.utf8.md
+
 
 
 # History files

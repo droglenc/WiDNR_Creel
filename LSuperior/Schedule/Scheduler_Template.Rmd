@@ -11,14 +11,8 @@ output:
 params:
   YEAR: 
     value: 2019
-    input: slider
-    min: 2019
-    max: 2025
-    step: 1
   CLERK: 
     value: A
-    input: select
-    choices: [A,B,C,D]
   SEED:
     value: 34534
 ---
@@ -37,7 +31,7 @@ LAKE <- "SUPERIOR"
 
 ```{r setup, include=FALSE, message=FALSE}
 fldr <- ""
-source(paste0(fldr,"Schedule_Helpers.R"))
+source(paste0(fldr,"Scheduler_Helpers.R"))
 knitr::opts_chunk$set(echo = FALSE)
 
 ## Read in Route and Shift information
