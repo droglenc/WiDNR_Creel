@@ -140,49 +140,53 @@ iFindLastDate <- function(MONTH,YEAR) {
 
 ### Days for which a creel survey should be conducted.
 iFindDays2Creel <- function(data) {
+  ## Vector of weekday names
+  WKDY_NAMES <- c("Mon","Tue","Wed","Thu","Fri")
   ## Vector to hold results ... initialize with "YES"es ("NO"s added below)
   CREEL <- rep("YES",nrow(data))
   ## Initialize the index for the previous week's day off
-  prevind <- NULL
-  ## Create weights for sampling the weekdays to have off ... Mon should have
-  ## double the weight of Tues-Thurs as it can only be selected as "off" in one
-  ## way (as the first day off) whereas the others can be selected in two ways
-  ## (as either the first or second day off).
-  swghts <- c(2,1,1,2)
+  prevDOFF <- NULL
+  ## Create weights for sampling the weekdays to have off ... Mon/Thurs should
+  ## have at least double the weight of Tues/Wed because Mon can only be
+  ## selected as "off" in one way (as the first day off) and Fri can only be
+  ## selected as "off" in one way (if Thurs is selected).
+  swghts <- c(4,1,1,4)
   ## Cycle through the weeks
-  for (i in seq_len(max(data$WEEK))) {
+  maxWeek <- max(data$WEEK)
+  for (i in seq_len(maxWeek)) {
     ### Isolate just the weekdays of that week
-    x <- data[data$WEEK==i & data$DAYTYPE=="WEEKDAY",]
+    DOFF <- FSA::filterD(data,WEEK==i,DAYTYPE=="WEEKDAY")$WDAY
     ## If only a three day or less work week at the beginning or end of the
     ## season then creel all days ... else find two days off
-    if (!((i==1 | i==max(data$WEEK) & nrow(x)<4))) {
+    if (!((i==1 | i==maxWeek & length(DOFF)<4))) {
       ## Find two consecutive weekdays "off" (no creel)
-      ### Find first day off of previous week (is in ind from prev iteration)
-      prevind <- ifelse(is.null(prevind),0,ind[1])
-      ### Find weekday indices for the given week, but don't include Fridays
-      ind <- x$WDAYn
-      ind <- ind[ind!=5]
+      ### Find weekday indices for the given week
+      DOFF <- which(WKDY_NAMES %in% DOFF)
       ### Find all indices where there are two consecutive weekdays; i.e., don't
       ###   give one day off between a holiday and a weekend.
-      ind <- ind[which(diff(x$WDAYn)==1)]
-      ### Don't allow 1st day off of previous week to be 1st day off this week
-      ind <- ind[ind!=prevind]
+      DOFF <- DOFF[which(diff(DOFF)==1)]
+      ### Find first day off of previous week
+      ### And don't allow it to be the first day off this week
+      if (!is.null(prevDOFF)) {
+        prevDOFFind <- which(WKDY_NAMES %in% prevDOFF)
+        DOFF <- DOFF[DOFF!=prevDOFFind]  
+      }
       ### If previously had off Thurs-Fri, then don't let off Mon-Tues (this
-      ### should minimize the two consecutive work days)
-      if (prevind==4 & (1 %in% ind)) ind <- ind[-1]
-      ### If previously had off Mon-Tues, then don't let off Thurs-Fri (this
-      ### should minimize the long consecutive work days)
-      if (prevind==1 & (4 %in% ind)) ind <- ind[-length(ind)]
-      junk <- paste("Week:",i,
-                    "; Previous start day was",prevind,
-                    "; Choices for current start",paste(ind,collapse=","))
-      print(junk)
+      ### should minimize the two consecutive work days). If previously had off
+      ### Mon-Tues, then don't let off Thurs-Fri (this should minimize the long
+      ### consecutive work days)
+      if (!is.null(prevDOFF)) {
+        if (prevDOFF=="Thu" & (1 %in% DOFF)) DOFF <- DOFF[DOFF!=1]
+        if (prevDOFF=="Mon" & (4 %in% DOFF)) DOFF <- DOFF[DOFF!=4]
+      }
       ### randomly sample a "starting day off"
-      if (length(ind)>1) ind <- sample(ind,1,prob=swghts[ind])
+      if (length(DOFF)>1) DOFF <- sample(DOFF,1,prob=swghts[DOFF])
       ### then find the next day off (i.e., the day after the starting day off)
-      ind <- c(ind,ind+1)
+      DOFF <- c(DOFF,DOFF+1)
       ## Add a "NO" to CREEL for the two days off
-      CREEL[data$WEEK==i & data$WDAY %in% x$WDAY[ind]] <- "NO"
+      CREEL[data$WEEK==i & data$WDAY %in% WKDY_NAMES[DOFF]] <- "NO"
+      ## Remember previous day off
+      prevDOFF <- WKDY_NAMES[DOFF[1]]
     }
   }
   ## Return the vector
@@ -346,7 +350,7 @@ makeSchedule <- function(LAKE,YEAR,info,SEED,show_summary=TRUE) {
                     is.holiday(DATE) ~ "HOLIDAY",
                     TRUE ~ "WEEKDAY")) %>%
     tibble::add_column(CREEL=iFindDays2Creel(.)) %>%
-    tibble::add_column(ROUTE=iFindRoutes(.,clerks)) %>%
+    tibble::add_column(ROUTE=iFindRoutes(.,info$clerks)) %>%
     tibble::add_column(SHIFT=iFindShifts(.)) %>%
     tibble::add_column(DAILY_SCHED=iAssignBusRouteIDs(.)) %>%
     select(LAKE,ROUTE,DATE,MONTH,WEEK,WDAY,DAYTYPE,CREEL,SHIFT,DAILY_SCHED)
@@ -359,7 +363,7 @@ makeSchedule <- function(LAKE,YEAR,info,SEED,show_summary=TRUE) {
 }
 
 readSchedule <- function(f) {
-  readr::read_csv(f)
+  readr::read_csv(f,col_types="ccDcdccccd")
 }
 
 
