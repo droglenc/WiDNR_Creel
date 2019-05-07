@@ -114,8 +114,6 @@ iFindStartDate <- function(MONTH,YEAR) {
   YEAR <- iCheckYear(YEAR)
   ## Make the first of the month a date
   tmp <- lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))
-  ## Move that date back to the previous Monday
-  #tmp <- tmp - (lubridate::wday(tmp,week_start=1)-1)
   tmp
 }
 
@@ -133,8 +131,6 @@ iFindLastDate <- function(MONTH,YEAR) {
   }
   ### ... and subtract one for last day of month
   tmp <- lubridate::dmy(paste(1,NEXT_MONTH,YEAR,sep="-")) - 1
-  ## Find day of the week and add what it takes to make it a Sunday
-  #tmp <- tmp + (7-lubridate::wday(tmp,week_start=1))
   tmp
 }
 
@@ -273,51 +269,44 @@ iFindRoutes <- function(data,clerks) {
   ROUTE
 }
 
-### Assigns unique number for a particular randomized bus route.
-iAssignBusRouteIDs <- function(data) {
-  ## Initialize vector of IDs with blanks
-  IDs <- character(nrow(data))
-  ## Fill in IDs on non-creel days with NA
-  IDs[data$CREEL=="NO"] <- NA
-  ## Find the number of days that will have a creel survey
-  tmp <- nrow(data[data$CREEL=="YES",])
-  ## Fill in IDs on creel days with a unique number
-  IDs[data$CREEL=="YES"] <- 1:tmp
-  ## Return the IDs vector
-  IDs
-}
-
 ### Produces (and prints) a summary of the generated schedule.
-iSchedSummary <- function(sched) {
-  ## Show frequency of ams and pms by month
-  cat("\nFrequency of Days by Month and Day Type\n")
-  print(addmargins(xtabs(~MONTH+SHIFT+ROUTE,
-                         data=FSA::filterD(sched,CREEL=="YES")),
-                   margin=1:2))
-  ## Show frequency of day types by month
-  cat("\nFrequency of Days by Month and Day Type\n")
-  print(addmargins(xtabs(~MONTH+DAYTYPE+ROUTE,
-                         data=FSA::filterD(sched,CREEL=="YES")),
-                   margin=1:2))
+iSchedSummary <- function(d) {
+  ## Put weekends and holidays together
+  d <- dplyr::mutate(d,DAYTYPE2=FSA::mapvalues(DAYTYPE,
+                                               from=c("HOLIDAY","WEEKEND"),
+                                               to=c("WKEND/HOL","WKEND/HOL")))
+  ## Get the Yes and No creel days
+  dyes <- FSA::filterD(d,CREEL=="YES")
+  dno <- FSA::filterD(d,CREEL=="NO")
+  oneRoute <- length(unique(d$ROUTE[complete.cases(d$ROUTE)]))==1
+  
+  ## Show frequency of ams and pms by month and day type
+  if (oneRoute) tmp <- xtabs(~MONTH+SHIFT+DAYTYPE2,data=dyes)
+  else tmp <- xtabs(~MONTH+SHIFT+DAYTYPE2+ROUTE,data=dyes)
+  cat("\nFrequency of Days by Month, Shift, and Day Type\n")
+  print(addmargins(tmp,margin=1:2))
+
   ## Show frequency of days of the week by month
+  if (oneRoute) tmp <- xtabs(~MONTH+WDAY,data=dyes)
+  else tmp <- xtabs(~MONTH+WDAY+ROUTE,data=dyes)
   cat("\nFrequency of Days by Month and Day of the Week\n")
-  print(addmargins(xtabs(~MONTH+WDAY+ROUTE,
-                         data=FSA::filterD(sched,CREEL=="YES")),
-                   margin=1:2))
+  print(addmargins(tmp,margin=1:2))
+  
   ## Show "days off" by month
+  tmp <- xtabs(~MONTH+WDAY,data=dno)
   cat("\nFrequency of Days OFF by Month and Day of the Week\n")
-  print(addmargins(xtabs(~MONTH+WDAY,
-                         data=FSA::filterD(sched,CREEL=="NO")),
-                   margin=1:2))
+  print(addmargins(tmp,margin=1:2))
+  
   ## Show lengths of runs of "YESes" (number of consecutive days worked)
-  tmp <- rle(sched$CREEL)
+  tmp <- rle(d$CREEL)
   tmp <- table(tmp$values,tmp$lengths)["YES",]
-  cat("Frequency of Consecutive Days Worked\n")
+  cat("\nFrequency of Consecutive Days Worked\n")
   print(tmp)
   cat("\n")
 }
 
-makeSchedule <- function(LAKE,YEAR,info,SEED,show_summary=TRUE) {
+makeSchedule <- function(LAKE,YEAR,info,SEED,
+                         show_summary=TRUE,show_calendars=TRUE) {
   ## Check inputs
   YEAR <- iCheckYear(YEAR)
   ## Set the random number seed
@@ -340,8 +329,7 @@ makeSchedule <- function(LAKE,YEAR,info,SEED,show_summary=TRUE) {
   ### Randomly choose an am or pm shift for each day
   ### Add random bus route timing letters (within a month)
   sched <- data.frame(DATE=start_date+0:(end_date-start_date)) %>%
-    dplyr::mutate(LAKE=LAKE,
-                  MONTH=lubridate::month(DATE,label=TRUE),
+    dplyr::mutate(MONTH=lubridate::month(DATE,label=TRUE),
                   WEEK=lubridate::isoweek(DATE)-lubridate::isoweek(DATE[1])+1,
                   WDAYn=lubridate::wday(DATE,week_start=1),
                   WDAY=lubridate::wday(DATE,week_start=1,label=TRUE),
@@ -352,18 +340,43 @@ makeSchedule <- function(LAKE,YEAR,info,SEED,show_summary=TRUE) {
     tibble::add_column(CREEL=iFindDays2Creel(.)) %>%
     tibble::add_column(ROUTE=iFindRoutes(.,info$clerks)) %>%
     tibble::add_column(SHIFT=iFindShifts(.)) %>%
-    tibble::add_column(DAILY_SCHED=iAssignBusRouteIDs(.)) %>%
-    select(LAKE,ROUTE,DATE,MONTH,WEEK,WDAY,DAYTYPE,CREEL,SHIFT,DAILY_SCHED)
+    select(WEEK,MONTH,DATE,WDAY,DAYTYPE,SHIFT,ROUTE,CREEL)
   ## Write schedule to CSV file
   write.csv(sched,file=fout,quote=FALSE,na="",row.names=FALSE)
   ## Show summaries if asked to
   if (show_summary) iSchedSummary(sched)
+  ## Show calendars if asked to
+  if (show_calendars) {
+    cat("Printing preliminary calendars (look for separate window) ...")
+    if (!"windows" %in% names(dev.list())) windows(width=7,height=7,record=TRUE)
+    for (i in as.character(unique(sched$MONTH)))
+      makeCalendar(sched,MONTH1=i,add_DS=FALSE,
+                   header="Lake Superior Creel Schedule - PRELIMINARY")
+    cat(" DONE!!\n\n")
+  }
   ## Return the written filename
+  cat("The preliminary schedule written to",fout,"\n")
   fout
 }
 
-readSchedule <- function(f) {
-  readr::read_csv(f,col_types="ccDcdccccd")
+readSchedule <- function(f,show_summary=TRUE,
+                         show_calendars=FALSE,new_window=TRUE) {
+  ## Read schedule file and add a column for daily schedule
+  d <- readr::read_csv(f,col_types="dccccccc") %>%
+    dplyr::mutate(DATE=lubridate::parse_date_time(DATE,c("ymd","mdy")),
+                  DATE=lubridate::ymd(DATE)) %>%
+    tibble::add_column(DAILY_SCHED=iAssignBusRouteIDs(.))
+  ## Show summaries if asked to
+  if (show_summary) iSchedSummary(sched)
+  ## Show calendars if asked to
+  if (show_calendars) {
+    win_exists <- ifelse("windows" %in% names(dev.list()),TRUE,FALSE)
+    if (new_window | !win_exists) windows(width=7,height=7,record=TRUE)
+    for (i in as.character(unique(d$MONTH)))
+      makeCalendar(d,MONTH1=i,add_DS=TRUE)
+  }
+  ## Return data.frame
+  d
 }
 
 
@@ -374,34 +387,37 @@ library(ggplot2)
 
 
 ### Makes the calendar header
-iMakeCalHeader <- function(pth="") {
+iMakeCalHeader <- function(pth="",header) {
   g <- grid::rasterGrob(magick::image_read(paste0(pth,"WiDNR_logo.jpg")),
                         interpolate=TRUE)
   header <- data.frame(x=1:10,y=1) %>% 
     ggplot(aes(x,y)) +
     geom_blank() +
     annotation_custom(g,xmin=0,xmax=2.5,ymin=-Inf,ymax=Inf) +
-    annotate("text",label="Lake Superior Creel Survey Schedule",x=2.25,y=1,
+    annotate("text",label=header,x=2.25,y=1,
              size=6,hjust=0) +
     theme_void()
   header
 }
 
 
-makeCalendar <- function(sched,MONTH1,pth="",width,height,PDF=FALSE) {
+makeCalendar <- function(d,MONTH1,
+                         pth="",header="Lake Superior Creel Schedule",
+                         width,height,add_DS=TRUE) {
   ## Make calendar header
-  header <- iMakeCalHeader(pth)
+  header <- iMakeCalHeader(pth,header)
   
   ## Read and modify schedule file
-  ### Add an "activity" variable that combines route and shift (for printing)
-  sched <- sched %>%
-    dplyr::mutate(DATE=lubridate::ymd(DATE),
-                  activity=ifelse(CREEL=="NO","NO CREEL",
-                                  paste0(ROUTE,"\n",SHIFT,"\n(",
-                                         DAILY_SCHED,")"))) %>%
-    dplyr::filter(MONTH==MONTH1)
+  d <- dplyr::filter(d,MONTH==MONTH1)
+  ### Add an "activity" variable that combines route, shift, and, optionally,
+  ### the daily bus route schedule number. Will say "NO CREEL" for days off.
+  tmp <- paste0(d$ROUTE,"\n",d$SHIFT)
+  if (add_DS) tmp <- paste0(tmp,"\n(",d$DAILY_SCHED,")")
+  tmp[d$CREEL=="NO"] <- "NO CREEL"
+  d <- mutate(d,activity=tmp)
+    
   ## Find year from the schedule
-  YEAR <- lubridate::year(sched$DATE[1])
+  YEAR <- lubridate::year(d$DATE[1])
   ## Get first and last days of this month
   start_date <- lubridate::make_date(YEAR,which(month.abb==MONTH1))
   end_date <- start_date + months(1) - 1
@@ -410,7 +426,7 @@ makeCalendar <- function(sched,MONTH1,pth="",width,height,PDF=FALSE) {
   ## List of dates ...
   ## ... with date and activity
   mon_cal <- data.frame(DATE=start_date+0:days,x=0L,y=0L) %>%
-    left_join(sched,by="DATE") %>%
+    left_join(d,by="DATE") %>%
     mutate(color=as.factor(ifelse(CREEL=="NO",1,0)),
            title=lubridate::month(DATE,label=TRUE,abbr=FALSE))
   ## Make calendar page for "this" month
@@ -446,6 +462,21 @@ makeCalendar <- function(sched,MONTH1,pth="",width,height,PDF=FALSE) {
 ## Bus Routes ----
 ### Packages
 library(kableExtra)
+
+### Assigns unique number for a particular randomized bus route.
+iAssignBusRouteIDs <- function(data) {
+  ## Initialize vector of IDs with blanks
+  IDs <- character(nrow(data))
+  ## Fill in IDs on non-creel days with NA
+  IDs[data$CREEL=="NO"] <- NA
+  ## Find the number of days that will have a creel survey
+  tmp <- nrow(data[data$CREEL=="YES",])
+  ## Fill in IDs on creel days with a unique number
+  IDs[data$CREEL=="YES"] <- 1:tmp
+  ## Return the IDs vector
+  IDs
+}
+
 
 ### The information files contains lists of months in one cell of the
 ### spreadsheet. This expands those lists by putting months in one row and
