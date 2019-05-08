@@ -1,7 +1,7 @@
 ## User-Specified Information ----
 LAKE <- "SUPERIOR"
 YEAR <- 2019       # 2010-2099
-CLERK <- "A"       # A=Ash-Wash, B=B/R/LSB-Corny/PW, C=Saxon, D=Superior
+CLERK <- "B"       # A=Ash-Wash, B=B/R/LSB-Corny/PW, C=Saxon, D=Superior
 SEED <- NULL       # NULL is for non-repeatability
 fldr <- ""         # 
 

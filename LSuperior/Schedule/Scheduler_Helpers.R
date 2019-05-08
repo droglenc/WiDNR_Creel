@@ -189,54 +189,48 @@ iFindDays2Creel <- function(data) {
   CREEL
 }
 
-### Finds daily shifts according to the following assumptions:
-###   1. Approx. equal number of shifts per weekday for the MONTH
-###   2. Randomly select shift for first weekday/holiday of the week and then
-###      alternate so a shift appears on at least one weekend day.
+### Finds daily shifts according to assumptions in scheduler_assumptions doc.
 iFindShifts <- function(data) {
-  ## Initialize vector of SHIFTs with blanks
+  ## Initialize vector of SHIFTs with blanks, put NA for non-creel days
   SHIFT <- character(nrow(data))
-  ## Fill in SHIFTs on non-creel days with NA
   SHIFT[data$CREEL=="NO"] <- NA
-  ## Process by month
-  mos <- as.character(unique(data$MONTH))
-  for (i in mos) {
-    ### Handle weekdays
-    #### Find rows to replace (is a creel, weekday, correct month)
-    rows <- which(data$CREEL=="YES" & data$DAYTYPE=="WEEKDAY" & data$MONTH==i)
-    #### Find the number of rows to replace
-    nrows <- length(rows)
-    #### Fill in SHIFTs on creel days with the randomized shift.
-    SHIFT[rows] <- sample(rep(c("am","pm"),(floor(nrows)/2)+1),nrows)
-    ### Handle weekends and holidays (together)
-    rows <- which(data$CREEL=="YES" & data$DAYTYPE!="WEEKDAY" & data$MONTH==i)
-    for (j in unique(data[rows,]$WEEK)) {
+  
+  ## Process by months within routes
+  for (i in as.character(unique(data$ROUTE))) {
+    for (j in as.character(unique(data$MONTH))) {
+      ### Handle weekdays
+      #### Rows to replace (a creel, a weekday, correct route & month)
+      rows <- which(data$CREEL=="YES" & data$DAYTYPE=="WEEKDAY" &
+                      data$ROUTE==i & data$MONTH==j)
+      nrows <- length(rows)
+      #### Fill in SHIFTs on creel days with the randomized shift ... a set of
+      #### shifts is created (chcs) with equal numbers of am and pm (may have
+      #### one more of either if nrows is odd), these are then shuffled and
+      #### placed into the SHIFT vector. Thus there should be roughly equal
+      #### numbers of am and pm per month per route
+      chcs <- rep(c("am","pm"),(floor(nrows)/2))
+      if (length(chcs)!=nrows) chcs <- c(chcs,sample(c("am","pm"),1))
+      SHIFT[rows] <- sample(chcs)
+      
+      ### Handle weekends and holidays ... same process as above for weekeday
       rows <- which(data$CREEL=="YES" & data$DAYTYPE!="WEEKDAY" &
-                      data$MONTH==i & data$WEEK==j)
-      #### pick random start from 1st 2 positions of am/pm list below
-      tmp <- sample(1:2,1)
-      #### choose am/pm based on random start and number needed
-      SHIFT[rows] <- c("am","pm","am","pm")[tmp:(tmp+length(rows)-1)]
+                      data$ROUTE==i & data$MONTH==j)
+      nrows <- length(rows)
+      chcs <- rep(c("am","pm"),(floor(nrows)/2))
+      if (length(chcs)!=nrows) chcs <- c(chcs,sample(c("am","pm"),1))
+      SHIFT[rows] <- sample(chcs)
     }
-  } 
-  ## Return the SHIFTs vector
+  }
+  ## Return SHIFTs vector
   SHIFT
 }
 
-### Finds daily route according to the following assumptions:
-###   1. For clerks with only one route, same route every day.
-###   2. For clerks with two routes, choose random route for ...
-###      a. first weekday for a two week period and then alternate (thus
-###         same number of routes for two-week period, but not the same days
-###         in more than two consecutive weeks).
-###      b. first weekend/holiday for two-seek period and then other route for
-###         other weekend day, and then reverse for the next weekend (thus
-###         not same order on more than two weekends in a row).
+### Finds daily route according to assumptions in schedular_assumptions doc
 iFindRoutes <- function(data,clerks) {
-  ## Initialize vector of ROUTEs with blanks & then non-creel days with NA
+  ## Initialize vector of ROUTEs with blanks & non-creel days with NA
   ROUTE <- character(nrow(data))
   ROUTE[data$CREEL=="NO"] <- NA
-  ## Find the unique routes in data and sampling proportion
+  ## Find the unique routes in data and sampling proportion (make sum to 100%)
   ROUTES <- clerks$route
   CTIMES <- clerks$ctime
   CTIMES <- CTIMES/sum(CTIMES)
@@ -247,6 +241,7 @@ iFindRoutes <- function(data,clerks) {
     ROUTE[rows] <- rep(ROUTES,length(rows))
   } else {
     ## If two routes, then must do more work.
+    ### Going to sequence by two-week periods
     wks <- seq(1,max(data$WEEK),2) 
     for (i in wks) {
       ### Handle weekends/holidays
@@ -278,29 +273,26 @@ iSchedSummary <- function(d) {
   ## Get the Yes and No creel days
   dyes <- FSA::filterD(d,CREEL=="YES")
   dno <- FSA::filterD(d,CREEL=="NO")
-  oneRoute <- length(unique(d$ROUTE[complete.cases(d$ROUTE)]))==1
   
-  ## Show frequency of ams and pms by month and day type
-  if (oneRoute) tmp <- xtabs(~MONTH+SHIFT+DAYTYPE2,data=dyes)
-  else tmp <- xtabs(~MONTH+SHIFT+DAYTYPE2+ROUTE,data=dyes)
-  cat("\nFrequency of Days by Month, Shift, and Day Type\n")
+  ## Separate summaries by route
+  for (i in unique(d$ROUTE[complete.cases(d$ROUTE)])) {
+    cat("\n\nSchedule Summaries for Route: ",i,"\n")
+
+    cat("\nFrequency of Days by Month, Shift, and Day Type\n")
+    tmp <- xtabs(~MONTH+SHIFT+DAYTYPE2,data=FSA::filterD(dyes,ROUTE==i))
+    print(addmargins(tmp,margin=1:2))
+    
+    cat("\nFrequency of WORK Days by Month and Day of the Week\n")
+    tmp <- xtabs(~MONTH+WDAY,data=FSA::filterD(dyes,ROUTE==i))
+    print(addmargins(tmp,margin=1:2))
+  }
+  cat("\nFrequency of OFF Days by Month and Day of the Week\n")
+  tmp <- xtabs(~MONTH+WDAY,data=dno)
   print(addmargins(tmp,margin=1:2))
 
-  ## Show frequency of days of the week by month
-  if (oneRoute) tmp <- xtabs(~MONTH+WDAY,data=dyes)
-  else tmp <- xtabs(~MONTH+WDAY+ROUTE,data=dyes)
-  cat("\nFrequency of Days by Month and Day of the Week\n")
-  print(addmargins(tmp,margin=1:2))
-  
-  ## Show "days off" by month
-  tmp <- xtabs(~MONTH+WDAY,data=dno)
-  cat("\nFrequency of Days OFF by Month and Day of the Week\n")
-  print(addmargins(tmp,margin=1:2))
-  
-  ## Show lengths of runs of "YESes" (number of consecutive days worked)
+  cat("\nFrequency of Consecutive Days Worked (all routes)\n")
   tmp <- rle(d$CREEL)
   tmp <- table(tmp$values,tmp$lengths)["YES",]
-  cat("\nFrequency of Consecutive Days Worked\n")
   print(tmp)
   cat("\n")
 }
@@ -321,17 +313,17 @@ makeSchedule <- function(LAKE,YEAR,info,SEED,
   
   ## Create the schedule
   ### Find all dates between the start and end date
-  ### Add a variable that contains the ROUTE name
+  ### Find the month
   ### Find the week since start_date (beginning of the survey)
-  ### Find weekdays, both in words and as a number
+  ### Find days of week name
   ### Identify day types (weekend, holiday, or weekday)
   ### Determine on which days a creel survey should be conducted
-  ### Randomly choose an am or pm shift for each day
-  ### Add random bus route timing letters (within a month)
+  ### Add a variable that contains the ROUTE name
+  ### Determine am or pm shift for each day
+  ### Select perticular variables.
   sched <- data.frame(DATE=start_date+0:(end_date-start_date)) %>%
     dplyr::mutate(MONTH=lubridate::month(DATE,label=TRUE),
                   WEEK=lubridate::isoweek(DATE)-lubridate::isoweek(DATE[1])+1,
-                  WDAYn=lubridate::wday(DATE,week_start=1),
                   WDAY=lubridate::wday(DATE,week_start=1,label=TRUE),
                   DAYTYPE=dplyr::case_when(
                     chron::is.weekend(DATE) ~ "WEEKEND",
