@@ -3,6 +3,21 @@
 library(dplyr)
 
 
+### Print Calendars and Bus Routes
+printForClerk <- function(LAKE,YEAR,CLERK,SEED,SCHED,FLDR) {
+  rmarkdown::render(input=paste0(FLDR,"Scheduler_Template.Rmd"),
+                    params=list(LAKE=LAKE,YEAR=YEAR,CLERK=CLERK,
+                                SEED=SEED,SCHED=SCHED,FLDR=FLDR),
+                    output_file=paste0(YEAR,"_",LAKE,"_",CLERK,".pdf"),
+                    output_format="pdf_document",
+                    clean=FALSE,quiet=TRUE)
+  ## Remove kableExtra package so that the function can be run again w/o error
+  detach("package:kableExtra",unload=TRUE)
+  ## Remove an intermediate directory and files
+  unlink(paste0(FLDR,YEAR,"_",LAKE,"_",CLERK,"_files"),recursive=TRUE)
+  unlink(paste0(FLDR,YEAR,"_",LAKE,"_",CLERK,".tex"))
+}
+
 ### Reads all data into one list
 readInfo <- function(fldr,CLERK) {
   ## Get main filename
@@ -600,11 +615,13 @@ iMakeBusRoute <- function(info,LAKE,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
   df
 }
 
-iPrintBusRouteHeader <- function(x,LAKE) {
-  x <- x[,c("ROUTE","SHIFT","DATE","DAYTYPE","DAILY_SCHED")]
-  x$LAKE <- LAKE
-  x$DATE <- format(lubridate::ymd(x$DATE),format="%m/%d/%Y")
-  x$DAYTYPE <- paste(x$DAYTYPE,ifelse(x$DAYTYPE=="WEEKDAY","(1)","(2)"),sep=" ")
+iPrintBusRouteHeader <- function(x,lake) {
+  x <- x %>%
+    mutate(LAKE=lake,
+           DATE=format(lubridate::ymd(x$DATE),format="%m/%d/%Y"),
+           DAYTYPE=paste(DAYTYPE,
+                         ifelse(DAYTYPE=="WEEKDAY","(1)","(2)"),sep=" ")) %>%
+    select(LAKE,ROUTE,DATE,DAYTYPE,SHIFT,DAILY_SCHED)
   x <- t(x)
   colnames(x) <- c("Information")
   ## Make Kable

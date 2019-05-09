@@ -1,8 +1,6 @@
 ---
 title: "Lake Superior Creel Scheduler"
-header-includes:
-   - \usepackage{booktabs}
-   - \usepackage{colortbl}
+
 output: 
   pdf_document:
     includes:
@@ -18,6 +16,8 @@ params:
     value: NULL
   SCHED:
     value: "2019_SUPERIOR_Ash-Wash_schedule.csv"
+  FLDR:
+    value: "LSuperior/Schedule/"
 ---
 
 \fontsize{14}{18}
@@ -31,13 +31,13 @@ YEAR <- params$YEAR
 CLERK <- params$CLERK
 SEED <- params$SEED
 SCHED <- params$SCHED
+FLDR <- params$FLDR
 ```
 
 ```{r setup, include=FALSE, message=FALSE}
-library(kableExtra)
 ## Preliminaries
-fldr <- ""
-source(paste0(fldr,"Scheduler_Helpers.R"))
+suppressPackageStartupMessages(library(kableExtra))
+source(paste0("Scheduler_Helpers.R"))
 knitr::opts_chunk$set(echo = FALSE)
 
 ## Set the random number seed
@@ -78,7 +78,7 @@ for (i in mos) makeCalendar(sched,MONTH1=i,header="Lake Superior Creel Schedule"
 
 ```{r makeBusRoute, results='asis'}
 ## Read in Route and Shift information
-finfo <- readInfo(fldr,CLERK)
+finfo <- readInfo("",CLERK)
 
 ## Print the bus routes
 for (i in mos) {
