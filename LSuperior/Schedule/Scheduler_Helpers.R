@@ -297,6 +297,20 @@ iSchedSummary <- function(d) {
   cat("\n")
 }
 
+### Assigns unique number for a particular randomized bus route.
+iAssignBusRouteIDs <- function(data) {
+  ## Initialize vector of IDs with blanks
+  IDs <- character(nrow(data))
+  ## Fill in IDs on non-creel days with NA
+  IDs[data$CREEL=="NO"] <- NA
+  ## Find the number of days that will have a creel survey
+  tmp <- nrow(data[data$CREEL=="YES",])
+  ## Fill in IDs on creel days with a unique number
+  IDs[data$CREEL=="YES"] <- 1:tmp
+  ## Return the IDs vector
+  IDs
+}
+
 makeSchedule <- function(LAKE,YEAR,info,SEED,
                          show_summary=TRUE,show_calendars=TRUE) {
   ## Check inputs
@@ -452,24 +466,6 @@ makeCalendar <- function(d,MONTH1,
 
 ##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==
 ## Bus Routes ----
-### Packages
-library(kableExtra)
-
-### Assigns unique number for a particular randomized bus route.
-iAssignBusRouteIDs <- function(data) {
-  ## Initialize vector of IDs with blanks
-  IDs <- character(nrow(data))
-  ## Fill in IDs on non-creel days with NA
-  IDs[data$CREEL=="NO"] <- NA
-  ## Find the number of days that will have a creel survey
-  tmp <- nrow(data[data$CREEL=="YES",])
-  ## Fill in IDs on creel days with a unique number
-  IDs[data$CREEL=="YES"] <- 1:tmp
-  ## Return the IDs vector
-  IDs
-}
-
-
 ### The information files contains lists of months in one cell of the
 ### spreadsheet. This expands those lists by putting months in one row and
 ### repeating the other pertinent information.
@@ -565,7 +561,9 @@ iAdjustRoute4RandomStart <- function(data,mins) {
 }
 
 
-iMakeBusRoute <- function(routes,shifts,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
+iMakeBusRoute <- function(info,LAKE,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
+  routes <- info$routes
+  shifts <- info$shifts
   ## Isolate the pertintent route information
   routeInfo <- routes[routes$route==ROUTE & routes$month==MONTH1,]
   ## Possibly (if allowed) change the visit order (based on a coin-flip)
@@ -576,7 +574,8 @@ iMakeBusRoute <- function(routes,shifts,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
   peffort <- routeInfo$peffort
   
   ### Isolate the pertinent shift information
-  shiftInfo <- shifts[shifts$route==ROUTE & shifts$month==MONTH1 & shifts$shift==SHIFT,]
+  shiftInfo <- shifts[shifts$route==ROUTE & shifts$month==MONTH1 &
+                        shifts$shift==SHIFT,]
   ## Find total minutes from start to end
   start <- as.POSIXct(shiftInfo$start,format="%H:%M")
   end <- as.POSIXct(shiftInfo$end,format="%H:%M")
@@ -601,20 +600,21 @@ iMakeBusRoute <- function(routes,shifts,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
   df
 }
 
-iPrintBusRouteHeader <- function(x) {
-  x <- x[,c("LAKE","ROUTE","SHIFT","DATE","DAYTYPE","DAILY_SCHED")]
+iPrintBusRouteHeader <- function(x,LAKE) {
+  x <- x[,c("ROUTE","SHIFT","DATE","DAYTYPE","DAILY_SCHED")]
+  x$LAKE <- LAKE
   x$DATE <- format(lubridate::ymd(x$DATE),format="%m/%d/%Y")
   x$DAYTYPE <- paste(x$DAYTYPE,ifelse(x$DAYTYPE=="WEEKDAY","(1)","(2)"),sep=" ")
   x <- t(x)
   colnames(x) <- c("Information")
   ## Make Kable
-  kt <- kable(x,booktabs=TRUE,linesep="") %>%
-    kable_styling(full_width=FALSE,
-                  position="left",
-                  latex_options=c("hold_position")) %>%
-    column_spec(1,bold=TRUE) %>%
-    row_spec(0,bold=TRUE)
-  ## Return huxtable
+  kt <- knitr::kable(x,format="latex",booktabs=TRUE,linesep="") %>%
+    kableExtra::kable_styling(full_width=FALSE,
+                              position="left",
+                              latex_options=c("hold_position")) %>%
+    kableExtra::column_spec(1,bold=TRUE) %>%
+    kableExtra::row_spec(0,bold=TRUE)
+  ## Return table
   kt
 }
 
@@ -626,12 +626,12 @@ iPrintBusRoute <- function(brdf) {
   brdf$COUNT <- ifelse(travORendRows,"","_ _ _")
   
   ## Make the kable
-  kt <- kable(brdf,format="latex",booktabs=TRUE,linesep="") %>%
-    kable_styling(full_width=FALSE,
-                  position="left",
-                  latex_options=c("hold_position")) %>%
-    column_spec(1,bold=TRUE) %>%
-    row_spec(0,bold=TRUE)
+  kt <- knitr::kable(brdf,format="latex",booktabs=TRUE,linesep="") %>%
+    kableExtra::kable_styling(full_width=FALSE,
+                              position="left",
+                              latex_options=c("hold_position")) %>%
+    kableExtra::column_spec(1,bold=TRUE) %>%
+    kableExtra::row_spec(0,bold=TRUE)
   ## Return kable
   kt
 }

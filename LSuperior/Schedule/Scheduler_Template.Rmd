@@ -2,19 +2,22 @@
 title: "Lake Superior Creel Scheduler"
 header-includes:
    - \usepackage{booktabs}
-   - \usepackage[table]{xcolor}
    - \usepackage{colortbl}
 output: 
   pdf_document:
     includes:
       in_header: preamble.tex
 params:
+  LAKE:
+    value: "Superior"
   YEAR: 
     value: 2019
   CLERK: 
     value: A
   SEED:
-    value: 34534
+    value: NULL
+  SCHED:
+    value: "2019_SUPERIOR_Ash-Wash_schedule.csv"
 ---
 
 \fontsize{14}{18}
@@ -23,32 +26,28 @@ params:
 
 ```{r input, echo=FALSE}
 ## Grab User's Inputs from parameters
+LAKE <- params$LAKE
 YEAR <- params$YEAR
 CLERK <- params$CLERK
 SEED <- params$SEED
-LAKE <- "SUPERIOR"
+SCHED <- params$SCHED
 ```
 
 ```{r setup, include=FALSE, message=FALSE}
+library(kableExtra)
+## Preliminaries
 fldr <- ""
 source(paste0(fldr,"Scheduler_Helpers.R"))
 knitr::opts_chunk$set(echo = FALSE)
 
-## Read in Route and Shift information
-finfo <- paste0(fldr,"Schedule_Info_LS.xlsx")
-## Load route and shift information
-clerks <- readClerks(finfo,"Clerks",CLERK)
-routes <- readRoutes(finfo,"Routes",clerks)
-shifts <- readShifts(finfo,"Shifts",clerks)
-
-## Get Routes for this Clerk
-ROUTE <- unique(routes$route)
-
 ## Set the random number seed
 if (!is.null(SEED)) set.seed(SEED)
 
-## Set filename for schedule data
-fout <- paste(YEAR,toupper(LAKE),paste0(ROUTE,collapse="_"),"schedule.csv",sep="_")
+## Read the schedule
+sched <- readSchedule(SCHED,show_summary=FALSE,show_calendars=FALSE)
+
+## Get routes for this clerk
+ROUTES <- unique(sched$ROUTE[complete.cases(sched$ROUTE)])
 ```
 
 **Year:** `r YEAR`
@@ -59,7 +58,7 @@ fout <- paste(YEAR,toupper(LAKE),paste0(ROUTE,collapse="_"),"schedule.csv",sep="
 
 **Clerk:** `r CLERK`
 
-**Route(s):** `r paste0(ROUTE,collapse=" and ")`
+**Route(s):** `r paste0(ROUTES,collapse=" and ")`
 
 \vspace{12pt}
 
@@ -67,33 +66,32 @@ fout <- paste(YEAR,toupper(LAKE),paste0(ROUTE,collapse="_"),"schedule.csv",sep="
 
 **Seed:** `r formatC(SEED,format="d")`
 
-\textbf{Schedule File:} `r gsub("_","\\_",fout,fixed=TRUE)`
+\textbf{Schedule File:} `r gsub("_","\\_",SCHED,fixed=TRUE)`
 
-```{r makeSchedule, include=FALSE}
-## Make the schedule
-sched <- makeSchedule(LAKE,YEAR,routes,clerks,fout)
+```{r makeCalendars, echo=FALSE, fig.width=7, fig.height=7, fig.show="asis", }
+## Print monthly calendars
+mos <- as.character(unique(sched$MONTH))
+for (i in mos) makeCalendar(sched,MONTH1=i,header="Lake Superior Creel Schedule")
 ```
 
 \newpage
 
-```{r makeBusRoute, echo=FALSE, fig.width=7, fig.height=7, fig.show="asis", results="asis"}
-## Print monthly calendars
-mos <- as.character(unique(sched$MONTH))
-for (i in mos) makeCalendar(sched,MONTH1=i)
+```{r makeBusRoute, results='asis'}
+## Read in Route and Shift information
+finfo <- readInfo(fldr,CLERK)
 
 ## Print the bus routes
 for (i in mos) {
   tmp <- dplyr::filter(sched,MONTH==i,CREEL=="YES")
   for (j in seq_len(nrow(tmp))) {
-    br <- iMakeBusRoute(routes,shifts,
+    br <- iMakeBusRoute(finfo,
                         ROUTE=as.character(tmp$ROUTE[j]),
                         SHIFT=as.character(tmp$SHIFT[j]),
                         MONTH1=as.character(tmp$MONTH[j]))
     cat("\\newpage\n")
-    print(iPrintBusRouteHeader(tmp[j,]))
+    print(iPrintBusRouteHeader(tmp[j,],LAKE))
     cat("\\vspace{24pt}\n")
     print(iPrintBusRoute(br))
   }
 }
-
 ```
