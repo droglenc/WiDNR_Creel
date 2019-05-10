@@ -3,7 +3,7 @@
 LAKE <- "SUPERIOR"
 YEAR <- 2019
 SEED <- NULL     # Enter number for repeatability, otherwise NULL
-CLERK <- "C"     # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
+CLERK <- "A"     # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
 
 ## Get helper files ----
 ### Run these but don't change anything
