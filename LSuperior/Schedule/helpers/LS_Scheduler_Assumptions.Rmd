@@ -1,0 +1,26 @@
+---
+title: "Lake Superior Scheduler Assumptions"
+author: "Derek Ogle"
+date: '`r format(lubridate::now(),format="%d-%b-%Y")`'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Open-Water
+The Lake Superior open-water creel clerk scheduler and bus route constructor is built upon the following premises and assumptions.
+
+1. There are four creel clerks:
+    * **Clerk A**: Ashland-Washburn (100% full-time)
+    * **Clerk B**: Bayfield-Red Cliff-Little Sand Bay (50%) and Cornucopia-Port Wing (50%) (full-time)
+    * **Clerk C**: Saxon (100% part-time)
+    * **Clerk D**: Superior (100% full time)
+1. Details for each clerk and route are in the "Schedule_Info_LS.xlsx" file.
+1. Each clerk will conduct a survey on every weekend day and holiday during the "open-water" months. Holidays during the "open-water" months are Memorial Day, Independence Day (i.e., Fourth of July), and Labor Day.
+1. Each clerk will have two consecutive weekdays off each week during the "open-water" months. The same two weekdays will not be off for consecutive weeks. Further, if the clerk had Thursday-Friday off one week then they will not have Monday-Tuesday off the following week (*this limits the number of "only two consecutive days worked" occurrences*) and if the clerk had Monday-Tuesday off one-week then they will not have Thursday-Friday off the following week (*this limits the number of "eight and nine consecutive days worked" occurrences*).
+1. For the clerk responsible for two routes (i.e., B).
+    * The route for a weekend/holiday is chosen by randomly selecting the route for the first weekend day or holiday in a two-week period, using the other route for the second weekend day or holiday, then switching the order for the next two weekend days or holidays, and then randomly selecting a route if there is a fifth weekend day or holiday in the two week period. Thus, approximately the same number of routes is run for the weekends and holidays, but the routes will not be run on the same weekend days for more than two consecutive weekends (except for some rare occasions in weeks with holidays).
+    * The route for a weekday is chosen by randomly selecting the route for the first weekday in a two-week period and then alternating routes after that for each weekday in the rest of the two-week period. Thus, the same number of routes is run for the weekdays of each two-week period, but the routes will not be run on the same weekdays for more than two consecutive weeks.
+1. Weekday shifts (am and pm) are chosen randomly with the constraint that there will be approximately equal numbers (within a day or two) of shifts per weekday for the MONTH for each ROUTE. The same is done for weekend/holidays per MONTH for each ROUTE.

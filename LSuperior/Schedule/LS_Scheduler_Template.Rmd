@@ -1,0 +1,98 @@
+---
+title: "Lake Superior Creel Scheduler"
+
+output: 
+  pdf_document:
+    includes:
+      in_header: helpers/preamble.tex
+params:
+  LAKE:
+    value: "Superior"
+  YEAR: 
+    value: 2019
+  CLERK: 
+    value: A
+  SEED:
+    value: NULL
+  SCHED:
+    value: ""
+---
+
+\fontsize{14}{18}
+\selectfont
+\pagenumbering{gobble}
+
+```{r input, echo=FALSE}
+## Grab User's Inputs from parameters
+LAKE <- params$LAKE
+YEAR <- params$YEAR
+CLERK <- params$CLERK
+SEED <- params$SEED
+SCHED <- params$SCHED
+```
+
+```{r setup, include=FALSE, message=FALSE}
+## Preliminaries
+try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
+suppressPackageStartupMessages(library(kableExtra))
+source("helpers/LS_Scheduler_Helpers.R")
+knitr::opts_chunk$set(echo = FALSE)
+
+## Set the random number seed
+if (!is.null(SEED)) set.seed(SEED)
+
+## Read the schedule
+sched <- readSchedule(SCHED,show_summary=FALSE,show_calendars=FALSE)
+
+## Get routes for this clerk
+ROUTES <- unique(sched$ROUTE[complete.cases(sched$ROUTE)])
+```
+
+**Year:** `r YEAR`
+
+\vspace{12pt}
+
+**Lake:** `r LAKE`
+
+**Clerk:** `r CLERK`
+
+**Route(s):** `r paste0(ROUTES,collapse=" and ")`
+
+\vspace{12pt}
+
+**Ran:** `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
+
+**Seed:** `r formatC(SEED,format="d")`
+
+\textbf{Schedule File:} `r gsub("_","\\_",SCHED,fixed=TRUE)`
+
+```{r makeCalendars, echo=FALSE, fig.width=7, fig.height=7, fig.show="asis", }
+## Print monthly calendars
+mos <- as.character(unique(sched$MONTH))
+for (i in mos) makeCalendar(sched,MONTH1=i,header="Lake Superior Creel Schedule")
+```
+
+\newpage
+
+```{r makeBusRoute, results='asis'}
+## Read in Route and Shift information
+finfo <- readInfo(CLERK)
+## Print bus routes if more than one site is visited
+sites <- unique(finfo$routes$site)
+if (length(sites)>1) {
+  ## Print the bus routes
+  for (i in mos) {
+    tmp <- dplyr::filter(sched,MONTH==i,CREEL=="YES")
+    for (j in seq_len(nrow(tmp))) {
+      br <- iMakeBusRoute(finfo,
+                          ROUTE=as.character(tmp$ROUTE[j]),
+                          SHIFT=as.character(tmp$SHIFT[j]),
+                          MONTH1=as.character(tmp$MONTH[j]))
+      cat("\\newpage\n")
+      print(iPrintBusRouteHeader(tmp[j,],LAKE))
+      cat("\\vspace{24pt}\n")
+      print(iPrintBusRoute(br))
+    }
+  }
+}
+```
