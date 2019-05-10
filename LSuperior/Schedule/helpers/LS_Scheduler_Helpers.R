@@ -126,31 +126,28 @@ iCheckYear <- function(x,min.year=2010,max.year=2099) {
 
 ##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==
 ## Scheduling ----
-### Find Monday closest to beginning of the month
+### Finds first day of the given MONTH in the given YEAR
 iFindStartDate <- function(MONTH,YEAR) {
   ## Check inputs
   MONTH <- iCheckMonth(MONTH)
   YEAR <- iCheckYear(YEAR)
   ## Make the first of the month a date
-  tmp <- lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))
-  tmp
+  lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))
 }
 
-### Finds Sunday closest to end of the month
+### Finds last day of the given MONTH in the given YEAR
 iFindLastDate <- function(MONTH,YEAR) {
   ## Check inputs
   MONTH <- iCheckMonth(MONTH)
   YEAR <- iCheckYear(YEAR)
-  ## Find the last day of the month
-  ### Find the first day of following month ...
+  ## Find the first day of following month ...
   NEXT_MONTH <- lubridate::month(lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))) + 1
   if (NEXT_MONTH>12) {
     NEXT_MONTH <- 1
     YEAR <- YEAR+1
   }
-  ### ... and subtract one for last day of month
-  tmp <- lubridate::dmy(paste(1,NEXT_MONTH,YEAR,sep="-")) - 1
-  tmp
+  ## ... and subtract one for last day of MONTH
+  lubridate::dmy(paste(1,NEXT_MONTH,YEAR,sep="-")) - 1
 }
 
 ### Days for which a creel survey should be conducted.
