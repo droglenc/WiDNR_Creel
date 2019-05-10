@@ -1,40 +1,43 @@
 ## General ----
 ### Packages
-library(dplyr)
+suppressPackageStartupMessages(library(dplyr))
 
 
 ### Print Calendars and Bus Routes
-printForClerk <- function(LAKE,YEAR,CLERK,SEED,SCHED,FLDR) {
-  rmarkdown::render(input=paste0(FLDR,"Scheduler_Template.Rmd"),
+printForClerk <- function(LAKE,YEAR,CLERK,SEED,SCHED) {
+  outdir <- paste0(YEAR,"_",LAKE)
+  foutpre <- paste0(YEAR,"_",LAKE,"_",CLERK)
+  rmarkdown::render(input="LS_Scheduler_Template.Rmd",
                     params=list(LAKE=LAKE,YEAR=YEAR,CLERK=CLERK,
-                                SEED=SEED,SCHED=SCHED,FLDR=FLDR),
-                    output_file=paste0(YEAR,"_",LAKE,"_",CLERK,".pdf"),
+                                SEED=SEED,SCHED=SCHED),
+                    output_file=paste0(foutpre,".pdf"),
+                    output_dir=outdir,
                     output_format="pdf_document",
                     clean=FALSE,quiet=TRUE)
   ## Remove kableExtra package so that the function can be run again w/o error
   detach("package:kableExtra",unload=TRUE)
   ## Remove an intermediate directory and files
-  unlink(paste0(FLDR,YEAR,"_",LAKE,"_",CLERK,"_files"),recursive=TRUE)
-  unlink(paste0(FLDR,YEAR,"_",LAKE,"_",CLERK,".tex"))
+  unlink(paste0(outdir,"/",foutpre,"_files"),recursive=TRUE)
+  unlink(paste0(outdir,"/",foutpre,".tex"))
 }
 
 ### Reads all data into one list
-readInfo <- function(fldr,CLERK) {
+readInfo <- function(CLERK) {
   ## Get main filename
-  finfo <- paste0(fldr,"Schedule_Info_LS.xlsx")
+  fn <- "helpers/LS_Scheduler_Info.xlsx"
   ## Get indivdidual sheets as data.frames
-  clerks <- iReadClerks(finfo,CLERK)
-  routes <- iReadRoutes(finfo,clerks)
-  shifts <- iReadShifts(finfo,clerks)
+  clerks <- iReadClerks(fn,CLERK)
+  routes <- iReadRoutes(fn,clerks)
+  shifts <- iReadShifts(fn,clerks)
   ## Return as a list of data.frames
   list(clerks=clerks,routes=routes,shifts=shifts)
 }
 
 ### Reads clerk specific information.
-iReadClerks <- function(f,CLERK) {
+iReadClerks <- function(fn,CLERK) {
   ## Restrict to the chosen CLERK
   ## Reduce data.frame variables
-  df <- readxl::read_excel(f,sheet="Clerks") %>%
+  df <- readxl::read_excel(fn,sheet="Clerks") %>%
     FSA::filterD(clerk==CLERK) %>%
     dplyr::select(route,clerk,ctime) %>%
     as.data.frame()
@@ -43,14 +46,14 @@ iReadClerks <- function(f,CLERK) {
 
 
 ### Reads route specific information.
-iReadRoutes <- function(f,clerks) {
+iReadRoutes <- function(fn,clerks) {
   ## Expand the list of months to individual months
   ## Add a site variable that is combo of site number & description
   ## Make months an ordered factor variable
   ## Restrict to only the routes found in clerks
   ## Order rows
   ## Reduce and reorder data.frame variables
-  df <- readxl::read_excel(f,sheet="Routes") %>%
+  df <- readxl::read_excel(fn,sheet="Routes") %>%
     iExpandMonthsList() %>%
     dplyr::mutate(site=paste0(site_descrip," (#",site_no,")"),
                   month=factor(month,levels=month.abb)) %>%
@@ -62,13 +65,13 @@ iReadRoutes <- function(f,clerks) {
 }
 
 ### Reads shift specific information
-iReadShifts <- function(f,clerks) {
+iReadShifts <- function(fn,clerks) {
   ## Expand the list of months to individual months
   ## Make months an ordered factor variable
   ## Restrict to the CLERK asked for
   ## Order rows
   ## Reduce and reorder data.frame variables
-  df <- readxl::read_excel(f,sheet="Shifts",col_types="text") %>%
+  df <- readxl::read_excel(fn,sheet="Shifts",col_types="text") %>%
     iExpandMonthsList() %>%
     dplyr::mutate(month=factor(month,levels=month.abb)) %>%
     FSA::filterD(route %in% clerks$route) %>%
@@ -326,16 +329,18 @@ iAssignBusRouteIDs <- function(data) {
   IDs
 }
 
-makeSchedule <- function(LAKE,YEAR,info,SEED,
-                         show_summary=TRUE,show_calendars=TRUE) {
+makeSchedule <- function(LAKE,YEAR,CLERK,SEED,
+                         show_summary=FALSE,show_calendars=FALSE) {
   ## Check inputs
   YEAR <- iCheckYear(YEAR)
   ## Set the random number seed
   if (!is.null(SEED)) set.seed(SEED)
+  ## get the required information
+  info <- readInfo(CLERK)
   ## Set filename for schedule data
-  fout <- paste(YEAR,toupper(LAKE),
-                paste0(unique(info$clerks$route),collapse="_"),
-                "schedule.csv",sep="_")
+  dirout <- paste0(YEAR,"_",LAKE)
+  if (!dir.exists(dirout)) dir.create(dirout)
+  fout <- paste0(dirout,"/",YEAR,"_",LAKE,"_",CLERK,"_","schedule.csv")
   ## Get start and end data from the information in info
   start_date <- iFindStartDate(info$routes$month[1],YEAR)
   end_date <- iFindLastDate(info$routes$month[nrow(info$routes)],YEAR)
@@ -380,15 +385,15 @@ makeSchedule <- function(LAKE,YEAR,info,SEED,
   fout
 }
 
-readSchedule <- function(f,show_summary=TRUE,
+readSchedule <- function(fn,show_summary=TRUE,
                          show_calendars=FALSE,new_window=TRUE) {
   ## Read schedule file and add a column for daily schedule
-  d <- readr::read_csv(f,col_types="dccccccc") %>%
+  d <- readr::read_csv(fn,col_types="dccccccc") %>%
     dplyr::mutate(DATE=lubridate::parse_date_time(DATE,c("ymd","mdy")),
                   DATE=lubridate::ymd(DATE)) %>%
     tibble::add_column(DAILY_SCHED=iAssignBusRouteIDs(.))
   ## Show summaries if asked to
-  if (show_summary) iSchedSummary(sched)
+  if (show_summary) iSchedSummary(d)
   ## Show calendars if asked to
   if (show_calendars) {
     win_exists <- ifelse("windows" %in% names(dev.list()),TRUE,FALSE)
@@ -397,20 +402,20 @@ readSchedule <- function(f,show_summary=TRUE,
       makeCalendar(d,MONTH1=i,add_DS=TRUE)
   }
   ## Return data.frame
-  d
+  invisible(d)
 }
 
 
 ##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==
 ## Calendar ----
 ### Packages
-library(ggplot2)
+suppressPackageStartupMessages(library(ggplot2))
 
 
 ### Makes the calendar header
-iMakeCalHeader <- function(pth="",header) {
-  g <- grid::rasterGrob(magick::image_read(paste0(pth,"WiDNR_logo.jpg")),
-                        interpolate=TRUE)
+iMakeCalHeader <- function(header) {
+  fn <- "helpers/WiDNR_logo.jpg"
+  g <- grid::rasterGrob(magick::image_read(fn),interpolate=TRUE)
   header <- data.frame(x=1:10,y=1) %>% 
     ggplot(aes(x,y)) +
     geom_blank() +
@@ -423,10 +428,10 @@ iMakeCalHeader <- function(pth="",header) {
 
 
 makeCalendar <- function(d,MONTH1,
-                         pth="",header="Lake Superior Creel Schedule",
+                         header="Lake Superior Creel Schedule",
                          width,height,add_DS=TRUE) {
   ## Make calendar header
-  header <- iMakeCalHeader(pth,header)
+  header <- iMakeCalHeader(header)
   
   ## Read and modify schedule file
   d <- dplyr::filter(d,MONTH==MONTH1)

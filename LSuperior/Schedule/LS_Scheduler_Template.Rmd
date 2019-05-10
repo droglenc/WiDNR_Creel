@@ -4,7 +4,7 @@ title: "Lake Superior Creel Scheduler"
 output: 
   pdf_document:
     includes:
-      in_header: preamble.tex
+      in_header: helpers/preamble.tex
 params:
   LAKE:
     value: "Superior"
@@ -15,9 +15,7 @@ params:
   SEED:
     value: NULL
   SCHED:
-    value: "2019_SUPERIOR_Ash-Wash_schedule.csv"
-  FLDR:
-    value: "LSuperior/Schedule/"
+    value: ""
 ---
 
 \fontsize{14}{18}
@@ -31,13 +29,13 @@ YEAR <- params$YEAR
 CLERK <- params$CLERK
 SEED <- params$SEED
 SCHED <- params$SCHED
-FLDR <- params$FLDR
 ```
 
 ```{r setup, include=FALSE, message=FALSE}
 ## Preliminaries
+try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
 suppressPackageStartupMessages(library(kableExtra))
-source(paste0("Scheduler_Helpers.R"))
+source("helpers/LS_Scheduler_Helpers.R")
 knitr::opts_chunk$set(echo = FALSE)
 
 ## Set the random number seed
@@ -78,7 +76,7 @@ for (i in mos) makeCalendar(sched,MONTH1=i,header="Lake Superior Creel Schedule"
 
 ```{r makeBusRoute, results='asis'}
 ## Read in Route and Shift information
-finfo <- readInfo("",CLERK)
+finfo <- readInfo(CLERK)
 
 ## Print the bus routes
 for (i in mos) {
