@@ -77,19 +77,22 @@ for (i in mos) makeCalendar(sched,MONTH1=i,header="Lake Superior Creel Schedule"
 ```{r makeBusRoute, results='asis'}
 ## Read in Route and Shift information
 finfo <- readInfo(CLERK)
-
-## Print the bus routes
-for (i in mos) {
-  tmp <- dplyr::filter(sched,MONTH==i,CREEL=="YES")
-  for (j in seq_len(nrow(tmp))) {
-    br <- iMakeBusRoute(finfo,
-                        ROUTE=as.character(tmp$ROUTE[j]),
-                        SHIFT=as.character(tmp$SHIFT[j]),
-                        MONTH1=as.character(tmp$MONTH[j]))
-    cat("\\newpage\n")
-    print(iPrintBusRouteHeader(tmp[j,],LAKE))
-    cat("\\vspace{24pt}\n")
-    print(iPrintBusRoute(br))
+## Print bus routes if more than one site is visited
+sites <- unique(finfo$routes$site)
+if (length(sites)>1) {
+  ## Print the bus routes
+  for (i in mos) {
+    tmp <- dplyr::filter(sched,MONTH==i,CREEL=="YES")
+    for (j in seq_len(nrow(tmp))) {
+      br <- iMakeBusRoute(finfo,
+                          ROUTE=as.character(tmp$ROUTE[j]),
+                          SHIFT=as.character(tmp$SHIFT[j]),
+                          MONTH1=as.character(tmp$MONTH[j]))
+      cat("\\newpage\n")
+      print(iPrintBusRouteHeader(tmp[j,],LAKE))
+      cat("\\vspace{24pt}\n")
+      print(iPrintBusRoute(br))
+    }
   }
 }
 ```

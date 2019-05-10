@@ -7,6 +7,7 @@ suppressPackageStartupMessages(library(dplyr))
 printForClerk <- function(LAKE,YEAR,CLERK,SEED,SCHED) {
   outdir <- paste0(YEAR,"_",LAKE)
   foutpre <- paste0(YEAR,"_",LAKE,"_",CLERK)
+  try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
   rmarkdown::render(input="LS_Scheduler_Template.Rmd",
                     params=list(LAKE=LAKE,YEAR=YEAR,CLERK=CLERK,
                                 SEED=SEED,SCHED=SCHED),
@@ -648,12 +649,14 @@ iPrintBusRoute <- function(brdf) {
   brdf$COUNT <- ifelse(travORendRows,"","_ _ _")
   
   ## Make the kable
-  kt <- knitr::kable(brdf,format="latex",booktabs=TRUE,linesep="") %>%
+  kt <- knitr::kable(brdf,format="latex",booktabs=TRUE,
+                     linesep="",align=c("l","l","c","c","c")) %>%
     kableExtra::kable_styling(full_width=FALSE,
                               position="left",
                               latex_options=c("hold_position")) %>%
     kableExtra::column_spec(1,bold=TRUE) %>%
-    kableExtra::row_spec(0,bold=TRUE)
+    kableExtra::row_spec(0,bold=TRUE) %>%
+    kableExtra::row_spec(which(travORendRows),background="#EAEBED")
   ## Return kable
   kt
 }
