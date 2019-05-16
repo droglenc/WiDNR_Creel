@@ -1,57 +1,45 @@
-#**********************************************************************;
-#*                                                                     ;
-#*   PROGRAM TO ANALYZE "BUS ROUTE" TYPE LAKE SUPERIOR CREEL           ;
-#*     SINGLE ROUTE  -   INTEGRATED EFFORT AT LANDING COUNT            ;
-#*                                                                     ;
-#*         VERSION 1         JULY, 2016  (Iyob T)                      ;
-#*         VERSION 2         XXXX, 201X  (Derek O)                     ;
-#*                                                                     ;
-#  DIRECTIONS:                                                         ;
-#     * FILL IN Initials for FILENAME below at Loc=                    ;
-#*                                                                     ;
-#*  NOTES:                                                             ;
-#*    * COUNTS FOR LAKE SUPERIOR ARE AVERAGE NUMBER OF PARTIES PRESENT ;
-#*      DURING THE WAIT TIME; NOT TOTAL EFFORT SEEN DURING THE WAIT    ;
-#*      TIME.                                                          ;
-#*    * ONLY OFFICIAL HOLIDAYS ARE NEW YEARS, MEMORIAL DAY, 4TH OF     ;
-#*      JULY, AND LABOR DAY (THANKSGIVING AND X-MAS NOT INCLUDED)      ;
-#*    * FINCLIP=99 MEANS LENGTH FIELD HAS # OF FISH HARVESTED          ;
-#*                                                                     ;
-#*                                                                     ;
-#**********************************************************************;
+#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
+#
+# PROGRAM TO ANALYZE "BUS ROUTE" TYPE LAKE SUPERIOR CREEL
+#   SINGLE ROUTE  -   INTEGRATED EFFORT AT LANDING COUNT
+#
+#   VERSION 1         JULY, 2016  (Iyob T)
+#   VERSION 2         XXXX, 201X  (Derek O)
+#
+#  DIRECTIONS:
+#   * Fill in initials for filename below at LOC
+#   * Fill in effective state and final dates for creel below at SDATE & FDATE
+#
+#  NOTES:
+#   * Counts (for Lake Superior) are average number of parties present during
+#     the wait time, not total effort seen during the wait time.
+#   * Only official holidays are New Years, Memorial Day, July Fourth, and Labor
+#     Day (Thanksgiving and Christmas are not included).
+#   * FINCLILP=99 means length field has number of fish harvested.
+#
+#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
-## REQUIRED ENTRY BY USER ======================================================
-#### Working directory
-working_dir <- 'C:/aaaWork/Research/Creel_WiDNR/LSuperior/from_Iyob'
-#### Location abbreviation for the files ...
-####   must be one of "ash","byf","cpw","lsb","rdc","sax","sup", or "wsh"
-Loc <- "sup"
-#### Effective start and final dates for the creel
-SDATE <- as.Date("05/21/2014","%m/%d/%Y")
-FDATE <- as.Date("09/30/2014","%m/%d/%Y")
-## =============================================================================
+## User-Specified Information ----
+LOC <- "sup"  # must be one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh"
+SDATE <- "05/21/2014" # must use two digits mon/day/year format
+FDATE <- "09/30/2014"
 
 
 
-
-## SETUP =======================================================================
-#### Set the working directory
-setwd(working_dir)
-#### Load the script that loads packages and defines constants and lists
-source("LSCreel_Constants.R")
-#### Compute number of days in the effective creel
-ndays <- as.numeric(FDATE-SDATE)+1
+## Setup ----
+setwd(paste0(here::here(),"/LSuperior/Analysis"))
+source("helpers/LSCreel_helpers.R")
+### Converts SDATE and FDATE to useful objects
+SDATE <- as.Date(SDATE,"%m/%d/%Y")
+FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
 
-
-## TABLE OF EXPANSION FACTORS FOR ALL DAYS DURING SURVEY PERIOD ================
-## DHO --> I modified Iyob's code ... 
-##   I added the year variable (may be useful if exported to database)
-
-## Make data.frame of dates from starting to ending date (entered above)
-##    include the year, month, numerical day in the month, wordy day of the
-##    week, and what type of day it is (Weekend or Weekday).
-## Note that four holidays are coded as weekends.
+## Expansion factors (Table 1) ----
+### Make data.frame of dates from starting to ending date (entered above)
+###    include the year, month, numerical day in the month, wordy day of the
+###    week, and what type of day it is (Weekend or Weekday). Holidays are coded
+###    as weekends.
+#!!!!!! This matches Iyob's 'calendar' after his line 91
 calendar <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
   mutate(YEAR=year(DATE),
          MONTH=month(DATE,label=TRUE,abbr=FALSE),
@@ -63,9 +51,10 @@ calendar <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
          DAYTYPE=factor(DAYTYPE)
   )
 
-## Counts the number of weekend and weekday days in each month and includes a
-##   variable that is the fishing day length (which depends on month and is
-##   coded in the LSCreel_Constants file).
+### Counts the number of weekend and weekday days in each month and includes a
+###   variable that is the fishing day length (which depends on month and is
+###   coded in the LSCreel_helpers file).
+#!!!!!! This matches Iyob's 'calendar1' after his line 97
 calSum <- calendar %>%
   group_by(YEAR,MONTH,DAYTYPE) %>%
   summarize(DAYS=n()) %>%
@@ -73,18 +62,21 @@ calSum <- calendar %>%
   as.data.frame()
 
 ## Make Table 1
-source("LSCreel_Table1.R")
+#!!!!!! This matches Iyob's Table 1' after his line 115
+source("helpers/LSCreel_Table1.R")
 
 
-
-
-## Compute Interview effort data from the SAS INTERVIEW FILE ===================
-## Converts some codes to words
-## Handles dates (finds weekends and weekdays) and times (incl. hours of effort)
-## Removes days with no effort between SDATE and FDATE
-## Removes some unneeded variables
-## Drops unused levels
-ints <- read.csv(paste0(Loc,"ints.csv"),header=TRUE) %>%
+## Interview Data ----
+### Read and prepare interviews file
+###   Convert some codes to words
+###   Handle dates (find weekends and weekdays) & times (incl. hours of effort)
+###   Remove days with no effort between SDATE and FDATE (HOURS will be NA)
+###   Remove unneeded variables
+###   Drop unused levels
+### HOURS is fishing effort by the party.
+#!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
+#!!!!!! a YEAR, MDAY, and WDAY variables and DATE is a different format.
+ints <- read.csv(paste0("data/",LOC,"ints.csv")) %>%
   mutate(STATE=mapvalues(STATE,from=STATE_NUM,to=STATE_CODE,warn=FALSE),
          STATE=factor(STATE,levels=STATE_CODE),
          FISHERY=mapvalues(FISHERY,from=FISHERY_NUM,to=FISHERY_CODE,warn=FALSE),
@@ -97,45 +89,51 @@ ints <- read.csv(paste0(Loc,"ints.csv"),header=TRUE) %>%
          DAYTYPE=mapvalues(WDAY,from=DOW,to=DOW_TYPE,warn=FALSE),
          DAYTYPE=hndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
          DAYTYPE=factor(DAYTYPE),
-         HOURS=hndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE)) %>%
+         HOURS=hndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE)) %>%
   filter(!is.na(HOURS)) %>%
   select(-FISH,-RES,-SUCCESS,-DAY,-(STARTMM:STOPHH)) %>%
   droplevels()
 
-
-## Make Table 2
-source("LSCreel_Table2.R")
-
-
+### Table 2 -- Number of interviews and interviewed effort by grouping
+#!!!!!! This matches Iyob's Table 2 after his line 149
+source("helpers/LSCreel_Table2.R")
 
 
-## Summarize total interviewed party hours by month and day-type
-nints <- ints %>%
+## Summarize Fishing Effort ----
+
+### Total party fishing effort by month and day-type
+#!!!!!! This matches Iyob's nints' after his line 153
+sumInts <- ints %>%
   group_by(MONTH,DAYTYPE) %>%
   summarize(THOURS=sum(HOURS,na.rm=TRUE)) %>%
   as.data.frame()
 
 
-## Compute hours of effort
-## WHAT IS CHOURS???
-## Note that all hours for WI/MN are cut in half and then included separately
-##   for Wisconsin and Minnesota (designated as NON-WISCONSIN).
-## Note that the "N" object is used only to allow sorting back to the original
-##   order.
+### XXXXX
+###  The "pos" object is used only to allow sorting back to the original order.
+###  Reduce to just WISCONSIN and NON-WISCONSIN
+###  All hours for WI/MN are cut in half and then included separately for
+###    Wisconsin and Minnesota (designated as NON-WISCONSIN). The hours are 
+###    duplicated for NON-WISCONSIN waters below with effort_extra.
+###  Compute people-hours of fishing effort (in INDHRS)
+###  Compute XXX (in CHOURS ... need to know what STATUS is) ????
 effort <- ints %>%
-  mutate(N=1:nrow(.),
+  mutate(pos=1:nrow(.),
          WATERS=ifelse(STATE=='MN','NON-WISCONSIN','WISCONSIN')) %>%
-  select(N,WATERS,STATE,FISHERY,STATUS,MONTH,DAYTYPE,PERSONS,HOURS) %>%
+  select(pos,WATERS,STATE,FISHERY,STATUS,MONTH,DAYTYPE,PERSONS,HOURS) %>%
   mutate(HOURS=ifelse(STATE=='WI/MN',0.5*HOURS,HOURS),
          INDHRS=PERSONS*HOURS,
          CHOURS=ifelse(STATUS==1,HOURS,NA))
+
+### Get the other half of the WI/MN
 effort_extra <- effort %>%
   filter(STATE=="WI/MN") %>%
   mutate(WATERS="NON-WISCONSIN",
-         N=N+0.1)
+         pos=pos+0.1)
 f_all <- rbind(effort,effort_extra) %>%
-  arrange(N) %>%
-  select(-N,-STATE,-PERSONS,-STATUS)
+  arrange(pos) %>%
+  select(-pos,-STATE,-PERSONS,-STATUS)
+#!!!!!! This matches Iyob's 'f_all' after his line 172
 
 f_summary <- f_all %>%
   group_by(FISHERY,WATERS,DAYTYPE,MONTH) %>%
@@ -147,12 +145,48 @@ f_summary <- f_all %>%
             CHOURS=sum(CHOURS,na.rm=TRUE)) %>%
   select(FISHERY,WATERS,DAYTYPE,MONTH,N,HOURS,INDHRS,CHOURS,MTRIP,VHOURS) %>%
   as.data.frame()
+#!!!!!! This matches Iyob's 'f_summary' after his line 177
 
-effort <- merge(nints,f_summary,by=c("MONTH","DAYTYPE")) %>%
+effort <- merge(sumInts,f_summary,by=c("MONTH","DAYTYPE")) %>%
   mutate(PROP=HOURS/THOURS,
          PARTY=INDHRS/HOURS) %>%
   select(MONTH,DAYTYPE,WATERS,FISHERY,HOURS,MTRIP,N,VHOURS,PROP,PARTY) %>%
   arrange(MONTH,DAYTYPE,WATERS)
+#!!!!!! This matches Iyob's 'effort' after his line 183
+
+rm(sumInts,f_summary,f_all) # cleaning up ... these are not used further
+
+
+## Count Data ----
+### Finds various varsions of dates (note that DATE had to be handled
+###   differently than above b/c four rather than two digits used here).
+### Convert missing COUNTs to zeroes
+### Calculate the "WAIT" time (hours at the site)
+### Convert average counts (the original COUNT variable) to "total effort"
+###   during shift (by muliplying by the WAIT time) so that multiple shifts on
+###   each day can be combined (from original SAS code).
+### Remove days with no effort between SDATE and FDATE (WAIT will be NA)
+#!!!!!! This largely matches Iyob's 'counts' after his line 195 except his has
+#!!!!!! STARTHH, STARTMM, STOPHH, STOPMM, START, and STOP which he does not use
+#!!!!!! again and mine has MDAY and WDAY (consider removing). Also, this has one
+#!!!!!! fewer records than Iyob's because on of the 27-Sep had a bad STARTHH.
+#!!!!!! Finally, Iyob's code did not restrict to within the survey period or
+#!!!!!! convert missing counts to zeroes, but the SAS code did.
+counts <- read.csv(paste0("data/",LOC,"cnts.csv")) %>%
+  mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
+         YEAR=year(DATE),
+         MONTH=month(DATE,label=TRUE,abbr=FALSE),
+         MDAY=mday(DATE),
+         WDAY=wday(DATE,label=TRUE,abbr=TRUE),
+         DAYTYPE=mapvalues(WDAY,from=DOW,to=DOW_TYPE,warn=FALSE),
+         DAYTYPE=hndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
+         DAYTYPE=factor(DAYTYPE),
+         COUNT=convNA20(COUNT),
+         WAIT=hndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE),
+         COUNT=COUNT*WAIT
+  ) %>%
+  filter(!is.na(WAIT)) %>%
+  select(DATE,YEAR,MONTH,DAY,MDAY,WDAY,DAYTYPE,SITE,COUNT,WAIT)
 
 
 
@@ -167,52 +201,7 @@ n_spp <- 28
 
 
 
-#READ COUNT FILE, ASSUMES THAT ALL MISSING VALUES ARE REALLY ZEROS
-counts <- read.csv(paste0(Loc,"cnts.csv"),header=TRUE) %>%
-  mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%y"),
-         MONTH=month(DATE,label=TRUE,abbr=FALSE),
-         MDAY=mday(DATE),
-         WDAY=wday(DATE,label=TRUE,abbr=TRUE),
-         DAYTYPE=mapvalues(WDAY,
-                           from=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun"),
-                           to=c("WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY",
-                                "WEEKEND","WEEKEND")),
-         DAYTYPE=factor(case_when(
-           MONTH=="January" & MDAY==1 ~ "WEEKEND",                 # New Years Day
-           MONTH=="May" & MDAY>=25 & WDAY=="Mon" ~ "WEEKEND",      # Memorial Day
-           MONTH=="July" & MDAY==4 ~ "WEEKEND",                    # 4th of July
-           MONTH=="September" & MDAY<=7 & WDAY=="Mon" ~ "WEEKEND", # Labor Day
-           TRUE ~ as.character(DAYTYPE)
-         )),
-         START=STARTHH*60+STARTMM,
-         STOP=STOPHH*60+STOPMM,
-         WAIT=case_when(
-           DATE < SDATE ~ NA_real_,       # Date before start date
-           DATE > FDATE ~ NA_real_,       # Date after end date
-           START<STOP ~ (STOP-START)/60,  # Stopped before started
-           TRUE ~ (STOP+24*60-START)/60   # OK ... calc hours of effort
-         ),
-         COUNT=COUNT*WAIT
-  )
 
-
-###### Need to check if above matches below ... especially WAIT
-######   Can likely remove some of the variables in above.
-
-#counts$DATE=as.Date(paste(counts$MONTH,counts$DAY,counts$YEAR,sep="/"),"%m/%d/%Y")
-#  counts$MONTH=monthname[counts$MONTH, drop=TRUE]
-#  WD=format(counts$DATE,"%a")
-#  counts$DAYTYPE=FUNdaytype(counts$DATE,counts$MONTH,counts$DAY,WD)
-#counts$DAYTYPE=f_daytype[counts$DAYTYPE, drop=TRUE]
-#counts$DATE=as.numeric(counts$DATE)
-#counts$START=counts$STARTHH*60+counts$STARTMM
-#counts$STOP=counts$STOPHH*60+counts$STOPMM
-#counts$WAIT=ifelse((DATEA<=counts$DATE&counts$DATE<=DATEB),
-#                   ifelse(counts$START<counts$STOP,
-#                          (counts$STOP-counts$START)/60,
-#                          (counts$STOP+24*60-counts$START)/60),
-#                   NA)
-#counts$COUNT=counts$COUNT*counts$WAIT
 
 #COMBINES MULTIPLE COUNTS FOR EACH DAY
 counts1=aggregate(cbind(COUNT,WAIT)~DAYTYPE+MONTH+SITE+DATE, data=counts,sum)
@@ -252,7 +241,7 @@ htmlTable(rr, align="llr",col.rgroup=c("none","none","#F1F0FA"),
           header = paste(c("MONTH","DAYTYPE",c("DAYS SAMPLED","TOTAL PARTY HOURS","ST. DEV. PARTY HOURS"))),align.header="llr",
           tspanner = c("MAY","JUNE","JULY","AUGUST","SEPTEMBER","TOTAL"),
           n.tspanner =rep(3,6),
-          caption=txtMergeLines(paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR  -",paste(Loc),"05/21/14-09/30/14: MONTHLY EFFORT SUMMARY (INCLUDES NON-FISHING EFFORT)")),file="Table 3.html")
+          caption=txtMergeLines(paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR  -",paste(LOC),"05/21/14-09/30/14: MONTHLY EFFORT SUMMARY (INCLUDES NON-FISHING EFFORT)")),file="Table 3.html")
 
 effort=merge(effort,counts, by=c('MONTH','DAYTYPE'))
 effort$PHOURS=effort$COUNT*effort$PROP;          #PARTY HOURS FOR THIS STRATA;
@@ -299,7 +288,7 @@ htmlTable(tt, align="llllr",col.rgroup = c(rep(c("none","none","#EFEFF0"),5),"no
           header = paste(c("WATERS&emsp;&emsp;&emsp;&emsp;&nbsp;&nbsp;","FISHERY","MONTH","DAYTYPE","TOTAL PARTY HRS&nbsp;&nbsp;","STDEV&nbsp;&nbsp;","PERSONS/PARTY&nbsp;&nbsp;","TOTAL IND. HRS&nbsp;&nbsp;","STDEV&nbsp;&nbsp;","MEAN TRIP LENGH&nbsp;&nbsp;","NO. OF TRIPS&nbsp;&nbsp;","STDEV&nbsp;&nbsp;")),align.header="lllll",
           tspanner = c(rep(tspanner[1],length(n.tspanner)/length(tspanner)),rep(tspanner[2],length(n.tspanner)-length(n.tspanner)/length(tspanner))),
           n.tspanner = n.tspanner,
-          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(Loc),"05/21/14-09/30/14): MONTHLY ESTIMATES OF FISHING EFFORT BY FISHERY TYPE"),file="Table 4.html")
+          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(LOC),"05/21/14-09/30/14): MONTHLY ESTIMATES OF FISHING EFFORT BY FISHERY TYPE"),file="Table 4.html")
 
 
 ####### new effort summary
@@ -426,7 +415,7 @@ htmlTable(tt, align="llllr",
           n.tspanner = n.tsp2,
           cgroup = rbind(c("","","DAYTYPE",rep(NA,2)),c("","",c("WEEKDAY","WEEKEND","TOTAL"))),align.cgroup=paste(rep("c",2)),
           n.cgroup = rbind(c(1,3,9,rep(NA,2)),c(1,(rep(3,4)))),
-          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(Loc),"05/21/14-09/30/14: TOTAL HARVEST AND HARVEST RATES BASED ON FISHERY-SPECIFIC ANGLING HOURS - DETAILED REPORT"),file="Table 5.html")
+          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(LOC),"05/21/14-09/30/14: TOTAL HARVEST AND HARVEST RATES BASED ON FISHERY-SPECIFIC ANGLING HOURS - DETAILED REPORT"),file="Table 5.html")
 
 ################## LENGTHSs    TABLES 6-9
 lengthall=ints2[,c('FISHERY','SITE','STATE','MONTH','DATE','SPECIES','LEN','CLIP')]
@@ -460,7 +449,7 @@ htmlTable(ll, align="lllr",
           n.tspanner = diff(c(subset(c(3:nrow(lll)),lll[3:nrow(lll),1]!=""),nrow(lll)+1),1),
           cgroup = rbind(c("","","","LENGTH (inches)",rep(NA,5))),align.cgroup=paste(rep("c",1)),
           n.cgroup = rbind(c(1,1,1,6,rep(NA,5))),
-          caption=paste("CREEL SURVEY ANALYSIS; LAKE SUPERIOR -",paste(Loc),"05/21/14-09/30/14: MEAN LENGTH OF FISH MEASURED BY SPECIES, MONTH AND MARK"),file="Table 6.html")
+          caption=paste("CREEL SURVEY ANALYSIS; LAKE SUPERIOR -",paste(LOC),"05/21/14-09/30/14: MEAN LENGTH OF FISH MEASURED BY SPECIES, MONTH AND MARK"),file="Table 6.html")
 
 ################## MARKA   7
 lengths_t=tabular((SPECIES)*(MONTH+1)*(MARKA+1)~(LEN)*((n=1)+(mean+STDERR+var+max+min)*Format(digits=2))*Justify(r), data=lengths)
@@ -482,7 +471,7 @@ htmlTable(ll, align="lllr",
           n.tspanner = diff(c(subset(c(3:nrow(lll)),lll[3:nrow(lll),1]!=""),nrow(lll)+1),1),
           cgroup = rbind(c("","","","LENGTH (inches)",rep(NA,5))),align.cgroup=paste(rep("c",1)),
           n.cgroup = rbind(c(1,1,1,6,rep(NA,5))),
-          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(Loc),"05/21/14-09/30/14: MEAN LENGTH OF FISH MEASURED BY SPECIES, MONTH, AND MARK"),file="Table 7.html")
+          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(LOC),"05/21/14-09/30/14: MEAN LENGTH OF FISH MEASURED BY SPECIES, MONTH, AND MARK"),file="Table 7.html")
 
 #######  8
 lengths_s=tabular((SPECIES)*(MARKA+1)~(MONTH+1)*(LEN)*(n=1)*Justify(r), data=lengthall)
@@ -501,7 +490,7 @@ htmlTable(ss, align="llr",
           n.tspanner = diff(c(subset(c(5:nrow(sss)),sss[5:nrow(sss),1]!=""),nrow(sss)+1),1),
           cgroup = rbind(c("","","MONTH",rep(NA,5))),align.cgroup=paste(rep("c",1)),
           n.cgroup = rbind(c(1,1,6,rep(NA,5))),
-          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(Loc),"05/21/14-09/30/14: DISTRIBUTION OF FIN CLIPS AMONG FISH EXAMINED FOR MARKS"),file="Table 8.html")
+          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(LOC),"05/21/14-09/30/14: DISTRIBUTION OF FIN CLIPS AMONG FISH EXAMINED FOR MARKS"),file="Table 8.html")
 
 ####### 9
 lengths_d=lengthall[order(lengthall$SPECIES,lengthall$DATE,lengthall$MARKA,lengthall$SITE,lengthall$FISHERY,lengthall$STATE),][,c('SPECIES','MARKA','DATE','SITE','FISHERY','STATE','LEN')]
@@ -517,6 +506,6 @@ htmlTable(dd, align="llllllr",
           header = paste(c("SPECIES&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;","MARK","DATE","SITE","FISHERY","STATE","LENGTH (inches)")),align.header="llllllr",
           tspanner = unique(lengths_d[,1]),
           n.tspanner = data.frame(table(factor(lengths_d[,1])))[,2],
-          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(Loc),"05/21/14-09/30/14: DETAILED LISTING OF ALL FIN-CLIPPED FISH MEASURED"),file="Table 9.html")
+          caption=paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR -",paste(LOC),"05/21/14-09/30/14: DETAILED LISTING OF ALL FIN-CLIPPED FISH MEASURED"),file="Table 9.html")
 
            ############### //  // #############

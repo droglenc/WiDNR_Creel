@@ -3,11 +3,11 @@
 
 ## Caption name and expored file name
 cap <- paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR: ",
-             Loc,format(SDATE,format="%m/%d/%y"),"-",
+             LOC,format(SDATE,format="%m/%d/%y"),"-",
              format(FDATE,format="%m/%d/%y"),"<br><br>",
-             "Number of interviews (N) and actual amount of interview effort",
-             "(HRS; hours) by state, day type, and type of fishery.<br><br>")
-fn <- paste0("LSCreel_",Loc,"_",year(SDATE),"_Table2.html")
+             "Number of interviews (N) and actual amount of interviewed effort",
+             "(Hours) by state, day type, and type of fishery.<br><br>")
+fn <- paste0("LSCreel_",LOC,"_",year(SDATE),"_Table2.html")
 
 ## Get a list of months, including "TOTAL"
 mos <- c(levels(ints$MONTH),"TOTAL")
@@ -40,7 +40,7 @@ intsTbl2 <- as_hux(intsTbl1) %>%
   set_number_format(row=everywhere,                    # One decimal on SUM
                     col=ends_with("SUM"),2) %>%
   rbind(c("STATE","DAY TYPE","FISHERY",
-          rep(c("N","Hours"),length(mos))),.) %>%        # Extra label at the top
+          rep(c("N","Hours"),length(mos))),.) %>%      # Extra label at the top
   rbind(c("","","",c(rbind(mos,""))),.) %>%
   set_align(row=-1,col=-(1:3),value="right") %>%       # Right align values
   set_bottom_border(row=2,col=everywhere,1) %>%        # Line below column labels
@@ -63,3 +63,5 @@ for (i in 1:length(mos)) {
 ## Prints the table to a file
 quick_html(intsTbl2,file=fn)
 
+## cleaning up ... these are not needed after this
+rm(cap,fn,mos,dtLbls,intsTbl1,intsTbl2)

@@ -3,11 +3,11 @@
 
 ## Caption name and expored file name
 cap <- paste("CREEL SURVEY ANALYSIS: LAKE SUPERIOR: ",
-             Loc,format(SDATE,format="%m/%d/%y"),"-",
+             LOC,format(SDATE,format="%m/%d/%y"),"-",
              format(FDATE,format="%m/%d/%y"),"<br><br>",
              "Number of days by day type and the assumed fishing day length (h). ",
              "These results will be used as expansion factors.<br><br>")
-fn <- paste0("LSCreel_",Loc,"_",year(SDATE),"_Table1",".html")
+fn <- paste0("LSCreel_",LOC,"_",year(SDATE),"_Table1",".html")
 
 ## Summary table of the number of weekdays and weekends per month
 ##   Remove the year and interleave the weekdays and weekends
@@ -15,7 +15,7 @@ fn <- paste0("LSCreel_",Loc,"_",year(SDATE),"_Table1",".html")
 ##     needed to add the total row later)
 ##   Rearrange and rename somee columns
 ##   Add on a total row with a TOTAL label
-calTbl <- calSum %>%
+calTbl1 <- calSum %>%
   select(-YEAR) %>%
   spread(DAYTYPE,DAYS) %>%
   mutate(TOTAL=WEEKDAY+WEEKEND,
@@ -26,7 +26,7 @@ calTbl <- calSum %>%
   mutate(MONTH=replace(MONTH,is.na(MONTH),"Total"))
 
 ## Make the huxtable
-calTbl2 <- as_hux(calTbl,add_colnames=TRUE) %>%
+calTbl2 <- as_hux(calTbl1,add_colnames=TRUE) %>%
   set_align(row=everywhere,col=-1,"right") %>%        # right align all but leftmost
   rbind(c("","DAY TYPE","","","DAY"),.) %>%           # Extra label at the top
   merge_cells(row=1,2:4) %>%                          #  covers columsn 2,3,4
@@ -43,3 +43,6 @@ calTbl2 <- as_hux(calTbl,add_colnames=TRUE) %>%
   set_caption(cap) %>%                                # Puts on the caption
   set_caption_pos("topleft") %>%
   quick_html(file=fn)
+
+## cleaning up ... these are not needed after this
+rm(cap,fn,calTbl1,calTbl2)

@@ -1,48 +1,19 @@
-## LOAD REQUIRED PACKAGES ======================================================
-library(FSA)        # DHO added ... for mapvalues
+## Load Packages ----
+library(FSA)
 library(lubridate)
 library(tables)
-library(huxtable)   # DHO added
-library(tidyr)      # DHO added
-library(dplyr)      # DHO added
-#IYOB#> library(timeDate)
-#IYOB#> library(zoo)
-#IYOB#> library(plyr)
-#IYOB#> library(htmlTable)
-#IYOB#> library(reshape)
-#IYOB#> library(Gmisc)
+library(huxtable)
+library(tidyr)
+library(dplyr)
 
 
-## SPECIFIC FUNCTIONS ==========================================================
+## Constants ----
+### These are constants and lists that are used for lookups in the analysis code
 
-## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
-hndlHolidays <- function(MONTH,MDAY,WDAY,DAYTYPE) {
-  case_when(
-    MONTH=="January" & MDAY==1 ~ "WEEKEND",                 # New Years Day
-    MONTH=="May" & MDAY>=25 & WDAY=="Mon" ~ "WEEKEND",      # Memorial Day
-    MONTH=="July" & MDAY==4 ~ "WEEKEND",                    # 4th of July
-    MONTH=="September" & MDAY<=7 & WDAY=="Mon" ~ "WEEKEND", # Labor Day
-    TRUE ~ as.character(DAYTYPE)
-  )
-}
-
-## Compute hours of effort, put NAs if before start or after end of survey
-##   period or if stop time is before start time.
-hndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE) {
-  START <- STARTHH*60+STARTMM
-  STOP <- STOPHH*60+STOPMM
-  case_when(
-    DATE < SDATE ~ NA_real_,   # Date before start date
-    DATE > FDATE ~ NA_real_,   # Date after end date
-    STOP<START ~ NA_real_,     # Stopped before started
-    TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
-  )
-}
-
-## CONSTANTS FOR LOOKUPS =======================================================
 ## List days of the week (DOW) and what type they are (DOW_TYPE)
 DOW <- c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-DOW_TYPE <- c("WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY","WEEKEND","WEEKEND")
+DOW_TYPE <- c("WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY",
+              "WEEKEND","WEEKEND")
 
 ## List months and the fishing day length (in hours)
 MONTHS <- c("January","February","March","April","May","June",
@@ -60,6 +31,50 @@ FISHERY_CODE <- c("COLDWATER-OPEN","WARMWATER-OPEN","ICE-STREAM MOUTH",
                   "SHORE","TRIBAL","COMBINED")
 
 
+## Helper Functions ----
+
+## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
+hndlHolidays <- function(MONTH,MDAY,WDAY,DAYTYPE) {
+  case_when(
+    MONTH=="January" & MDAY==1 ~ "WEEKEND",                 # New Years Day
+    MONTH=="May" & MDAY>=25 & WDAY=="Mon" ~ "WEEKEND",      # Memorial Day
+    MONTH=="July" & MDAY==4 ~ "WEEKEND",                    # 4th of July
+    MONTH=="September" & MDAY<=7 & WDAY=="Mon" ~ "WEEKEND", # Labor Day
+    TRUE ~ as.character(DAYTYPE)
+  )
+}
+
+## Compute hours of effort, put NAs if before start or after end of survey
+##   period or if stop time is before start time.
+hndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
+  START <- STARTHH*60+STARTMM
+  STOP <- STOPHH*60+STOPMM
+  case_when(
+    DATE < SDATE ~ NA_real_,   # Date before start date
+    DATE > FDATE ~ NA_real_,   # Date after end date
+    STOP < START ~ NA_real_,   # Stopped before started
+    TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
+  )
+}
+
+
+## Converts missing values to zeroes
+convNA20 <- function(x) {
+  case_when(
+    is.na(x) ~ 0,
+    TRUE ~ x
+  )
+}
+
+
+## OLD STUFF FROM IYOB ----
+
+#IYOB#> library(timeDate)
+#IYOB#> library(zoo)
+#IYOB#> library(plyr)
+#IYOB#> library(htmlTable)
+#IYOB#> library(reshape)
+#IYOB#> library(Gmisc)
 
 
 

@@ -28,7 +28,7 @@ library(Gmisc)
 Loc="sup"      # fill in filename intial ("ash","byf","cpw","lsb","rdc","sax","sup", or "wsh")
 
 ######################   READ IN INTERVIEW DATA 
-working_dir='c:/Iyob-DNR/Lake Superior Creel'
+working_dir=paste0(here::here(),"/LSuperior/from_Iyob")
 setwd(working_dir)
 
 supints=read.csv(paste(Loc,"ints.csv",sep=""),header=T)      #NAME OF INTERVIEW SAS FILE
