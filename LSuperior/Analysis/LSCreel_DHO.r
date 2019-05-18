@@ -15,7 +15,7 @@
 #     the wait time, not total effort seen during the wait time.
 #   * Only official holidays are New Years, Memorial Day, July Fourth, and Labor
 #     Day (Thanksgiving and Christmas are not included).
-#   * FINCLILP=99 means length field has number of fish harvested.
+#   * FINCLIP=99 means length field has number of fish harvested.
 #
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
@@ -39,28 +39,27 @@ FDATE <- as.Date(FDATE,"%m/%d/%Y")
 ###    include the year, month, numerical day in the month, wordy day of the
 ###    week, and what type of day it is (Weekend or Weekday). Holidays are coded
 ###    as weekends.
-#!!!!!! This matches Iyob's 'calendar' after his line 91
+#!!!!!! This matches Iyob's 'calendar' after his line 91 except this has YEAR,
+#!!!!!!   MDAY, and WDAY variables.
 calendar <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
   mutate(YEAR=year(DATE),
          MONTH=month(DATE,label=TRUE,abbr=FALSE),
          MONTH=droplevels(MONTH),
          MDAY=mday(DATE),
          WDAY=wday(DATE,label=TRUE,abbr=TRUE),
-         DAYTYPE=mapvalues(WDAY,from=mvDOW$DOW,to=mvDOW$TYPE),
-         DAYTYPE=hndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
-         DAYTYPE=factor(DAYTYPE)
+         DAYTYPE=iMvDaytype(WDAY,MONTH,MDAY)
   )
 
 ### Counts the number of weekend and weekday days in each month and includes a
-###   variable that is the fishing day length (which depends on month and is
-###   coded in the LSCreel_helpers file).
+###   variable that is the fishing day length.
 #!!!!!! This matches Iyob's 'calendar1' after his line 97
 calSum <- calendar %>%
   group_by(YEAR,MONTH,DAYTYPE) %>%
   summarize(DAYS=n()) %>%
-  mutate(DAYLEN=mapvalues(MONTH,from=mvDAYLEN$MONTH,
-                          to=mvDAYLEN$DAYLEN,warn=FALSE)) %>%
+  mutate(DAYLEN=iMvDaylen(MONTH)) %>%
   as.data.frame()
+
+rm(calendar) # cleaning up ... these are not used further
 
 ## Make Table 1
 #!!!!!! This matches Iyob's Table 1' after his line 115
@@ -74,74 +73,31 @@ source("helpers/LSCreel_Table1.R")
 ###   Drop unused levels
 ### HOURS is fishing effort by the party.
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
-#!!!!!! a YEAR, MDAY, and WDAY variables and DATE is a different format.
+#!!!!!! a YEAR, MDAY, and WDAY variables; DATE is a different format; and I
+#!!!!!! dropped the CLIPXX, LENXX, and SPECXX that had no data.
 ints <- readInterviewData(LOC,SDATE,FDATE,dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
   select(-FISH,-RES,-SUCCESS,-DAY) %>%
   droplevels()
 
-### Table 2 -- Number of interviews and interviewed effort by grouping
+### Table 2 -- Number of interviews and interviewed fishing effort by strata
 #!!!!!! This matches Iyob's Table 2 after his line 149
 source("helpers/LSCreel_Table2.R")
 
 
 ## Summarize Fishing Effort ----
-
-### Total party fishing effort by month and day-type
-#!!!!!! This matches Iyob's nints' after his line 153
-sumInts <- ints %>%
-  group_by(MONTH,DAYTYPE) %>%
-  summarize(THOURS=sum(HOURS,na.rm=TRUE)) %>%
-  as.data.frame()
-
-
-### XXXXX
-###  The "pos" object is used only to allow sorting back to the original order.
-###  Reduce to just WISCONSIN and NON-WISCONSIN
-###  All hours for WI/MN are cut in half and then included separately for
-###    Wisconsin and Minnesota (designated as NON-WISCONSIN). The hours are 
-###    duplicated for NON-WISCONSIN waters below with effort_extra.
-###  Compute people-hours of fishing effort (in INDHRS)
-###  Compute XXX (in CHOURS ... need to know what STATUS is) ????
-effort <- ints %>%
-  mutate(pos=1:nrow(.),
-         WATERS=ifelse(STATE=='MN','NON-WISCONSIN','WISCONSIN')) %>%
-  select(pos,WATERS,STATE,FISHERY,STATUS,MONTH,DAYTYPE,PERSONS,HOURS) %>%
-  mutate(HOURS=ifelse(STATE=='WI/MN',0.5*HOURS,HOURS),
-         INDHRS=PERSONS*HOURS,
-         CHOURS=ifelse(STATUS==1,HOURS,NA))
-
-### Get the other half of the WI/MN
-effort_extra <- effort %>%
-  filter(STATE=="WI/MN") %>%
-  mutate(WATERS="NON-WISCONSIN",
-         pos=pos+0.1)
-f_all <- rbind(effort,effort_extra) %>%
-  arrange(pos) %>%
-  select(-pos,-STATE,-PERSONS,-STATUS)
-#!!!!!! This matches Iyob's 'f_all' after his line 172
-
-f_summary <- f_all %>%
-  group_by(FISHERY,WATERS,DAYTYPE,MONTH) %>%
-  summarize(N=n(),
-            MTRIP=mean(CHOURS,na.rm=TRUE),
-            VHOURS=sum(HOURS^2,na.rm=TRUE),
-            HOURS=sum(HOURS,na.rm=TRUE),
-            INDHRS=sum(INDHRS,na.rm=TRUE),
-            CHOURS=sum(CHOURS,na.rm=TRUE)) %>%
-  select(FISHERY,WATERS,DAYTYPE,MONTH,N,HOURS,INDHRS,CHOURS,MTRIP,VHOURS) %>%
-  as.data.frame()
-#!!!!!! This matches Iyob's 'f_summary' after his line 177
-
-effort <- merge(sumInts,f_summary,by=c("MONTH","DAYTYPE")) %>%
-  mutate(PROP=HOURS/THOURS,
-         PARTY=INDHRS/HOURS) %>%
-  select(MONTH,DAYTYPE,WATERS,FISHERY,HOURS,MTRIP,N,VHOURS,PROP,PARTY) %>%
-  arrange(MONTH,DAYTYPE,WATERS)
+### Summarized interviewed effort by MONTH, DAYTYPE, WATERS, FISHERY
+###   N= Number of interviews
+###   HOURS= Total interviewed effort (hours) of ALL parties
+###   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
+###   MTRIP= Mean interviewed effort (hours) by COMPLETED parties
+###   PROP= Proportion of total interviewed effort for month-daytype that is in
+###         a given waters-fishery. Should sum to 1 within each month-daytype
+###         Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
+###   PARTY= Party size (person's per party)
 #!!!!!! This matches Iyob's 'effort' after his line 183
-
-rm(sumInts,f_summary,f_all) # cleaning up ... these are not used further
-
+effort <- sumEffort(ints)
+head(effort)
 
 ## Count Data ----
 ### Finds various varsions of dates (note that DATE had to be handled
@@ -155,22 +111,10 @@ rm(sumInts,f_summary,f_all) # cleaning up ... these are not used further
 #!!!!!! This largely matches Iyob's 'counts' after his line 195 except his has
 #!!!!!! STARTHH, STARTMM, STOPHH, STOPMM, START, and STOP which he does not use
 #!!!!!! again and mine has MDAY and WDAY (consider removing). Also, this has one
-#!!!!!! fewer records than Iyob's because on of the 27-Sep had a bad STARTHH.
+#!!!!!! fewer records than Iyob's because one of the 27-Sep had a bad STARTHH.
 #!!!!!! Finally, Iyob's code did not restrict to within the survey period or
 #!!!!!! convert missing counts to zeroes, but the SAS code did.
-counts <- read.csv(paste0("data/",LOC,"cnts.csv")) %>%
-  mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
-         YEAR=year(DATE),
-         MONTH=month(DATE,label=TRUE,abbr=FALSE),
-         MDAY=mday(DATE),
-         WDAY=wday(DATE,label=TRUE,abbr=TRUE),
-         DAYTYPE=mapvalues(WDAY,from=mvDOW$DOW,to=mvDOW$TYPE,warn=FALSE),
-         DAYTYPE=hndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
-         DAYTYPE=factor(DAYTYPE),
-         COUNT=convNA20(COUNT),
-         WAIT=hndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE),
-         COUNT=COUNT*WAIT
-  ) %>%
+counts <- readPressureCountData(LOC,SDATE,FDATE,dropHM=TRUE) %>%
   filter(!is.na(WAIT)) %>%
   select(DATE,YEAR,MONTH,DAY,MDAY,WDAY,DAYTYPE,SITE,COUNT,WAIT)
 
