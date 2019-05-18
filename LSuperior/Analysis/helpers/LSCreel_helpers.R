@@ -7,34 +7,101 @@ library(tidyr)
 library(dplyr)
 
 
-## Constants ----
+## Lookup Tables ----
 ### These are constants and lists that are used for lookups in the analysis code
 
-## List days of the week (DOW) and what type they are (DOW_TYPE)
-DOW <- c("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-DOW_TYPE <- c("WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY",
-              "WEEKEND","WEEKEND")
+
 
 ## List months and the fishing day length (in hours)
-MONTHS <- c("January","February","March","April","May","June",
-            "July","August","September","October","November","December")
-FDAYLEN <- c(0,0,0,0,16,16,16,16,16,0,0,0)
-
-## For converting "state" codes to "states"
-STATE_NUM <- 1:5
-STATE_CODE <- c("WI","MN","MI","WI/MN","WI/MI")
-
-## For converting "fishery" codes to "fisheries"
-FISHERY_NUM <- 1:10
-FISHERY_CODE <- c("COLDWATER-OPEN","WARMWATER-OPEN","ICE-STREAM MOUTH",
-                  "ICE-WARMWATER","ICE-BOBBING","BAD RIVER","NON-FISHING",
-                  "SHORE","TRIBAL","COMBINED")
+mvDAYLEN <- list(MONTH= c("January","February","March","April","May","June",
+                          "July","August","September","October","November",
+                          "December"),
+                 DAYLEN=c(0,0,0,0,16,16,16,16,16,0,0,0))
 
 
 ## Helper Functions ----
 
+### Read and prepare the interview data file
+###   Convert some codes to words
+###   Handle dates (find weekends and weekdays) & times (incl. hours of effort)
+readInterviewData <- function(LOC,SDATE,FDATE,
+                              dropCLS=TRUE,dropHM=TRUE) {
+  d <- read.csv(paste0("data/",LOC,"ints.csv")) %>%
+    dplyr::mutate(STATE=iMvStates(STATE),
+                  FISHERY=iMvFishery(FISHERY),
+                  STATUS=iMvStatus(STATUS),
+                  RES=iMvResidency(RES),
+                  DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%y"),
+                  YEAR=lubridate::year(DATE),
+                  MONTH=lubridate::month(DATE,label=TRUE,abbr=FALSE),
+                  MDAY=lubridate::mday(DATE),
+                  WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
+                  DAYTYPE=iMvDaytype(WDAY),
+                  DAYTYPE=iHndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
+                  DAYTYPE=factor(DAYTYPE),
+                  HOURS=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,
+                                   DATE,SDATE,FDATE))
+  if (dropHM) d <- dplyr::select(d,-(STARTMM:STOPHH))
+  if (dropCLS) {
+    allNA <- sapply(d,function(x) all(is.na(x)))
+    allNAv <- names(d)[allNA]
+    cat("The following were removed (as requested) because they were all NAs:\n")
+    cat(paste(allNAv[grepl("CLIP",allNAv)],collapse=", "),"\n")
+    cat(paste(allNAv[grepl("LEN",allNAv)],collapse=", "),"\n")
+    cat(paste(allNAv[grepl("SPEC",allNAv)],collapse=", "),"\n")
+    d <- d[,!allNA]
+  }
+  d
+}
+
+
+readPressureCountData <- function(LOC) {
+  
+}
+
+## Convert DOW to weekend or weekdays
+iMvDaytype <- function(x) {
+  x <- plyr::mapvalues(x,from=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun"),
+                       to=c("WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY",
+                            "WEEKEND","WEEKEND"),warn=FALSE)
+  x
+}
+
+## Convert "fishery" codes to "fishery" words
+iMvFishery <- function(x) {
+  tmp <- c("COLDWATER-OPEN","WARMWATER-OPEN","ICE-STREAM MOUTH","ICE-WARMWATER",
+           "ICE-BOBBING","BAD RIVER","NON-FISHING","SHORE","TRIBAL","COMBINED")
+  x <- plyr::mapvalues(x,from=1:10,to=tmp,warn=FALSE)
+  x <- factor(x,levels=tmp)
+  x
+}
+
+## Convert residency codes to words
+iMvResidency <- function(x) {
+  tmp <- c("Resident","Non-Resident","Resident/Non-Resident")
+  x <- plyr::mapvalues(x,from=1:3,to=tmp,warn=FALSE)
+  x <- factor(x,levels=tmp)
+  x
+}
+
+## Convert state codes to words
+iMvStates <- function(x) {
+  tmp <- c("WI","MN","MI","WI/MN","WI/MI")
+  x <- plyr::mapvalues(x,from=1:5,to=tmp,warn=FALSE)
+  x <- factor(x,levels=tmp)
+  x
+}
+
+## Convert status codes to words
+iMvStatus <- function(x) {
+  tmp <- c("Complete","Incomplete")
+  x <- plyr::mapvalues(x,from=1:2,to=tmp,warn=FALSE)
+  x <- factor(x,levels=tmp)
+  x
+}
+
 ## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
-hndlHolidays <- function(MONTH,MDAY,WDAY,DAYTYPE) {
+iHndlHolidays <- function(MONTH,MDAY,WDAY,DAYTYPE) {
   case_when(
     MONTH=="January" & MDAY==1 ~ "WEEKEND",                 # New Years Day
     MONTH=="May" & MDAY>=25 & WDAY=="Mon" ~ "WEEKEND",      # Memorial Day
@@ -46,7 +113,7 @@ hndlHolidays <- function(MONTH,MDAY,WDAY,DAYTYPE) {
 
 ## Compute hours of effort, put NAs if before start or after end of survey
 ##   period or if stop time is before start time.
-hndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
+iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
   START <- STARTHH*60+STARTMM
   STOP <- STOPHH*60+STOPMM
   case_when(

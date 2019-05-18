@@ -46,7 +46,7 @@ calendar <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
          MONTH=droplevels(MONTH),
          MDAY=mday(DATE),
          WDAY=wday(DATE,label=TRUE,abbr=TRUE),
-         DAYTYPE=mapvalues(WDAY,from=DOW,to=DOW_TYPE),
+         DAYTYPE=mapvalues(WDAY,from=mvDOW$DOW,to=mvDOW$TYPE),
          DAYTYPE=hndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
          DAYTYPE=factor(DAYTYPE)
   )
@@ -58,7 +58,8 @@ calendar <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 calSum <- calendar %>%
   group_by(YEAR,MONTH,DAYTYPE) %>%
   summarize(DAYS=n()) %>%
-  mutate(DAYLEN=mapvalues(MONTH,from=MONTHS,to=FDAYLEN,warn=FALSE)) %>%
+  mutate(DAYLEN=mapvalues(MONTH,from=mvDAYLEN$MONTH,
+                          to=mvDAYLEN$DAYLEN,warn=FALSE)) %>%
   as.data.frame()
 
 ## Make Table 1
@@ -68,30 +69,15 @@ source("helpers/LSCreel_Table1.R")
 
 ## Interview Data ----
 ### Read and prepare interviews file
-###   Convert some codes to words
-###   Handle dates (find weekends and weekdays) & times (incl. hours of effort)
 ###   Remove days with no effort between SDATE and FDATE (HOURS will be NA)
 ###   Remove unneeded variables
 ###   Drop unused levels
 ### HOURS is fishing effort by the party.
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
 #!!!!!! a YEAR, MDAY, and WDAY variables and DATE is a different format.
-ints <- read.csv(paste0("data/",LOC,"ints.csv")) %>%
-  mutate(STATE=mapvalues(STATE,from=STATE_NUM,to=STATE_CODE,warn=FALSE),
-         STATE=factor(STATE,levels=STATE_CODE),
-         FISHERY=mapvalues(FISHERY,from=FISHERY_NUM,to=FISHERY_CODE,warn=FALSE),
-         FISHERY=factor(FISHERY,levels=FISHERY_CODE),
-         DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%y"),
-         YEAR=year(DATE),
-         MONTH=month(DATE,label=TRUE,abbr=FALSE),
-         MDAY=mday(DATE),
-         WDAY=wday(DATE,label=TRUE,abbr=TRUE),
-         DAYTYPE=mapvalues(WDAY,from=DOW,to=DOW_TYPE,warn=FALSE),
-         DAYTYPE=hndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
-         DAYTYPE=factor(DAYTYPE),
-         HOURS=hndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE)) %>%
+ints <- readInterviewData(LOC,SDATE,FDATE,dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
-  select(-FISH,-RES,-SUCCESS,-DAY,-(STARTMM:STOPHH)) %>%
+  select(-FISH,-RES,-SUCCESS,-DAY) %>%
   droplevels()
 
 ### Table 2 -- Number of interviews and interviewed effort by grouping
@@ -178,7 +164,7 @@ counts <- read.csv(paste0("data/",LOC,"cnts.csv")) %>%
          MONTH=month(DATE,label=TRUE,abbr=FALSE),
          MDAY=mday(DATE),
          WDAY=wday(DATE,label=TRUE,abbr=TRUE),
-         DAYTYPE=mapvalues(WDAY,from=DOW,to=DOW_TYPE,warn=FALSE),
+         DAYTYPE=mapvalues(WDAY,from=mvDOW$DOW,to=mvDOW$TYPE,warn=FALSE),
          DAYTYPE=hndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
          DAYTYPE=factor(DAYTYPE),
          COUNT=convNA20(COUNT),
