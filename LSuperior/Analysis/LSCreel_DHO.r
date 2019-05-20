@@ -36,30 +36,22 @@ FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
 ## Expansion factors (Table 1) ----
 ### Make data.frame of dates from starting to ending date (entered above)
-###    include the year, month, numerical day in the month, wordy day of the
-###    week, and what type of day it is (Weekend or Weekday). Holidays are coded
-###    as weekends.
-#!!!!!! This matches Iyob's 'calendar' after his line 91 except this has YEAR,
-#!!!!!!   MDAY, and WDAY variables.
-calendar <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
-  mutate(YEAR=year(DATE),
-         MONTH=month(DATE,label=TRUE,abbr=FALSE),
-         MONTH=droplevels(MONTH),
-         MDAY=mday(DATE),
-         WDAY=wday(DATE,label=TRUE,abbr=TRUE),
-         DAYTYPE=iMvDaytype(WDAY,MONTH,MDAY)
-  )
-
+###    include the year, month, and what type of day it is (Weekend or Weekday).
+###    Holidays are coded as weekends. 
+#!!!!!! This matches Iyob's 'calendar' after his line 91.
 ### Counts the number of weekend and weekday days in each month and includes a
 ###   variable that is the fishing day length.
 #!!!!!! This matches Iyob's 'calendar1' after his line 97
-calSum <- calendar %>%
+calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
+  mutate(YEAR=year(DATE),
+         MONTH=month(DATE,label=TRUE,abbr=FALSE),
+         MONTH=droplevels(MONTH),
+         DAYTYPE=iMvDaytype(wday(DATE,label=TRUE,abbr=TRUE),MONTH,mday(DATE))
+  ) %>%
   group_by(YEAR,MONTH,DAYTYPE) %>%
   summarize(DAYS=n()) %>%
   mutate(DAYLEN=iMvDaylen(MONTH)) %>%
   as.data.frame()
-
-rm(calendar) # cleaning up ... these are not used further
 
 ## Make Table 1
 #!!!!!! This matches Iyob's Table 1' after his line 115
@@ -73,11 +65,11 @@ source("helpers/LSCreel_Table1.R")
 ###   Drop unused levels
 ### HOURS is fishing effort by the party.
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
-#!!!!!! a YEAR, MDAY, and WDAY variables; DATE is a different format; and I
-#!!!!!! dropped the CLIPXX, LENXX, and SPECXX that had no data.
+#!!!!!! YEAR and WDAY variables; DATE is a different format; and I dropped the
+#!!!!!! CLIPXX, LENXX, and SPECXX variables that had no data.
 ints <- readInterviewData(LOC,SDATE,FDATE,dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
-  select(-FISH,-RES,-SUCCESS,-DAY) %>%
+  select(-FISH,-RES,-SUCCESS) %>%
   droplevels()
 
 ### Table 2 -- Number of interviews and interviewed fishing effort by strata
@@ -100,58 +92,63 @@ effort <- sumEffort(ints)
 head(effort)
 
 ## Count Data ----
-### Finds various varsions of dates (note that DATE had to be handled
-###   differently than above b/c four rather than two digits used here).
-### Convert missing COUNTs to zeroes
-### Calculate the "WAIT" time (hours at the site)
-### Convert average counts (the original COUNT variable) to "total effort"
-###   during shift (by muliplying by the WAIT time) so that multiple shifts on
-###   each day can be combined (from original SAS code).
-### Remove days with no effort between SDATE and FDATE (WAIT will be NA)
-#!!!!!! This largely matches Iyob's 'counts' after his line 195 except his has
-#!!!!!! STARTHH, STARTMM, STOPHH, STOPMM, START, and STOP which he does not use
-#!!!!!! again and mine has MDAY and WDAY (consider removing). Also, this has one
-#!!!!!! fewer records than Iyob's because one of the 27-Sep had a bad STARTHH.
-#!!!!!! Finally, Iyob's code did not restrict to within the survey period or
-#!!!!!! convert missing counts to zeroes, but the SAS code did.
-counts <- readPressureCountData(LOC,SDATE,FDATE,dropHM=TRUE) %>%
-  filter(!is.na(WAIT)) %>%
-  select(DATE,YEAR,MONTH,DAY,MDAY,WDAY,DAYTYPE,SITE,COUNT,WAIT)
+### Read count pressure data and compute the following:
+###   WAIT= Total amount of time that clerk was at the SITE during that shift.
+###   COUNT= Total count of boats at the landing during the shift (note that
+###          this has been adjusted for boats that came back during the shift
+###          and boats that left after the shift started. Thus, there are 
+###          fractions in these counts).
+###   ** Both WAIT & COUNT have been combined for multiple visits during shift
+#!!!!!! This largely matches Iyob's 'counts1' after his line 198.  However,
+#!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
+#!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
+#!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
+counts <- readPressureCountData(LOC,SDATE,FDATE,dropHM=TRUE)
+head(counts)
+
+### Expand the daily count pressure data to be a summary for each MONTH and
+### DAYTYPE with the following variables:
+###   N= Number of days clerk estimated pressure counts
+###   DAYS= Number of days in the month
+###   COUNT= Total pressure count
+###   SDCOUNT= SD of pressure count
+###   VCOUNT= Variance of pressure count
+#!!!!!! This matches Iyob's 'counts' after his line 215
+counts <- expandPressureCounts(counts,calSum)
+counts
+
+### Make TABLE 3 here
+
+## Combining Effort and Counts ----
+### Combine effort and counts into one data.frame with new calculations
+###   PHOURS= Party hours
+###   TRIPS= Total trips
+###   INDHRS= Total individual hours
+#!!!!!! This largely matches Iyob's 'effort' after his line 247
+#!!!!!! Note that Iyob rounded his numerics to three decimal places
+effort <- merge(effort,counts,by=c("MONTH","DAYTYPE")) %>%
+  mutate(PHOURS=COUNT*PROP,
+         VPHOURS=COUNT*(PROP^2),
+         TRIPS=PHOURS*MTRIP,
+         VTRIPS=VPHOURS*(MTRIP^2),
+         INDHRS=PHOURS*PARTY,
+         VINDHRS=VPHOURS*(PARTY^2)) %>%
+  arrange(MONTH,DAYTYPE,WATERS,FISHERY)
+# show results with numerics round to two decimals
+tmp <- effort
+tmp[sapply(tmp,is.numeric)] <- lapply(tmp[sapply(tmp,is.numeric)],round,digits=2)
+tmp
+
+### Table 4 here
 
 
-
+## SOMETHING NEW HERE ----
+### Remove non-fishing records
+effort2 <- filter(effort,FISHERY!="NON-FISHING")
 
 
 ###### WORKED DOWN TO HERE #######
 
-
-
-# Number of species???
-n_spp <- 28
-
-
-
-
-
-#COMBINES MULTIPLE COUNTS FOR EACH DAY
-counts1=aggregate(cbind(COUNT,WAIT)~DAYTYPE+MONTH+SITE+DATE, data=counts,sum)
-counts1$DAYLEN=16
-counts1$COUNT=counts1$COUNT*counts1$DAYLEN/counts1$WAIT
-#SUM EFFORT OVER LOCATIONS FOR EACH SHIFT/DATE; GIVES ENTIRE LAKE DAILY EFFORT ESTIMATES
-counts2=aggregate(cbind(COUNT)~DAYTYPE+MONTH+DATE, data=counts1,sum)
-
-#AVERAGE DAILY ESTIMATES; SEPARATELY BY MONTH AND DAYTYPE
-counts3=aggregate(cbind(COUNT)~DAYTYPE+MONTH, data=counts2,function(x) c(COUNT=mean(x),VCOUNT=var(x),NCOUNT=length(x)))
-counts3=cbind(counts3[,1:2],counts3[,3])    #this is so colname are not prefixed
-#EXPAND DAILY AVERAGE BY TOTAL NUMBER OF DAYS
-counts4=merge(counts3,calendar1[,!(names(calendar1) %in% c("DAYLEN"))],by=c('MONTH','DAYTYPE'))
-counts4=counts4[order(match(counts4$MONTH,month.name),counts4$DAYTYPE),]
-
-counts4$COUNT=counts4$COUNT*counts4$DAYS
-counts4$VCOUNT=counts4$VCOUNT/counts4$NCOUNT*counts4$DAYS*counts4$DAYS
-
-counts=aggregate(cbind(COUNT,VCOUNT,NCOUNT,DAYS)~MONTH+DAYTYPE,data=counts4, sum)
-counts$SDCOUNT=sqrt(counts[,4])
 
 ############### TABLE 3    TOTAL HARVEST AND HARVEST RATES
 
