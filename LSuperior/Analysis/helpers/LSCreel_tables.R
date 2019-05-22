@@ -29,7 +29,7 @@ table1 <- function(calSum,LOC,SDATE,FDATE,OUT=c("html","pdf","docx")) {
     rbind(c("","DAY TYPE","","","DAY"),.) %>%           # Extra label at the top
     merge_cells(row=1,2:4) %>%                          #  covers columns 2,3,4
     set_align(row=1,col=everywhere,"center") %>%        #  will be centered
-    set_bottom_border(row=1,col=2,1) %>%                #  and have a line underneath it
+    set_bottom_border(row=1,col=2,1) %>%                #  and a line underneath it
     set_top_border(row=1,col=everywhere,2) %>%          # Line above top of table
     set_bottom_border(row=final(),col=everywhere,2) %>% # Line below bottom of table
     set_bottom_border(row=2,col=everywhere,1) %>%       # Line below variable names

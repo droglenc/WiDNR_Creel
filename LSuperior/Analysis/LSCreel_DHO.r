@@ -73,9 +73,19 @@ ints <- readInterviewData(LOC,SDATE,FDATE,dropCLS=TRUE,dropHM=TRUE) %>%
   select(-FISH,-RES,-SUCCESS) %>%
   droplevels()
 
+## Create a simplified data.frame that does not include any fish data
+intsXX <-select(ints,WATERS,STATE,SITE,DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,
+                FISHERY,STATUS,PERSONS,HOURS)
+
+## This summarizes (# of interviews and hours across sites within strata)
+tmp1 <- group_by(intsXX,YEAR,WATERS,STATE,DAYTYPE,FISHERY,MONTH,.drop=FALSE) %>%
+  summarize(NINTS=n(),HOURS=sum(HOURS))
+
 ### Table 2 -- Number of interviews and interviewed fishing effort by strata
 #!!!!!! This matches Iyob's Table 2 after his line 149
 if (MAKE_TABLES) table2(ints,LOC,SDATE,FDATE)
+
+
 
 ## Summarize Fishing Effort ----
 ### Summarized interviewed effort by MONTH, DAYTYPE, WATERS, FISHERY
@@ -88,7 +98,7 @@ if (MAKE_TABLES) table2(ints,LOC,SDATE,FDATE)
 ###         Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
 ###   PARTY= Party size (person's per party)
 #!!!!!! This matches Iyob's 'effort' after his line 183
-effort <- sumEffort(ints)
+effort <- sumEffort(intsXX)
 head(effort)
 
 ## Count Data ----
