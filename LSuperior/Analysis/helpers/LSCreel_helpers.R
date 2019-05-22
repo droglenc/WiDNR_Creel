@@ -2,13 +2,13 @@
 suppressPackageStartupMessages(library(FSA))
 suppressPackageStartupMessages(library(lubridate))
 suppressPackageStartupMessages(library(tables))
-suppressPackageStartupMessages(library(huxtable))
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(dplyr))
 suppressPackageStartupMessages(library(magrittr))
 
+options(max.print=2000)
 
-## Helper Functions ----
+## Main Helpers ----
 
 ## Read and prepare the interview data file
 readInterviewData <- function(LOC,SDATE,FDATE,
@@ -55,25 +55,23 @@ readInterviewData <- function(LOC,SDATE,FDATE,
 ##
 sumEffort <- function(ints) {
   ### Restrict to only the variables needed here
-  ### All hours for WI/MN or WI/MI are cut in half and then included separately
-  ###   for Wisconsin and Minnesota (and will be designated as NON-WISCONSIN).
-  ###   The hours (or half the original hours) are duplicated for NON-WISCONSIN
-  ###   waters below with fx.
   f <- ints %>%
-    dplyr::select(MONTH,WATERS,FISHERY,STATE,STATUS,DAYTYPE,PERSONS,HOURS) %>%
-    dplyr::mutate(HOURS=ifelse(STATE %in% c("WI/MN","WI/MI"),0.5*HOURS,HOURS))
+    dplyr::select(MONTH,WATERS,FISHERY,STATE,STATUS,DAYTYPE,PERSONS,HOURS)
   
-  ### Get the other half of the WI/MN & WI/MI effort
-  fx <- f %>%
-    dplyr::filter(STATE %in% c("WI/MN","WI/MI")) %>%
-    dplyr::mutate(WATERS="NON-WISCONSIN")
-  
-  ### Combine back with original to get all interviews corrected for location
+  ### Separate into only one and split states
+  ### All hours for split states are cut in half
+  f1 <- dplyr::filter(f,!STATE %in% c("WI/MN","WI/MI"))
+  f2 <- dplyr::filter(f,STATE %in% c("WI/MN","WI/MI")) %>%
+    dplyr::mutate(HOURS=0.5*HOURS)
+  ### Duplicated f2 to get other half of HOURS, label as NON-WISCONSIN
+  f3 <- dplyr::mutate(f2,WATERS="NON-WISCONSIN")
+
+  ### Combine to get all interviews corrected for location
   ### Compute people-hours of fishing effort (in INDHRS)
   ### Compute hours for only completed trips (in CHOURS)
   ### Remove some variables
   ### Re-arrange
-  f <- rbind(f,fx) %>%
+  f <- rbind(f1,f2,f3) %>%
     dplyr::mutate(INDHRS=PERSONS*HOURS,
                   CHOURS=ifelse(STATUS=="Complete",HOURS,NA)) %>%
     dplyr::select(-STATE,-PERSONS,-STATUS) %>%
@@ -173,6 +171,160 @@ expandPressureCounts <- function(counts,cal) {
 }
 
 
+## Rearrange fish information from interviews
+rearrangeFishInfo <- function(ints) {
+  ## Get the main information about the interview
+  mainInts <- dplyr::select(ints,INTID:HOURS)
+  
+  ## Isolate species, clips, and lengths and make long format
+  specInts <- dplyr::select(ints,INTID,contains("SPEC")) %>%
+    tidyr::gather(tmp,SPECCODE,-INTID) %>%
+    dplyr::select(-tmp)
+  
+  ## Isolate clips, make long, change code to word, add clipped variable
+  clipInts <- dplyr::select(ints,INTID,contains("CLIP")) %>%
+    tidyr::gather(tmp,CLIPCODE,-INTID) %>%
+    dplyr::select(-tmp)
+  
+  ## Isolate lengths, make long
+  lenInts <- dplyr::select(ints,INTID,contains("LEN")) %>%
+    tidyr::gather(tmp,LEN,-INTID) %>%
+    dplyr::select(-tmp)
+  
+  ## Put species, clips, and lengths back together
+  ## Reduce to only those where a species, clip, and length was recorded
+  sclInts <- cbind(specInts,
+                   clipInts[,"CLIPCODE",drop=FALSE],
+                   lenInts[,"LEN",drop=FALSE]) %>%
+    dplyr::filter(!is.na(SPECCODE),!is.na(CLIPCODE),!is.na(LEN))
+  
+  ## Expand records that were only counts of fish (when CLIPCODE==99)
+  if (any(sclInts$CLIPCODE==99)) {
+    ### isolate records to be expanded
+    tmp <- dplyr::filter(sclInts,CLIPCODE=99)
+    ### determine how many of each row to repeat, repeat those rows, 
+    ###   replace CLIPCODE with 40 (for not examined), replace LEN with NA
+    reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
+    tmp2 <- tmp[reprows,] %>%
+      dplyr::mutate(CLIPCODE=40,LEN=NA)
+    ### combine originals without records that needed expanding, with expanded
+    sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!=99),tmp2)
+  }
+  
+  ## Add words from codes
+  sclInts <- sclInts %>%
+    dplyr::mutate(SPEC=iMvSpecies(SPECCODE),
+                  CLIP=iMvFinclips(CLIPCODE),
+                  CLIPPED=iFinclipped(CLIP)) %>%
+    dplyr::select(INTID,SPECCODE,SPEC,CLIPCODE,CLIP,CLIPPED,LEN)
+  
+  ## Join back on the main interview information
+  ints2 <- dplyr::right_join(mainInts,sclInts,by="INTID") %>%
+    dplyr::arrange(INTID)
+  
+  ints2
+}
+
+
+## Summarize harvest
+sumHarvest <- function(d) {
+  ## Compute harvest for each interview
+  harv <- d %>%
+    group_by(INTID,DATE,YEAR,MONTH,DAYTYPE,WATERS,STATE,FISHERY,HOURS,SPEC) %>%
+    summarize(HARVEST=n()) %>%
+    ungroup()
+
+  ### Separate into only one and split states
+  ### All hours and harvest for split states are cut in half
+  h1 <- dplyr::filter(harv,!STATE %in% c("WI/MN","WI/MI"))
+  h2 <- dplyr::filter(harv,STATE %in% c("WI/MN","WI/MI")) %>%
+    dplyr::mutate(HOURS=0.5*HOURS,HARVEST=0.5*HARVEST)
+  ### Duplicated h2 to get other half of HOURS/HARVEST, label as NON-WISCONSIN
+  h3 <- dplyr::mutate(h2,WATERS="NON-WISCONSIN")
+  ### Combine to get all interviews corrected for location
+  ### Add COVAR variable
+  harv <- rbind(h1,h2,h3) %>%
+    mutate(COVAR=HARVEST*HOURS)
+  ### Summarize harvest by strata and species
+  harv <- group_by(harv,WATERS,MONTH,DAYTYPE,FISHERY,SPEC) %>%
+    summarize(VHARVEST=sum(HARVEST^2),
+              HARVEST=sum(HARVEST),
+              COVAR=sum(COVAR)) %>%
+    as.data.frame() %>%
+    select(WATERS,MONTH,DAYTYPE,FISHERY,SPEC,HARVEST,VHARVEST,COVAR)
+  harv
+}
+
+## Summarize Harvest and Effort
+##   Merge harvest and effort data.frames
+##   Replace variables with 0 if NINTS is <1 or NA
+##   Calculate
+##   Reduce variables and sort
+sumHarvestEffort <- function(h,f) {
+  hf <- merge(h,f,by=c("WATERS","FISHERY","MONTH","DAYTYPE"),all=TRUE) %>%
+    dplyr::mutate(HOURS=ifelse(is.na(NINTS) | NINTS==0,0,HOURS),
+                  VHOURS=ifelse(is.na(NINTS) | NINTS==0,0,VHOURS),
+                  HARVEST=ifelse(is.na(NINTS) | NINTS==0,0,HARVEST),
+                  VHARVEST=ifelse(is.na(NINTS) | NINTS==0,0,VHARVEST),
+                  COVAR=ifelse(is.na(NINTS) | NINTS==0,0,COVAR),
+                  VHOURS=ifelse(NINTS==0,NA,
+                                (VHOURS-(HOURS^2)/NINTS)/(NINTS-1)),
+                  VHARVEST=ifelse(NINTS==0,NA,
+                                  (VHARVEST-(HARVEST^2)/NINTS)/(NINTS-1)),
+                  COVAR=ifelse(NINTS==0,NA,
+                               (COVAR-HARVEST*HOURS/NINTS)/(NINTS-1)),
+                  HRATE=HARVEST/HOURS,
+                  MHOURS=HOURS/NINTS,
+                  MHARV=HARVEST/NINTS,
+                  VHRATE=ifelse(MHARV==0 & NINTS>1,0,
+                                (VHARVEST/(MHARV^2))+(VHOURS/(MHOURS^2))-
+                                  2*COVAR/MHARV/MHOURS),
+                  VHRATE=(HRATE^2)*VHRATE/NINTS,
+                  HARVEST=PHOURS*HRATE,
+                  VHARVEST=(PHOURS^2)*VHRATE+(HRATE^2)*VPHOURS+VHRATE*VPHOURS) %>%
+    dplyr::select(WATERS,MONTH,DAYTYPE,FISHERY,SPEC,NINTS,
+                  VHRATE,HARVEST,VHARVEST,INDHRS) %>%
+    dplyr::arrange(WATERS,SPEC,FISHERY,MONTH,DAYTYPE)
+  hf
+}
+
+## Summarize lengths by species, month, and var
+## Note that this is generalized so that var can be either CLIPPED or CLIP
+sumLengths <- function(d,var) {
+  tmp <- rlang::quo_name(rlang::enquo(var))
+  lenSum1 <- dplyr::group_by(d,SPEC,MONTH,!!rlang::enquo(var)) %>% iSumLen()
+  lenSum2 <- group_by(d,SPEC,MONTH) %>% iSumLen() %>%
+    mutate(TMP="TOTAL")
+  names(lenSum2)[length(names(lenSum2))] <- tmp
+  lenSum2 <- select(lenSum2,names(lenSum1))
+  lenSum3 <- group_by(d,SPEC,!!enquo(var)) %>% iSumLen() %>%
+    mutate(MONTH="TOTAL") %>%
+    select(names(lenSum1))
+  lenSum4 <- group_by(d,SPEC) %>% iSumLen() %>%
+    mutate(MONTH="TOTAL",TMP="TOTAL")
+  names(lenSum4)[length(names(lenSum4))] <- tmp
+  lenSum4 <- select(lenSum4,names(lenSum1))
+  lenSum <- rbind(lenSum1,lenSum2,lenSum3,lenSum4)
+  if (tmp=="CLIPPED") {
+    lenSum <- lenSum %>%
+      mutate(CLIPPED=factor(CLIPPED,levels=c("NO FINCLIP","FINCLIP","TOTAL"))) %>%
+      arrange(SPEC,MONTH,CLIPPED)
+  } else {
+    lenSum <- arrange(lenSum,SPEC,MONTH,CLIP)
+  }
+  lenSum
+}
+
+
+## Internals for Mains ----
+
+iSumLen <- function(dgb) {
+  dplyr::summarize(dgb,n=n(),mnLen=mean(LEN,na.rm=TRUE),
+                   seLen=FSA::se(LEN,na.rm=TRUE),varLen=var(LEN,na.rm=TRUE),
+                   minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
+    as.data.frame()
+}
+
 
 ## Creates day lengths from month names
 iMvDaylen <- function(x) {
@@ -199,10 +351,21 @@ iMvFinclips <- function(x) {
            '06: LV','07: RV','08: LP','09: RP','10: LV+RV','11: RP+LV',
            '12: AD+LV+RV','13: D','14: HATCHERY','15: LP+RV','16: D+RV',
            '17: D+RP','18: AD+RM','19: LP+RM','20: LP+LV','21: D+AD',
-           '22: D+LV+RV','23: D+LP','24: D+LV','40: NOT EXAMINED',NA)
-  x <- plyr::mapvalues(x,from=c(0:24,40,NA),to=tmp,warn=FALSE)
-  x <- factor(x,levels=tmp)
+           '22: D+LV+RV','23: D+LP','24: D+LV','40: NOT EXAMINED',
+           '40: NOT EXAMINED',NA)
+  x <- plyr::mapvalues(x,from=c(0:24,40,99,NA),to=tmp,warn=FALSE)
+  x <- factor(x,levels=tmp[!duplicated(tmp)])
   x  
+}
+
+## Adds whether a fish was clipped or not
+iFinclipped <- function(x) {
+  tmp <- dplyr::case_when(
+    is.na(x) ~ NA_character_,
+    x %in% c('00: NONE','40: NOT EXAMINED') ~ "NO FINCLIP",
+    TRUE ~ "FINCLIP"
+  )
+  factor(tmp,levels=c("FINCLIP","NO FINCLIP"))
 }
 
 ## Convert "fishery" codes to words
@@ -241,8 +404,15 @@ iMvSpecies <- function(x,which=1) {
            'ATLANTIC SALMON','SMELT','STURGEON','LARGEMOUTH BASS',
            'SMALLMOUTH BASS','LAKE WHITEFISH','ROUND WHITEFISH','YELLOW PERCH',
            'WALLEYE','CATFISH','NA')
+  lvls <- c('LAKE TROUT','SISCOWET','ATLANTIC SALMON','BROOK TROUT',
+            'BROWN TROUT','COHO SALMON','CHINOOK','PINK SALMON','RAINBOW TROUT',
+            'SPLAKE','BURBOT','LAKE HERRING','LAKE WHITEFISH','ROUND WHITEFISH',
+            'SMELT','STURGEON','WALLEYE','YELLOW PERCH','NORTHERN PIKE',
+            'BLUEGILL','PUMPKINSEED','SUNFISH SPP.','BLACK CRAPPIE',
+            'CRAPPIE SPP.','LARGEMOUTH BASS','ROCK BASS','SMALLMOUTH BASS',
+            'CATFISH','CARP')
   x <- plyr::mapvalues(x,from=code,to=nms,warn=FALSE)
-  x <- factor(x,levels=nms)
+  x <- factor(x,levels=lvls)
   x
 }
 
@@ -280,16 +450,6 @@ iConvNA20 <- function(x) {
   )
 }
 
-## Adds whether a fish was clipped or not
-iFinclipped <- function(x) {
-  tmp <- dplyr::case_when(
-    is.na(x) ~ NA_character_,
-    x %in% c('00: NONE','40: NOT EXAMINED') ~ "NO FINCLIP",
-    TRUE ~ "FINCLIP"
-  )
-  factor(tmp,levels=c("FINCLIP","NO FINCLIP"))
-}
-
 ## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
 iHndlHolidays <- function(mon,md,wd,dt) {
   dplyr::case_when(
@@ -312,4 +472,10 @@ iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
     STOP < START ~ NA_real_,   # Stopped before started
     TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
   )
+}
+
+
+showRoundedNumerics <- function(d,digits=3) {
+  d[sapply(d,is.numeric)] <- lapply(d[sapply(d,is.numeric)],round,digits=digits)
+  d
 }
