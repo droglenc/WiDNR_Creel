@@ -369,7 +369,7 @@ ints_effort$VHRATE=ifelse(ints_effort$MHARV==0&ints_effort$N>1,0,(ints_effort$VH
 ints_effort$VHRATE=(ints_effort$HRATE^2)*ints_effort$VHRATE/ints_effort$N   #VARIANCE OF HARVEST RATE RATIO ESTIMATE
 ints_effort$HARVEST=ints_effort$PHOURS*ints_effort$HRATE;                         #HARVEST AND VARIANCE;
 ints_effort$VHARV=ints_effort$PHOURS^2*ints_effort$VHRATE + ints_effort$HRATE^2*ints_effort$VPHOURS + ints_effort$VHRATE*ints_effort$VPHOURS;
-ints_effort=ints_effort[,c('MONTH','DAYTYPE','WATERS','FISHERY','SPECIES','N','VHRATE','HARVEST','VHARV','INDHRS')]
+ints_effort=ints_effort[,c('MONTH','DAYTYPE','WATERS','FISHERY','SPECIES','N','HRATE','VHRATE','HARVEST','VHARV','INDHRS')]
 ints_effort=ints_effort[order(ints_effort$WATERS,ints_effort$SPECIES),]
 ints_effort[sapply(ints_effort, is.numeric)] <- lapply(ints_effort[sapply(ints_effort, is.numeric)], round, digits = 3)
 rownames(ints_effort) <- NULL
@@ -381,10 +381,9 @@ ints_t=tabular((WATERS)*(FISHERY+1)*(SPECIES)*(MONTH+1)~(DAYTYPE+1)*(HARVEST+VHA
 t=subset(ints_t,ints_t[,9]!=0,na.rm=TRUE)                                               
 ttt=as.matrix(t)   
 tt=cbind("",ttt[5:nrow(ttt),2:ncol(ttt)])    
-tt[,c(5,8,11)]=round((as.matrix(t, format=as.numeric)[,c(1,4,7)]),0)
-tt[,c(6,9,12)]=sprintf("%.2f",sqrt(as.matrix(t, format=as.numeric)[,c(2,5,8)]))
-tt[,c(7,10,13)]=sprintf("%.5f",(as.matrix(t, format=as.numeric)[,c(1,4,7)])/(as.matrix(t, format=as.numeric)[,c(3,6,9)]))
-tt=ifelse(tt=="All","TOTAL",tt)
+tt[,c(5,8,11)]=round((as.matrix(t, format=as.numeric)[,c(1,4,7)]),0) #DHO ... rounds harvest to 0
+tt[,c(6,9,12)]=sprintf("%.2f",sqrt(as.matrix(t, format=as.numeric)[,c(2,5,8)])) #DHO ... variances to SDs
+tt[,c(7,10,13)]=sprintf("%.5f",(as.matrix(t, format=as.numeric)[,c(1,4,7)])/(as.matrix(t, format=as.numeric)[,c(3,6,9)])) #DHO ... hrate=harvest/indhrs=ifelse(tt=="All","TOTAL",tt)
 tt[,2]=ifelse(tt[,2]=="TOTAL","COMBINED",tt[,2])
 tt=ifelse(tt=="NaN","***",tt) 
 tt[,4]=toupper(tt[,4]) 

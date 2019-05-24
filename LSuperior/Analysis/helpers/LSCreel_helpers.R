@@ -44,24 +44,19 @@ readInterviewData <- function(LOC,SDATE,FDATE,
   }
   ## Rearrange variables
   d <- d %>%
-    select(INTID,DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,
-           WATERS,STATE,FISHERY,SITE,
-           STATUS,RES,FISH,SUCCESS,PERSONS,HOURS,
+    select(INTID,DATE,YEAR,WATERS,STATE,DAYTYPE,FISHERY,MONTH,DAY,SITE,
+           STATUS,HOURS,PERSONS,RES,FISH,SUCCESS,
            contains("SPEC"),contains("CLIP"),contains("LEN"))
   d
 }
 
 
 ##
-sumEffort <- function(ints) {
-  ### Restrict to only the variables needed here
-  f <- ints %>%
-    dplyr::select(MONTH,WATERS,FISHERY,STATE,STATUS,DAYTYPE,PERSONS,HOURS)
-  
+sumInterviewedEffort <- function(dints) {
   ### Separate into only one and split states
   ### All hours for split states are cut in half
-  f1 <- dplyr::filter(f,!STATE %in% c("WI/MN","WI/MI"))
-  f2 <- dplyr::filter(f,STATE %in% c("WI/MN","WI/MI")) %>%
+  f1 <- dplyr::filter(dints,!STATE %in% c("WI/MN","WI/MI"))
+  f2 <- dplyr::filter(dints,STATE %in% c("WI/MN","WI/MI")) %>%
     dplyr::mutate(HOURS=0.5*HOURS)
   ### Duplicated f2 to get other half of HOURS, label as NON-WISCONSIN
   f3 <- dplyr::mutate(f2,WATERS="NON-WISCONSIN")
@@ -69,41 +64,37 @@ sumEffort <- function(ints) {
   ### Combine to get all interviews corrected for location
   ### Compute people-hours of fishing effort (in INDHRS)
   ### Compute hours for only completed trips (in CHOURS)
-  ### Remove some variables
-  ### Re-arrange
   f <- rbind(f1,f2,f3) %>%
     dplyr::mutate(INDHRS=PERSONS*HOURS,
-                  CHOURS=ifelse(STATUS=="Complete",HOURS,NA)) %>%
-    dplyr::select(-STATE,-PERSONS,-STATUS) %>%
-    dplyr::arrange(MONTH,WATERS,FISHERY,DAYTYPE)
+                  CHOURS=ifelse(STATUS=="Complete",HOURS,NA))
   
-  ### Summarize the effort data.frame by strata  
+  ### Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH  
   fsum <- f %>%
-    dplyr::group_by(FISHERY,WATERS,DAYTYPE,MONTH) %>%
+    dplyr::group_by(YEAR,WATERS,DAYTYPE,FISHERY,MONTH) %>%
     dplyr::summarize(NINTS=n(),
                      MTRIP=mean(CHOURS,na.rm=TRUE),
                      VHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
                      CHOURS=sum(CHOURS,na.rm=TRUE)) %>%
-    dplyr::select(FISHERY,WATERS,DAYTYPE,MONTH,NINTS,
-                  HOURS,INDHRS,CHOURS,MTRIP,VHOURS) %>%
-    dplyr::ungroup()
+    dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
+                  NINTS,HOURS,INDHRS,CHOURS,MTRIP,VHOURS) %>%
+    as.data.frame()
   
   ### Summarize total interviewed hours by MONTH and DAYTYPE
   ### *** This is nints in SAS/IYOB code
-  fsum2 <- ints %>%
+  fsum2 <- dints %>%
     dplyr::group_by(MONTH,DAYTYPE) %>%
     dplyr::summarize(THOURS=sum(HOURS,na.rm=TRUE)) %>%
-    dplyr::ungroup()
+    as.data.frame()
   
   ### Combine the summarized effort with fsum2
   f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(PROP=HOURS/THOURS,
                   PARTY=INDHRS/HOURS) %>%
-    dplyr::select(MONTH,DAYTYPE,WATERS,FISHERY,NINTS,HOURS,VHOURS,
-                  MTRIP,PROP,PARTY) %>%
-    dplyr::arrange(MONTH,DAYTYPE,WATERS,FISHERY)
+    dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
+                  NINTS,HOURS,VHOURS,MTRIP,PROP,PARTY) %>%
+    dplyr::arrange(WATERS,DAYTYPE,FISHERY,MONTH)
   f
 }
 
@@ -139,14 +130,14 @@ readPressureCountData <- function(LOC,SDATE,FDATE,dropHM=TRUE) {
     dplyr::select(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
     dplyr::group_by(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
     dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT)) %>%
-    dplyr::ungroup()
+    as.data.frame()
   d
 }
 
 
 ##
-expandPressureCounts <- function(counts,cal) {
-  counts <- counts %>%
+expandPressureCounts <- function(dcnts,cal) {
+  dcnts <- dcnts %>%
     ### Expands observed pressure counts to represent the entire day 
     dplyr::mutate(COUNT=COUNT*iMvDaylen(MONTH)/WAIT) %>%
     ### Computes daily pressure counts (across sites within days)
@@ -163,31 +154,30 @@ expandPressureCounts <- function(counts,cal) {
     ### Expand by number of days in the month (in cal)
     merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(COUNT=COUNT*DAYS,
-                  VCOUNT=VCOUNT/NCOUNT*(DAYS^2),
-                  SDCOUNT=sqrt(VCOUNT)) %>%
-    dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,SDCOUNT,VCOUNT) %>%
-    dplyr::arrange(YEAR,MONTH,DAYTYPE)
-  counts
+                  VCOUNT=VCOUNT/NCOUNT*(DAYS^2)) %>%
+    dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,COUNT,VCOUNT) %>%
+    dplyr::arrange(YEAR,DAYTYPE,MONTH)
+  dcnts
 }
 
 
 ## Rearrange fish information from interviews
-rearrangeFishInfo <- function(ints) {
+rearrangeFishInfo <- function(dints) {
   ## Get the main information about the interview
-  mainInts <- dplyr::select(ints,INTID:HOURS)
+  mainInts <- dplyr::select(dints,INTID:HOURS)
   
   ## Isolate species, clips, and lengths and make long format
-  specInts <- dplyr::select(ints,INTID,contains("SPEC")) %>%
+  specInts <- dplyr::select(dints,INTID,contains("SPEC")) %>%
     tidyr::gather(tmp,SPECCODE,-INTID) %>%
     dplyr::select(-tmp)
   
   ## Isolate clips, make long, change code to word, add clipped variable
-  clipInts <- dplyr::select(ints,INTID,contains("CLIP")) %>%
+  clipInts <- dplyr::select(dints,INTID,contains("CLIP")) %>%
     tidyr::gather(tmp,CLIPCODE,-INTID) %>%
     dplyr::select(-tmp)
   
   ## Isolate lengths, make long
-  lenInts <- dplyr::select(ints,INTID,contains("LEN")) %>%
+  lenInts <- dplyr::select(dints,INTID,contains("LEN")) %>%
     tidyr::gather(tmp,LEN,-INTID) %>%
     dplyr::select(-tmp)
   
@@ -213,16 +203,14 @@ rearrangeFishInfo <- function(ints) {
   
   ## Add words from codes
   sclInts <- sclInts %>%
-    dplyr::mutate(SPEC=iMvSpecies(SPECCODE),
+    dplyr::mutate(SPECIES=iMvSpecies(SPECCODE),
                   CLIP=iMvFinclips(CLIPCODE),
                   CLIPPED=iFinclipped(CLIP)) %>%
-    dplyr::select(INTID,SPECCODE,SPEC,CLIPCODE,CLIP,CLIPPED,LEN)
+    dplyr::select(INTID,SPECCODE,SPECIES,CLIPCODE,CLIP,CLIPPED,LEN)
   
   ## Join back on the main interview information
-  ints2 <- dplyr::right_join(mainInts,sclInts,by="INTID") %>%
+  dplyr::right_join(mainInts,sclInts,by="INTID") %>%
     dplyr::arrange(INTID)
-  
-  ints2
 }
 
 
@@ -230,7 +218,7 @@ rearrangeFishInfo <- function(ints) {
 sumHarvest <- function(d) {
   ## Compute harvest for each interview
   harv <- d %>%
-    group_by(INTID,DATE,YEAR,MONTH,DAYTYPE,WATERS,STATE,FISHERY,HOURS,SPEC) %>%
+    group_by(INTID,YEAR,WATERS,STATE,DAYTYPE,FISHERY,MONTH,DATE,HOURS,SPECIES) %>%
     summarize(HARVEST=n()) %>%
     ungroup()
 
@@ -246,12 +234,12 @@ sumHarvest <- function(d) {
   harv <- rbind(h1,h2,h3) %>%
     mutate(COVAR=HARVEST*HOURS)
   ### Summarize harvest by strata and species
-  harv <- group_by(harv,WATERS,MONTH,DAYTYPE,FISHERY,SPEC) %>%
+  harv <- group_by(harv,YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES) %>%
     summarize(VHARVEST=sum(HARVEST^2),
               HARVEST=sum(HARVEST),
               COVAR=sum(COVAR)) %>%
     as.data.frame() %>%
-    select(WATERS,MONTH,DAYTYPE,FISHERY,SPEC,HARVEST,VHARVEST,COVAR)
+    select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES,HARVEST,VHARVEST,COVAR)
   harv
 }
 
@@ -261,7 +249,7 @@ sumHarvest <- function(d) {
 ##   Calculate
 ##   Reduce variables and sort
 sumHarvestEffort <- function(h,f) {
-  hf <- merge(h,f,by=c("WATERS","FISHERY","MONTH","DAYTYPE"),all=TRUE) %>%
+  hf <- merge(h,f,by=c("YEAR","WATERS","DAYTYPE","FISHERY","MONTH"),all=TRUE) %>%
     dplyr::mutate(HOURS=ifelse(is.na(NINTS) | NINTS==0,0,HOURS),
                   VHOURS=ifelse(is.na(NINTS) | NINTS==0,0,VHOURS),
                   HARVEST=ifelse(is.na(NINTS) | NINTS==0,0,HARVEST),
@@ -282,9 +270,9 @@ sumHarvestEffort <- function(h,f) {
                   VHRATE=(HRATE^2)*VHRATE/NINTS,
                   HARVEST=PHOURS*HRATE,
                   VHARVEST=(PHOURS^2)*VHRATE+(HRATE^2)*VPHOURS+VHRATE*VPHOURS) %>%
-    dplyr::select(WATERS,MONTH,DAYTYPE,FISHERY,SPEC,NINTS,
-                  VHRATE,HARVEST,VHARVEST,INDHRS) %>%
-    dplyr::arrange(WATERS,SPEC,FISHERY,MONTH,DAYTYPE)
+    dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES,
+                  NINTS,HARVEST,VHARVEST,INDHRS,HRATE,VHRATE) %>%
+    dplyr::arrange(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES)
   hf
 }
 
@@ -292,27 +280,44 @@ sumHarvestEffort <- function(h,f) {
 ## Note that this is generalized so that var can be either CLIPPED or CLIP
 sumLengths <- function(d,var) {
   tmp <- rlang::quo_name(rlang::enquo(var))
-  lenSum1 <- dplyr::group_by(d,SPEC,MONTH,!!rlang::enquo(var)) %>% iSumLen()
-  lenSum2 <- group_by(d,SPEC,MONTH) %>% iSumLen() %>%
+  ## summarize by YEAR, SPECIES, MONTH, and "clip"
+  lenSum1 <- dplyr::group_by(d,YEAR,SPECIES,MONTH,!!rlang::enquo(var)) %>% iSumLen()
+  ## summarize by YEAR, SPECIES, and MONTH (across all "clip"s)
+  lenSum2 <- group_by(d,YEAR,SPECIES,MONTH) %>% iSumLen() %>%
     mutate(TMP="TOTAL")
   names(lenSum2)[length(names(lenSum2))] <- tmp
   lenSum2 <- select(lenSum2,names(lenSum1))
-  lenSum3 <- group_by(d,SPEC,!!enquo(var)) %>% iSumLen() %>%
+  ## summarize by YEAR, SPECIES, and "clip" (across all MONTHs)
+  lenSum3 <- group_by(d,YEAR,SPECIES,!!enquo(var)) %>% iSumLen() %>%
     mutate(MONTH="TOTAL") %>%
     select(names(lenSum1))
-  lenSum4 <- group_by(d,SPEC) %>% iSumLen() %>%
+  ## summarize by YEAR and SPECIES (across all MONTHs and "clip"s)
+  lenSum4 <- group_by(d,YEAR,SPECIES) %>% iSumLen() %>%
     mutate(MONTH="TOTAL",TMP="TOTAL")
   names(lenSum4)[length(names(lenSum4))] <- tmp
   lenSum4 <- select(lenSum4,names(lenSum1))
+  ## put them all together
   lenSum <- rbind(lenSum1,lenSum2,lenSum3,lenSum4)
   if (tmp=="CLIPPED") {
     lenSum <- lenSum %>%
       mutate(CLIPPED=factor(CLIPPED,levels=c("NO FINCLIP","FINCLIP","TOTAL"))) %>%
-      arrange(SPEC,MONTH,CLIPPED)
+      arrange(YEAR,SPECIES,MONTH,CLIPPED)
   } else {
-    lenSum <- arrange(lenSum,SPEC,MONTH,CLIP)
+    lenSum <- arrange(lenSum,YEAR,SPECIES,MONTH,CLIP)
   }
+  ## remove rows that are duplicates of the previous row and the "clip" variable
+  ## is "TOTAL" ... this indicates that the "clip" and TOTAL rows are the same
+  dupes <- duplicated(lenSum[,-which(names(lenSum)==tmp)])
+  dupes[lenSum[,which(names(lenSum)==tmp)]!="TOTAL"] <- FALSE
+  lenSum <- dplyr::filter(lenSum,!dupes)
+  ## return data.frame
   lenSum
+}
+
+
+writeDF <- function(x,wdir) {
+  x1 <- deparse(substitute(x))
+  write.csv(x,file=paste0(wdir,"/",x1,".csv"),row.names=FALSE,quote=FALSE)
 }
 
 
@@ -353,7 +358,8 @@ iMvFinclips <- function(x) {
            '17: D+RP','18: AD+RM','19: LP+RM','20: LP+LV','21: D+AD',
            '22: D+LV+RV','23: D+LP','24: D+LV','40: NOT EXAMINED',
            '40: NOT EXAMINED',NA)
-  x <- plyr::mapvalues(x,from=c(0:24,40,99,NA),to=tmp,warn=FALSE)
+  if (is.numeric(x)) x <- plyr::mapvalues(x,from=c(0:24,40,99,NA),
+                                          to=tmp,warn=FALSE)
   x <- factor(x,levels=tmp[!duplicated(tmp)])
   x  
 }
@@ -372,7 +378,7 @@ iFinclipped <- function(x) {
 iMvFishery <- function(x) {
   tmp <- c("COLDWATER-OPEN","WARMWATER-OPEN","ICE-STREAM MOUTH","ICE-WARMWATER",
            "ICE-BOBBING","BAD RIVER","NON-FISHING","SHORE","TRIBAL","COMBINED")
-  x <- plyr::mapvalues(x,from=1:10,to=tmp,warn=FALSE)
+  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:10,to=tmp,warn=FALSE)
   x <- factor(x,levels=tmp)
   x
 }
@@ -380,7 +386,7 @@ iMvFishery <- function(x) {
 ## Convert residency codes to words
 iMvResidency <- function(x) {
   tmp <- c("Resident","Non-Resident","Resident/Non-Resident")
-  x <- plyr::mapvalues(x,from=1:3,to=tmp,warn=FALSE)
+  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:3,to=tmp,warn=FALSE)
   x <- factor(x,levels=tmp)
   x
 }
@@ -411,7 +417,7 @@ iMvSpecies <- function(x,which=1) {
             'BLUEGILL','PUMPKINSEED','SUNFISH SPP.','BLACK CRAPPIE',
             'CRAPPIE SPP.','LARGEMOUTH BASS','ROCK BASS','SMALLMOUTH BASS',
             'CATFISH','CARP')
-  x <- plyr::mapvalues(x,from=code,to=nms,warn=FALSE)
+  if (is.numeric(x)) x <- plyr::mapvalues(x,from=code,to=nms,warn=FALSE)
   x <- factor(x,levels=lvls)
   x
 }
@@ -419,7 +425,7 @@ iMvSpecies <- function(x,which=1) {
 ## Convert state codes to words
 iMvStates <- function(x) {
   tmp <- c("WI","MN","MI","WI/MN","WI/MI")
-  x <- plyr::mapvalues(x,from=1:5,to=tmp,warn=FALSE)
+  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:5,to=tmp,warn=FALSE)
   x <- factor(x,levels=tmp)
   x
 }
@@ -427,7 +433,7 @@ iMvStates <- function(x) {
 ## Convert status codes to words
 iMvStatus <- function(x) {
   tmp <- c("Complete","Incomplete")
-  x <- plyr::mapvalues(x,from=1:2,to=tmp,warn=FALSE)
+  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:2,to=tmp,warn=FALSE)
   x <- factor(x,levels=tmp)
   x
 }
