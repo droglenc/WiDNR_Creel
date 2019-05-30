@@ -31,16 +31,9 @@ table1 <- function(LOC,SDATE,FDATE) {
     merge_cells(row=1,2:4) %>%                          #  covers columns 2,3,4
     set_align(row=1,col=everywhere,"center") %>%        #  will be centered
     set_bottom_border(row=1,col=2,1) %>%                #  and a line underneath it
-    set_top_border(row=1,col=everywhere,2) %>%          # Line above top of table
-    set_bottom_border(row=final(),col=everywhere,2) %>% # Line below bottom of table
-    set_bottom_border(row=2,col=everywhere,1) %>%       # Line below variable names
-    set_bold(row=1:2,col=everywhere,TRUE) %>%           # Bold first two rows of labels
-    set_bold(row=everywhere,col=1,TRUE) %>%             # Bold first column of labels
-    set_background_color(row=final(),col=everywhere,"gray95") %>%  # Shade total row
     set_width(0.3) %>%                                  # Sets table & column widths
     set_col_width(col=c(.2,.2,.2,.2,.2)) %>%
-    set_caption(cap) %>%                                # Puts on the caption
-    set_caption_pos("topleft")
+    iFinishTable(labelsRow=2,labelsCol=1,cap=cap)
   ## Print out to the file
   iWriteTable(calTbl2,LOC,SDATE,1)
 }
@@ -94,14 +87,8 @@ table2 <- function(LOC,SDATE,FDATE) {
             rep(c("N","Hours"),length(mos))),.) %>%      # Extra label at the top
     rbind(c("","","",c(rbind(mos,""))),.) %>%
     set_align(row=-1,col=-(1:3),value="right") %>%       # Right align values
-    set_bottom_border(row=2,col=everywhere,1) %>%        # Line below column labels
-    set_top_border(row=1,col=everywhere,2) %>%           # Line above top of table
-    set_bottom_border(row=final(),col=everywhere,2) %>%  # Line below bottom of table
-    set_bold(row=1:2,col=everywhere,TRUE) %>%            # Bold first two row labels
-    set_bold(row=everywhere,col=1:3,TRUE) %>%            # Bold first 3 column labels
     set_width(0.6) %>%                                   # Sets table width
-    set_caption(cap) %>% 
-    set_caption_pos("topleft")
+    iFinishTable(labelsRow=2,labelsCol=3,cap=cap)
   
   ## Creates month labels over N and Sum ... generic for different #s of months
   for (i in 1:length(mos)) {
@@ -160,14 +147,8 @@ table3 <- function(LOC,SDATE,FDATE) {
     set_bottom_border(row=1,col=4,1) %>%
     set_align(row=1,col=everywhere,"center") %>%
     set_align(row=-1,col=-(1:2),value="right") %>%       # Right align values
-    set_bottom_border(row=2,col=everywhere,1) %>%        # Line below column labels
-    set_top_border(row=1,col=everywhere,2) %>%           # Line above top of table
-    set_bottom_border(row=final(),col=everywhere,2) %>%  # Line below bottom of table
-    set_bold(row=1:2,col=everywhere,TRUE) %>%            # Bold first two row labels
-    set_bold(row=everywhere,col=1:3,TRUE) %>%            # Bold first 3 column labels
     set_width(0.25) %>%                                  # Sets table width
-    set_caption(cap) %>% 
-    set_caption_pos("topleft")
+    iFinishTable(labelsRow=2,labelsCol=2,cap=cap)
   
   ## Print out to the file
   iWriteTable(tmpTbl2,LOC,SDATE,3)
@@ -238,14 +219,8 @@ table4 <- function(LOC,SDATE,FDATE) {
     set_align(row=1,col=everywhere,value="center") %>%
     set_align(row=1,col=c(7,10),value="right") %>%
     set_align(row=-1,col=-(1:2),value="right") %>%       # Right align values
-    set_bottom_border(row=2,col=everywhere,1) %>%        # Line below column labels
-    set_top_border(row=1,col=everywhere,2) %>%           # Line above top of table
-    set_bottom_border(row=final(),col=everywhere,2) %>%  # Line below bottom of table
-    set_bold(row=1:2,col=everywhere,TRUE) %>%            # Bold first two row labels
-    set_bold(row=everywhere,col=1:3,TRUE) %>%            # Bold first 3 column labels
     set_width(0.6) %>%                                   # Sets table width
-    set_caption(cap) %>% 
-    set_caption_pos("topleft")
+    iFinishTable(labelsRow=2,labelsCol=3,cap=cap)
   
   ## Print out to the file
   iWriteTable(tmpTbl2,LOC,SDATE,4)
@@ -337,14 +312,8 @@ table5 <- function(LOC,SDATE,FDATE) {
     set_bottom_border(row=2,col=11,1) %>%
     set_align(row=1:2,col=everywhere,value="center") %>%
     set_align(row=-(1:2),col=-(1:2),value="right") %>%   # Right align values
-    set_bottom_border(row=3,col=everywhere,1) %>%        # Line below column labels
-    set_top_border(row=1,col=everywhere,2) %>%           # Line above top of table
-    set_bottom_border(row=final(),col=everywhere,2) %>%  # Line below bottom of table
-    set_bold(row=1:3,col=everywhere,TRUE) %>%            # Bold first two row labels
-    set_bold(row=everywhere,col=1:4,TRUE) %>%            # Bold first 3 column labels
     set_width(0.7) %>%                                   # Sets table width
-    set_caption(cap) %>% 
-    set_caption_pos("topleft")
+    iFinishTable(labelsRow=3,labelsCol=4,cap=cap)
   
   ## Print out to the file
   iWriteTable(tmpTbl2,LOC,SDATE,5)
@@ -362,6 +331,19 @@ iMakeMainCap <- function(LOC,SDATE,FDATE) {
   paste0(lubridate::year(SDATE)," LAKE SUPERIOR CREEL SURVEY<br>",
          iMvLoc(LOC),", ",format(SDATE,format="%m/%d/%y")," - ",
          format(FDATE,format="%m/%d/%y"),"<br><br>")
+}
+
+iFinishTable <- function(h,labelsRow,labelsCol,cap=cap) {
+  h <- h %>%
+    set_top_border(row=1,col=everywhere,2) %>%             # Line above top of table
+    set_bottom_border(row=final(),col=everywhere,2) %>%    # Line below bottom of table
+    set_bottom_border(row=labelsRow,col=everywhere,1) %>%  # Line below variable names
+    set_bold(row=1:labelsRow,col=everywhere,TRUE) %>%      # Bold rows of labels
+    set_bold(row=everywhere,col=1:labelsCol,TRUE) %>%      # Bold columns of labels
+    set_background_color(row=final(),col=everywhere,"gray95") %>%  # Shade total row
+    set_caption(cap) %>%                                   # Puts on the caption
+    set_caption_pos("topleft")
+  h
 }
 
 iWriteTable <- function(h,LOC,SDATE,TABLE) {
