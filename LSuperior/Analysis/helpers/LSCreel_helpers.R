@@ -263,16 +263,16 @@ sumHarvest <- function(d) {
 ##   Reduce variables and sort
 sumHarvestEffort <- function(h,f) {
   hf <- merge(h,f,by=c("YEAR","WATERS","DAYTYPE","FISHERY","MONTH"),all=TRUE) %>%
-    dplyr::mutate(HOURS=ifelse(is.na(NINTS) | NINTS==0,0,HOURS),
-                  VHOURS=ifelse(is.na(NINTS) | NINTS==0,0,VHOURS),
-                  HARVEST=ifelse(is.na(NINTS) | NINTS==0,0,HARVEST),
-                  VHARVEST=ifelse(is.na(NINTS) | NINTS==0,0,VHARVEST),
-                  COVAR=ifelse(is.na(NINTS) | NINTS==0,0,COVAR),
-                  VHOURS=ifelse(NINTS==0,NA,
+    dplyr::mutate(HOURS=ifelse(is.na(NINTS) | NINTS==0,NA,HOURS),
+                  VHOURS=ifelse(is.na(NINTS) | NINTS==0,NA,VHOURS),
+                  HARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,HARVEST),
+                  VHARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,VHARVEST),
+                  COVAR=ifelse(is.na(NINTS) | NINTS==0,NA,COVAR),
+                  VHOURS=ifelse(is.na(NINTS) | NINTS==0,NA,
                                 (VHOURS-(HOURS^2)/NINTS)/(NINTS-1)),
-                  VHARVEST=ifelse(NINTS==0,NA,
+                  VHARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,
                                   (VHARVEST-(HARVEST^2)/NINTS)/(NINTS-1)),
-                  COVAR=ifelse(NINTS==0,NA,
+                  COVAR=ifelse(is.na(NINTS) | NINTS==0,NA,
                                (COVAR-HARVEST*HOURS/NINTS)/(NINTS-1)),
                   HRATE=HARVEST/HOURS,
                   MHOURS=HOURS/NINTS,
@@ -299,32 +299,36 @@ sumLengths <- function(d,var) {
     iSumLen()
   ## summarize by YEAR, SPECIES, and MONTH (across all "clip"s)
   lenSum2 <- dplyr::group_by(d,YEAR,SPECIES,MONTH) %>% iSumLen() %>%
-    dplyr::mutate(TMP="TOTAL")
+    dplyr::mutate(TMP="All")
   names(lenSum2)[length(names(lenSum2))] <- tmp
   lenSum2 <- dplyr::select(lenSum2,names(lenSum1))
   ## summarize by YEAR, SPECIES, and "clip" (across all MONTHs)
   lenSum3 <- dplyr::group_by(d,YEAR,SPECIES,!!enquo(var)) %>% iSumLen() %>%
-    dplyr::mutate(MONTH="TOTAL") %>%
+    dplyr::mutate(MONTH="All") %>%
     dplyr::select(names(lenSum1))
   ## summarize by YEAR and SPECIES (across all MONTHs and "clip"s)
   lenSum4 <- dplyr::group_by(d,YEAR,SPECIES) %>% iSumLen() %>%
-    dplyr::mutate(MONTH="TOTAL",TMP="TOTAL")
+    dplyr::mutate(MONTH="All",TMP="All")
   names(lenSum4)[length(names(lenSum4))] <- tmp
   lenSum4 <- dplyr::select(lenSum4,names(lenSum1))
   ## put them all together
-  lenSum <- rbind(lenSum1,lenSum2,lenSum3,lenSum4)
+  lenSum <- rbind(lenSum1,lenSum2,lenSum3,lenSum4) %>%
+    mutate(SPECIES=iMvSpecies(SPECIES),
+           MONTH=iOrderMonths(MONTH,addAll=TRUE))
   if (tmp=="CLIPPED") {
     lenSum %<>%
-      dplyr::mutate(CLIPPED=factor(CLIPPED,levels=c("NO FINCLIP","FINCLIP","TOTAL"))) %>%
+      dplyr::mutate(CLIPPED=factor(CLIPPED,levels=c("NO FINCLIP","FINCLIP","All"))) %>%
       dplyr::arrange(YEAR,SPECIES,MONTH,CLIPPED)
   } else {
     lenSum %<>% dplyr::arrange(YEAR,SPECIES,MONTH,CLIP)
   }
-  ## remove rows that are duplicates of the previous row and the "clip" variable
-  ## is "TOTAL" ... this indicates that the "clip" and TOTAL rows are the same
-  dupes <- duplicated(lenSum[,-which(names(lenSum)==tmp)])
-  dupes[lenSum[,which(names(lenSum)==tmp)]!="TOTAL"] <- FALSE
-  lenSum <- dplyr::filter(lenSum,!dupes)
+  ## remove rows that are duplicates of a previous row and neither the "clip" or
+  ## MONTH variables are "All" ... this indicates that the "clip" and All rows
+  ## are the same
+  dupes <- duplicated(lenSum[,-which(names(lenSum) %in% c(tmp,"MONTH"))])
+  dupes[lenSum[,which(names(lenSum)==tmp)]!="All" & 
+          lenSum[,which(names(lenSum)=="MONTH")]!="All"] <- FALSE
+  lenSum %<>% dplyr::filter(!dupes)
   ## return data.frame
   as.data.frame(lenSum)
 }
@@ -643,8 +647,8 @@ table5 <- function(tblcap,fnpre) {
   ##   Must convert "All" words to "TOTAL", removed the first two rows (labels
   ##   that will be added back with huxtable), renamed columns
   tmpTbl1 <- tabular((WATERS)*(FISHERY+1)*(SPECIES)*(MONTH+1)*DropEmpty(which="row")~
-                       (DAYTYPE+1)*(HARVEST+INDHRS)*sum*Format(digits=7)+
-                       (DAYTYPE+1)*(VHARVEST)*sumsqrt*Format(digits=7),
+                       (DAYTYPE+1)*(HARVEST+INDHRS)*sum+
+                       (DAYTYPE+1)*(VHARVEST)*sumsqrt,
                      data=tmp)
   tmpTbl1 <- as.matrix(tmpTbl1)
   colnames(tmpTbl1) <- c("WATERS","FISHERY","SPECIES","MONTH",
@@ -667,8 +671,15 @@ table5 <- function(tblcap,fnpre) {
     select(WATERS:MONTH,WEEKDAYHARVEST,WEEKDAYSDHARVEST,WEEKDAYHRATE,
            WEEKENDHARVEST,WEEKENDSDHARVEST,WEEKENDHRATE,
            TOTALHARVEST,TOTALSDHARVEST,TOTALHRATE)
+  # Hack needed to deal with NaN results
   tmpTbl1[is.na(tmpTbl1)] <- NA
-  #tmpTbl1[,-(1:4)][tmpTbl1[,-(1:4)]<0.001] <- NA
+  # Set zero harvests and its SD to NA (for huxtable)
+  zeroHarvs <- tmpTbl1$WEEKDAYHARVEST==0
+  tmpTbl1$WEEKDAYHARVEST[zeroHarvs] <- NA
+  tmpTbl1$WEEKDAYSDHARVEST[zeroHarvs] <- NA
+  zeroHarvs <- tmpTbl1$WEEKENDHARVEST==0
+  tmpTbl1$WEEKENDHARVEST[zeroHarvs] <- NA
+  tmpTbl1$WEEKENDSDHARVEST[zeroHarvs] <- NA
   
   ## Rows with "All" (except last) get extra space below
   allRows <- which(tmpTbl1$MONTH=="All")
@@ -737,7 +748,7 @@ table6 <- function(tblcap,fnpre) {
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   SPECIES=iMvSpecies(SPECIES),
                   CLIPPED=factor(CLIPPED,
-                                 levels=c("NO FINCLIP","FINCLIP","TOTAL"))) %>%
+                                 levels=c("NO FINCLIP","FINCLIP","All"))) %>%
     arrange(SPECIES,MONTH,CLIPPED) %>%
     droplevels() %>%
     dplyr::mutate(SPECIES=ifelse(iRepeatsPrevItem(SPECIES),"",
@@ -746,17 +757,17 @@ table6 <- function(tblcap,fnpre) {
     ) %>%
     select(-YEAR)
 
-  ## Which rows to add some more space
-  dtLbls2 <- which(tmp$SPECIES!="")
+  ## Which rows to add some more space above
+  breakRows <- which(tmp$SPECIES!="")
+  breakRows <- breakRows[-1]
   
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
+    set_top_padding(row=breakRows,col=everywhere,15) %>%
     # Change NAs to dashes
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
-    # Put extra space above species changes
-    set_top_padding(row=dtLbls2,col=everywhere,15) %>%
     # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
     set_number_format(row=everywhere,col="n",0) %>%
     set_number_format(row=everywhere,col=c("mnLen","seLen","varLen"),2) %>%
@@ -806,29 +817,27 @@ table7 <- function(tblcap,fnpre) {
     ) %>%
     select(-YEAR)
 
-  ## Find rows that need more space
-  dtLbls2 <- which(tmp$SPECIES!="")
-  
+  ## Which rows to add some more space above
+  breakRows <- which(tmp$SPECIES!="")
+  breakRows <- breakRows[-1]
+
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
+    set_top_padding(row=breakRows,col=everywhere,value=15) %>%
     # Change NAs to dashes
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
-    # Put extra space above species changes
-    set_top_padding(row=dtLbls2,col=everywhere,15) %>%
-    # Put extra spacing between columns
-    #    set_left_padding(row=everywhere,col=everywhere,15) %>%
     # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
-    set_number_format(row=everywhere,col="n",0) %>%
-    set_number_format(row=everywhere,col=c("mnLen","seLen","varLen"),2) %>%
+    set_number_format(row=everywhere,col="n",value=0) %>%
+    set_number_format(row=everywhere,col=c("mnLen","seLen","varLen"),value=2) %>%
     set_number_format(row=everywhere,col=c("minLen","maxLen"),1) %>%
     # Add column labels
     rbind(c("","","","Length (in.)","","","","",""),
           c("SPECIES","MONTH","CLIP","N","MEAN","SE","VAR","MIN","MAX"),.) %>%
     # Top label should extend across 4-9 columns with line underneath
     merge_cells(row=1,col=4:9) %>%
-    set_bottom_border(row=1,col=4,1) %>%
+    set_bottom_border(row=1,col=4,value=1) %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.5) %>%
     iFinishTable(labelsRow=2,labelsCol=3,cap=cap,lastRowTotal=FALSE)
@@ -857,19 +866,19 @@ table8 <- function(tblcap,fnpre) {
   tmpTbl1 <- tabular((SPECIES)*(CLIP+1)*DropEmpty(which="row")~
                        (MONTH+1)*(LEN)*(n=1),data=tmp)
   tmpTbl1 <- as.matrix(tmpTbl1)
-  tmpTbl1[tmpTbl1=="All"] <- "TOTAL"
   colnames(tmpTbl1) <- c(tmpTbl1[4,1:2],tmpTbl1[2,3:ncol(tmpTbl1)])
   tmpTbl1 <- tmpTbl1[-(1:4),]
   
-  ## remove rows that duplicate the previous row's TOTAL and the "clip" variable
-  ## is "TOTAL" ... this indicates that the "clip" and TOTAL rows are the same
+  ## remove rows that duplicate the previous row's All and the "clip" variable
+  ## is "All" ... this indicates that the "clip" and All rows are the same
   dupes <- iRepeatsPrevItem(tmpTbl1[,ncol(tmpTbl1)])
-  dupes[tmpTbl1[,2]!="TOTAL"] <- FALSE
+  dupes[tmpTbl1[,2]!="All"] <- FALSE
   tmpTbl1 <- tmpTbl1[!dupes,]
   tmpTbl1 <- as.data.frame(tmpTbl1)
   
   ## Find rows that need more space
-  dtLbls2 <- which(tmpTbl1$SPECIES!="")
+  breakRows <- which(tmpTbl1$SPECIES!="")
+  breakRows <- breakRows[-1]
   ## Find number of months
   mos <- ncol(tmpTbl1)-3
 
@@ -877,16 +886,13 @@ table8 <- function(tblcap,fnpre) {
   tmpTbl2 <- as_hux(tmpTbl1) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
-    # Put extra space above species changes
-    set_top_padding(row=dtLbls2,col=everywhere,15) %>%
-    # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
-    set_number_format(row=everywhere,col=everywhere,0) %>%
+    set_top_padding(row=breakRows,col=everywhere,value=15) %>%
     # Add column labels
     rbind(c("","","MONTH",rep("",mos)),
           names(tmpTbl1),.) %>%
     # Top label should extend across MONTHs columns with line underneath
     merge_cells(row=1,col=3:(mos+2+1)) %>%
-    set_bottom_border(row=1,col=3,1) %>%
+    set_bottom_border(row=1,col=3,value=1) %>%
     set_align(row=everywhere,col=3:(mos+2+1),value="right") %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.4) %>%
@@ -912,13 +918,14 @@ table9 <- function(tblcap,fnpre) {
     dplyr::arrange(SPECIES,DATE,LEN) %>%
     droplevels() %>%
     dplyr::mutate(SPECIES=ifelse(duplicated(SPECIES),"",levels(SPECIES)[SPECIES]))
-  ## Make table
-  dtLbls2 <- which(tmp$SPECIES!="")
+  ## Find rows for extra space above
+  breakRows <- which(tmp$SPECIES!="")
+  breakRows <- breakRows[-1]
+  ## Make huxtable
   tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
-    # Put extra space above species changes
-    set_top_padding(row=dtLbls2,col=everywhere,15) %>%
+    set_top_padding(row=breakRows,col=everywhere,15) %>%
     # Put extra spacing between columns
     set_left_padding(row=everywhere,col=everywhere,15) %>%
     # Round lengths to one decimal (what they were recorded in)
