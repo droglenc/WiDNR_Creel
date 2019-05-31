@@ -1,5 +1,4 @@
 ## Setup ----
-setwd(paste0(here::here(),"/LSuperior/Analysis"))
 source("helpers/LSCreel_helpers.R")
 
 ### Converts SDATE and FDATE to useful objects
