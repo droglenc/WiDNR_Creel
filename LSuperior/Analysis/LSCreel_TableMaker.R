@@ -21,7 +21,7 @@
 
 ## User-Specified Information ----
 ## Enter creel clerk location
-LOC <- "ash"  # must be one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh"
+LOC <- "sup"  # must be one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh"
 ## Enter start and end dates of creel
 SDATE <- "05/21/2014" # must use two digits mon/day and four-digit year format
 FDATE <- "09/30/2014"
@@ -34,4 +34,4 @@ source("LSCreel_DataPrep.R")
 makeTables(tblcap,fnpre)
 
 # For Testing
-#table1(tblcap,fnpre)
+table4(tblcap,fnpre)
