@@ -21,10 +21,12 @@
 
 ## User-Specified Information ----
 ## Enter creel clerk location
-LOC <- "sup"  # must be one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh"
+LOC <- "ash"  # must be one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh"
 ## Enter start and end dates of creel
 SDATE <- "05/21/2014" # must use two digits mon/day and four-digit year format
 FDATE <- "09/30/2014"
+## Enter type of file to use
+ftype <- "SAS"        # must use either "CSV" or "SAS"
 
 ## Setup ----
 setwd(paste0(here::here(),"/LSuperior/Analysis"))

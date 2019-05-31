@@ -44,7 +44,8 @@ writeDF(calSum,fnpre)
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
 #!!!!!! YEAR variables; DATE is a different format; and I dropped the
 #!!!!!! CLIPXX, LENXX, and SPECXX variables that had no data.
-ints_ORIG <- readInterviewData(LOC,SDATE,FDATE,dropCLS=TRUE,dropHM=TRUE) %>%
+ints_ORIG <- readInterviewData(LOC,SDATE,FDATE,type=ftype,
+                               dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
   select(-FISH,-RES,-SUCCESS) %>%
   droplevels()
@@ -87,7 +88,7 @@ effort <- sumInterviewedEffort(ints_NOFISH)
 #!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
 #!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
 #!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
-pcount <- readPressureCountData(LOC,SDATE,FDATE,dropHM=TRUE)
+pcount <- readPressureCountData(LOC,SDATE,FDATE,type=ftype,dropHM=TRUE)
 
 ### Expand the daily count pressure data to be a summary for each MONTH and
 ### DAYTYPE with the following variables:
@@ -118,7 +119,6 @@ effortSum <- merge(effort,pcount,by=c("YEAR","MONTH","DAYTYPE")) %>%
          VINDHRS=VPHOURS*(PARTY^2)) %>%
   select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,NINTS:PARTY,NCOUNT:VINDHRS) %>%
   arrange(YEAR,WATERS,DAYTYPE,FISHERY,MONTH)
-
 writeDF(effortSum,fnpre)
 
 
@@ -178,3 +178,4 @@ sumLengthSMF <- sumLengths(lengths,CLIPPED)
 #!!!!!! those species that had at least one observed fin-clip).
 specClipped <- unique(filter(lengths,CLIPPED=="FINCLIP")$SPECIES)
 sumLengthSMC <- sumLengths(filter(lengths,SPECIES %in% specClipped),CLIP)
+

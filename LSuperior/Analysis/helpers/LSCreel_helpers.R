@@ -12,12 +12,14 @@ options(max.print=2000)
 ## Main Helpers ----
 
 ## Read and prepare the interview data file
-readInterviewData <- function(LOC,SDATE,FDATE,
+readInterviewData <- function(LOC,SDATE,FDATE,type,
                               dropCLS=TRUE,dropHM=TRUE) {
   ## Add interview ID number
   ## Convert some codes to words
   ## Handle dates (find weekends and weekdays) & times (incl. hours of effort)
-  d <- read.csv(paste0("data/",LOC,"ints.csv")) %>%
+  if (type=="CSV") d <- read.csv(paste0("data/",LOC,"ints.csv"))
+  else d <- haven::read_sas(paste0("data/",LOC,"ints.sas7bdat"))
+  d <- d %>%
     dplyr::mutate(INTID=1:n(),
                   STATE=iMvStates(STATE),
                   WATERS=iMvWaters(STATE),
@@ -35,7 +37,10 @@ readInterviewData <- function(LOC,SDATE,FDATE,
   if (dropHM) d <- dplyr::select(d,-(STARTMM:STOPHH))
   ## Drop CLIP, LEN, and SPEC variables that have no data, if asked to
   if (dropCLS) {
-    allNA <- sapply(d,function(x) all(is.na(x)))
+    allNA <- sapply(d,function(x) {
+      if (is.character(x)) all(is.na(x) | x=="")
+      else all(is.na(x))
+    })
     allNAv <- names(d)[allNA]
     cat("The following were removed (as requested) because they were all NAs:\n")
     cat(paste(allNAv[grepl("CLIP",allNAv)],collapse=", "),"\n")
@@ -101,7 +106,7 @@ sumInterviewedEffort <- function(dints) {
 
 
 ## Read and prepare the interview data file
-readPressureCountData <- function(LOC,SDATE,FDATE,dropHM=TRUE) {
+readPressureCountData <- function(LOC,SDATE,FDATE,type,dropHM=TRUE) {
   ###   Find various varsions of dates (note that DATE had to be handled
   ###     differently than above b/c four rather than two digits used here).
   ###   Convert missing COUNTs to zeroes
@@ -109,7 +114,9 @@ readPressureCountData <- function(LOC,SDATE,FDATE,dropHM=TRUE) {
   ###   Convert average counts (the original COUNT variable) to "total effort"
   ###     during shift (by muliplying by the WAIT time) so that multiple shifts
   ###     on each day can be combined (from original SAS code).
-  d <- read.csv(paste0("data/",LOC,"cnts.csv")) %>%
+  if (type=="CSV") d <- read.csv(paste0("data/",LOC,"cnts.csv"))
+  else d <- haven::read_sas(paste0("data/",LOC,"cnts.sas7bdat"))
+  d <- d %>%
     dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
                   YEAR=lubridate::year(DATE),
                   MONTH=lubridate::month(DATE,label=TRUE,abbr=FALSE),
@@ -971,18 +978,20 @@ iMvResidency <- function(x) {
   x
 }
 
-## Convert fish species codes to words ... note possibly two sets of codes
-iMvSpecies <- function(x,which=1) {
-  if (which==1) code <- c(2,3,4,5,6,7,11,13,33,34,35,36,43,45,46,47,48,49,
-                          51,52,60,62,66,67,70,71,76,78,98,99)
-  else if (which==2) code <- c('002','003','004','005','006','007','011','013',
-                               '033','034','035','036','043','045','046','047',
-                               '048','049','051','052','060','062','066','067',
-                               '070','071','076','078','098','099')
-  else code <- c('W09','W00','W02','W14','I22','W06','R01','M12',
-                 'I04','I24','I23','I28','L02','I21','I19','W04',
-                 'I16','I14','I12','I20','J01','B01','W12','W11',
-                 'I05','I18','X15','X22','098','099')
+## Convert fish species codes to words ... note possibly three sets of codes
+iMvSpecies <- function(x) {
+  if (is.numeric(x)) code <- c(2,3,4,5,6,7,11,13,33,34,35,36,43,45,46,47,48,49,
+                               51,52,60,62,66,67,70,71,76,78,98,99)
+  else {
+    tmp <- substr(x,1,1)
+    if (any(tmp %in% c("W","M","I","B","R","X")))
+      code <- c('W09','W00','W02','W14','I22','W06','R01','M12','I04','I24',
+                'I23','I28','L02','I21','I19','W04','I16','I14','I12','I20',
+                'J01','B01','W12','W11','I05','I18','X15','X22','098','099')
+    else code <- c('002','003','004','005','006','007','011','013','033','034',
+                   '035','036','043','045','046','047','048','049','051','052',
+                   '060','062','066','067','070','071','076','078','098','099')
+  }
   nms <- c('BLUEGILL','SUNFISH SPP.','CRAPPIE SPP.','BLACK CRAPPIE',
            'BROOK TROUT','PUMPKINSEED','BURBOT','CARP','LAKE HERRING',
            'SISCOWET','LAKE TROUT','SPLAKE','NORTHERN PIKE','BROWN TROUT',
