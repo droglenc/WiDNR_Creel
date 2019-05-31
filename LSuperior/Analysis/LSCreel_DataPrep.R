@@ -1,41 +1,21 @@
-#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
-#
-# PROGRAM TO ANALYZE "BUS ROUTE" TYPE LAKE SUPERIOR CREEL
-#   SINGLE ROUTE  -   INTEGRATED EFFORT AT LANDING COUNT
-#
-#   VERSION 1         JULY, 2016  (Iyob T)
-#   VERSION 2         XXXX, 201X  (Derek O)
-#
-#  DIRECTIONS:
-#   * Fill in initials for filename below at LOC
-#   * Fill in effective state and final dates for creel below at SDATE & FDATE
-#
-#  NOTES:
-#   * Counts (for Lake Superior) are average number of parties present during
-#     the wait time, not total effort seen during the wait time.
-#   * Only official holidays are New Years, Memorial Day, July Fourth, and Labor
-#     Day (Thanksgiving and Christmas are not included).
-#   * FINCLIP=99 means length field has number of fish harvested.
-#
-#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
-
-## User-Specified Information ----
-LOC <- "sup"  # must be one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh"
-SDATE <- "05/21/2014" # must use two digits mon/day/year format
-FDATE <- "09/30/2014"
-
-
 ## Setup ----
 setwd(paste0(here::here(),"/LSuperior/Analysis"))
 source("helpers/LSCreel_helpers.R")
+
 ### Converts SDATE and FDATE to useful objects
 SDATE <- as.Date(SDATE,"%m/%d/%Y")
 FDATE <- as.Date(FDATE,"%m/%d/%Y")
+
 ### Prepare results directory
 wdir <- paste0(here::here(),"/LSuperior/Analysis/",
                lubridate::year(SDATE),"_SUPERIOR")
 suppressWarnings(dir.create(wdir))
 
+### Filename prefix
+fnpre <- fnPrefix(wdir,LOC,SDATE)
+
+### Main table cap
+tblcap <- iMakeMainCap(LOC,SDATE,FDATE)
 
 ## Create expansion factors ----
 ### Make data.frame of dates from starting to ending date (entered above)
@@ -54,7 +34,7 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
   summarize(DAYS=n()) %>%
   mutate(DAYLEN=iMvDaylen(MONTH)) %>%
   as.data.frame()
-writeDF(calSum,wdir)
+writeDF(calSum,fnpre)
 
 
 ## Interviewed fishing effort ----
@@ -81,7 +61,7 @@ ints_NOFISH <- select(ints_ORIG,INTID:PERSONS)
 intvdEffort <- ints_NOFISH %>%
   group_by(YEAR,STATE,DAYTYPE,FISHERY,MONTH,.drop=FALSE) %>%
   summarize(NINTS=n(),HOURS=sum(HOURS))
-writeDF(intvdEffort,wdir)
+writeDF(intvdEffort,fnpre)
 
 ### Summarized interviewed effort by WATERS, DAYTYPE, FISHERY, and MONTH ...
 ### similar to above but by WATERS rather thatn STATE and more summaries ...
@@ -120,7 +100,7 @@ pcount <- readPressureCountData(LOC,SDATE,FDATE,dropHM=TRUE)
 #!!!!!! This matches Iyob's 'counts' after his line 215 (except no SDCOUNT as
 #!!!!!! this is not used elsewhere and is just sqrt of VCOUNT).
 pcount <- expandPressureCounts(pcount,calSum)
-writeDF(pcount,wdir)
+writeDF(pcount,fnpre)
 
 ## Combining Effort and Counts ----
 ### Combine effort and pressure counts into one data.frame with new calculations
@@ -140,7 +120,7 @@ effortSum <- merge(effort,pcount,by=c("YEAR","MONTH","DAYTYPE")) %>%
   select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,NINTS:PARTY,NCOUNT:VINDHRS) %>%
   arrange(YEAR,WATERS,DAYTYPE,FISHERY,MONTH)
 
-writeDF(effortSum,wdir)
+writeDF(effortSum,fnpre)
 
 
 ## Calculate Harvest ----
@@ -179,7 +159,7 @@ effortSum2 <- filter(effortSum,FISHERY!="NON-FISHING") %>%
 harvestSum <- sumHarvestEffort(harv,effortSum2)
 
 rm(effortSum2)
-writeDF(harvestSum,wdir)
+writeDF(harvestSum,fnpre)
 
 
 
@@ -188,6 +168,7 @@ writeDF(harvestSum,wdir)
 #!!!!!! This matches Iyob's 'lengthall' after his line 420
 lengths <- select(ints_FISH,YEAR,STATE,FISHERY,MONTH,DATE,SITE,
                   SPECIES,CLIP,CLIPPED,LEN)
+writeDF(lengths,fnpre)
 
 ### Lengths summarized by species, month, and finclipped (or not)
 #!!!!!! This matches the data needed for TABLE 6
@@ -196,6 +177,5 @@ sumLengthSMF <- sumLengths(lengths,CLIPPED)
 ### Lengths summarized by species, month, and fin-clip (only for those clipped)
 #!!!!!! This matches the data needed for TABLE 7 (except that I included only
 #!!!!!! those species that had at least one observed fin-clip).
-( specClipped <- unique(filter(lengths,CLIPPED=="FINCLIP")$SPECIES) )
-sumLengthSMC <- sumLengths(filter(lengths,SPECIES==specClipped),CLIP)
-
+specClipped <- unique(filter(lengths,CLIPPED=="FINCLIP")$SPECIES)
+sumLengthSMC <- sumLengths(filter(lengths,SPECIES %in% specClipped),CLIP)
