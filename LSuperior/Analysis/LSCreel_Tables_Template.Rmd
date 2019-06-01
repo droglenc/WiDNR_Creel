@@ -1,0 +1,112 @@
+---
+title: "Lake Superior Creel Analysis Tables"
+params:
+  FDATE:
+    value: 09/30/2014
+  FTYPE:
+    value: SAS
+  LOC:
+    value: sup
+  SDATE:
+    value: 05/21/2014
+  TABLES:
+    value: !r c(1,2,3,4,5,6,7,8,9)
+output:
+  html_document:
+    theme: sandstone
+    css: helpers/tables.css
+---
+
+\fontsize{14}{18}
+\selectfont
+\pagenumbering{gobble}
+
+```{r input, echo=FALSE}
+## Grab User's Inputs from parameters
+LOC <- params$LOC
+SDATE <- params$SDATE
+FDATE <- params$FDATE
+FTYPE <- params$FTYPE
+TABLES <- params$TABLES
+```
+
+```{r setup, include=FALSE, message=FALSE}
+## Preliminaries
+knitr::opts_chunk$set(echo = FALSE)
+
+## Run the analysis
+source("helpers/LSCreel_DataPrep.R")
+```
+
+**Year:** `r lubridate::year(SDATE)`
+
+\vspace{12pt}
+
+**Location:** `r iMvLoc(LOC)`
+
+\vspace{12pt}
+
+**Ran:** `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
+
+<br><br>
+<hr>
+
+```{r table1, eval=1 %in% TABLES, echo=FALSE}
+table1(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table2, eval=2 %in% TABLES, echo=FALSE}
+table2(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table3, eval=3 %in% TABLES, echo=FALSE}
+table3(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table4, eval=4 %in% TABLES, echo=FALSE}
+table4(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table5, eval=5 %in% TABLES, echo=FALSE}
+table5(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table6, eval=6 %in% TABLES, echo=FALSE}
+table6(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table7, eval=7 %in% TABLES, echo=FALSE}
+table7(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table8, eval=8 %in% TABLES, echo=FALSE}
+table8(tblcap,fnpre,writeTable=FALSE)
+```
+
+<br><br>
+<hr>
+
+```{r table9, eval=9 %in% TABLES, echo=FALSE}
+table9(tblcap,fnpre,writeTable=FALSE)
+```

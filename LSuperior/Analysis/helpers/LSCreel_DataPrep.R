@@ -1,5 +1,5 @@
 ## Setup ----
-source("helpers/LSCreel_helpers.R")
+source("LSCreel_helpers.R")
 
 ### Converts SDATE and FDATE to useful objects
 SDATE <- as.Date(SDATE,"%m/%d/%Y")
@@ -44,7 +44,7 @@ writeDF(calSum,fnpre)
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
 #!!!!!! YEAR variables; DATE is a different format; and I dropped the
 #!!!!!! CLIPXX, LENXX, and SPECXX variables that had no data.
-ints_ORIG <- readInterviewData(LOC,SDATE,FDATE,type=ftype,
+ints_ORIG <- readInterviewData(LOC,SDATE,FDATE,type=FTYPE,
                                dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
   select(-FISH,-RES,-SUCCESS) %>%
@@ -88,7 +88,7 @@ effort <- sumInterviewedEffort(ints_NOFISH)
 #!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
 #!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
 #!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
-pcount <- readPressureCountData(LOC,SDATE,FDATE,type=ftype,dropHM=TRUE)
+pcount <- readPressureCountData(LOC,SDATE,FDATE,type=FTYPE,dropHM=TRUE)
 
 ### Expand the daily count pressure data to be a summary for each MONTH and
 ### DAYTYPE with the following variables:

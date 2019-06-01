@@ -363,7 +363,7 @@ makeTables <- function(tblcap,fnpre,which=1:9) {
   options(warn=0)
 }
 
-table1 <- function(tblcap,fnpre) {
+table1 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Number of days by day type and assumed fishing day length (h)",
@@ -405,12 +405,15 @@ table1 <- function(tblcap,fnpre) {
     set_col_width(col=c(.2,.2,.2,.2,.2)) %>%
     iFinishTable(labelsRow=2,labelsCol=1,cap=cap)
   ## Print out to the file
-  iWriteTable(calTbl2,fnpre,1)
-  cat("Table 1 made.\n")
+  if (writeTable) {
+    iWriteTable(calTbl2,fnpre,1)
+    cat("Table 1 made.\n")
+  }
+  calTbl2
 }
 
 
-table2 <- function(tblcap,fnrpre) {
+table2 <- function(tblcap,fnrpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Number of interviews (N) and amount of interviewed effort",
@@ -483,11 +486,14 @@ table2 <- function(tblcap,fnrpre) {
   }
   
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,2)
-  cat("Table 2 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,2)
+    cat("Table 2 made.\n")
+  }
+  tmpTbl2
 }
 
-table3 <- function(tblcap,fnpre) {
+table3 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Monthly pressure count summary by month and day type",
@@ -537,11 +543,14 @@ table3 <- function(tblcap,fnpre) {
     iFinishTable(labelsRow=2,labelsCol=2,cap=cap)
   
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,3)
-  cat("Table 3 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,3)
+    cat("Table 3 made.\n")
+  }
+  tmpTbl2
 }
 
-table4 <- function(tblcap,fnpre) {
+table4 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Monthly pressure count summary by waters, fishery type, month",
@@ -621,11 +630,14 @@ table4 <- function(tblcap,fnpre) {
     iFinishTable(labelsRow=3,labelsCol=4,cap=cap)
   
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,4)
-  cat("Table 4 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,4)
+    cat("Table 4 made.\n")
+  }
+  tmpTbl2
 }
 
-table5 <- function(tblcap,fnpre) {
+table5 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Total harvest and harvest rates based on fishery-specific",
@@ -729,12 +741,15 @@ table5 <- function(tblcap,fnpre) {
     iFinishTable(labelsRow=3,labelsCol=4,cap=cap)
   
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,5)
-  cat("Table 5 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,5)
+    cat("Table 5 made.\n")
+  }
+  tmpTbl2
 }
 
 
-table6 <- function(tblcap,fnpre) {
+table6 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Summary statistics of all measured fish by species, month, and",
@@ -785,12 +800,15 @@ table6 <- function(tblcap,fnpre) {
     set_width(0.5) %>%
     iFinishTable(labelsRow=2,labelsCol=3,cap=cap,lastRowTotal=FALSE)
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,6)
-  cat("Table 6 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,6)
+    cat("Table 6 made.\n")
+  }
+  tmpTbl2
 }
 
 
-table7 <- function(tblcap,fnpre) {
+table7 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Summary statistics of measured fish by species, month, and",
@@ -845,12 +863,15 @@ table7 <- function(tblcap,fnpre) {
     set_width(0.4) %>%
     iFinishTable(labelsRow=2,labelsCol=3,cap=cap,lastRowTotal=FALSE)
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,7)
-  cat("Table 7 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,7)
+    cat("Table 7 made.\n")
+  }
+  tmpTbl2
 }
 
 
-table8 <- function(tblcap,fnpre) {
+table8 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Number of fish examined for fin clips by species, month,",
@@ -901,12 +922,15 @@ table8 <- function(tblcap,fnpre) {
     set_width(0.35) %>%
     iFinishTable(labelsRow=2,labelsCol=2,cap=cap,lastRowTotal=FALSE)
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,8)
-  cat("Table 8 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,8)
+    cat("Table 8 made.\n")
+  }
+  tmpTbl2
 }
 
 
-table9 <- function(tblcap,fnpre) {
+table9 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Make table caption
   cap <- paste(tblcap,
                "Detailed listing of all measured fish.<br><br>")
@@ -938,8 +962,11 @@ table9 <- function(tblcap,fnpre) {
     set_width(0.5) %>%
     iFinishTable(labelsRow=1,labelsCol=1,cap=cap,lastRowTotal=FALSE)
   ## Print out to the file
-  iWriteTable(tmpTbl2,fnpre,9)
-  cat("Table 9 made.\n")
+  if (writeTable) {
+    iWriteTable(tmpTbl2,fnpre,9)
+    cat("Table 9 made.\n")
+  }
+  tmpTbl2
 }
 
 
