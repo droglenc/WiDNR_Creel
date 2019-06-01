@@ -177,9 +177,11 @@ rearrangeFishInfo <- function(dints) {
   mainInts <- dplyr::select(dints,INTID:HOURS)
   
   ## Isolate species, clips, and lengths and make long format
+  ## Change missing SPECCODEs to actual NAs
   specInts <- dplyr::select(dints,INTID,contains("SPEC")) %>%
     tidyr::gather(tmp,SPECCODE,-INTID) %>%
-    dplyr::select(-tmp)
+    dplyr::select(-tmp) %>%
+    dplyr::mutate(SPECCODE=ifelse(SPECCODE=="",NA,SPECCODE))
   
   ## Isolate clips, make long, change code to word, add clipped variable
   clipInts <- dplyr::select(dints,INTID,contains("CLIP")) %>%
@@ -192,11 +194,12 @@ rearrangeFishInfo <- function(dints) {
     dplyr::select(-tmp)
   
   ## Put species, clips, and lengths back together
-  ## Reduce to only those where a species, clip, and length was recorded
+  ## Reduce to only those where a species, clip, or length was recorded (this
+  ##   allows for one to be missing ... most commonly a length)
   sclInts <- cbind(specInts,
                    clipInts[,"CLIPCODE",drop=FALSE],
                    lenInts[,"LEN",drop=FALSE]) %>%
-    dplyr::filter(!is.na(SPECCODE),!is.na(CLIPCODE),!is.na(LEN))
+    dplyr::filter(!(is.na(SPECCODE) & is.na(CLIPCODE) & is.na(LEN)))
   
   ## Expand records that were only counts of fish (when CLIPCODE==99)
   if (any(sclInts$CLIPCODE==99)) {
@@ -810,7 +813,7 @@ table7 <- function(tblcap,fnpre) {
                   CLIP=iMvFinclips(CLIP)) %>%
     arrange(SPECIES,MONTH,CLIP) %>%
     droplevels() %>%
-    dplyr::mutate(CLIP=ifelse(is.na(CLIP),"TOTAL",as.character(CLIP)),
+    dplyr::mutate(CLIP=ifelse(is.na(CLIP),"All",as.character(CLIP)),
                   SPECIES=ifelse(iRepeatsPrevItem(SPECIES),"",
                                  levels(SPECIES)[SPECIES]),
                   MONTH=ifelse(iRepeatsPrevItem(MONTH),"",levels(MONTH)[MONTH])
@@ -839,7 +842,7 @@ table7 <- function(tblcap,fnpre) {
     merge_cells(row=1,col=4:9) %>%
     set_bottom_border(row=1,col=4,value=1) %>%
     set_align(row=1,col=everywhere,value="center") %>%
-    set_width(0.5) %>%
+    set_width(0.4) %>%
     iFinishTable(labelsRow=2,labelsCol=3,cap=cap,lastRowTotal=FALSE)
   ## Print out to the file
   iWriteTable(tmpTbl2,fnpre,7)
@@ -895,7 +898,7 @@ table8 <- function(tblcap,fnpre) {
     set_bottom_border(row=1,col=3,value=1) %>%
     set_align(row=everywhere,col=3:(mos+2+1),value="right") %>%
     set_align(row=1,col=everywhere,value="center") %>%
-    set_width(0.4) %>%
+    set_width(0.35) %>%
     iFinishTable(labelsRow=2,labelsCol=2,cap=cap,lastRowTotal=FALSE)
   ## Print out to the file
   iWriteTable(tmpTbl2,fnpre,8)
