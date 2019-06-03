@@ -1,14 +1,8 @@
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 #
-# PROGRAM TO ANALYZE "BUS ROUTE" TYPE LAKE SUPERIOR CREEL
-#   SINGLE ROUTE  -   INTEGRATED EFFORT AT LANDING COUNT
-#
-#   VERSION 1         JULY, 2016  (Iyob T)
-#   VERSION 2         XXXX, 201X  (Derek O)
-#
 #  DIRECTIONS:
-#   * Fill in initials for filename below at LOC
-#   * Fill in effective state and final dates for creel below at SDATE & FDATE
+#   * Don't run this file ... use LSCreel_TableMaker.R
+#   * This, along with LSCreel_helpers, contains the "guts" of the program
 #
 #  NOTES:
 #   * Counts (for Lake Superior) are average number of parties present during
@@ -43,8 +37,8 @@ fnpre <- fnPrefix(RDIR,LOC,SDATE)
 #!!!!!! This matches Iyob's 'calendar1' after his line 97
 calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
   mutate(YEAR=year(DATE),
-         MONTH=droplevels(month(DATE,label=TRUE,abbr=FALSE)),
-         DAYTYPE=iMvDaytype(wday(DATE,label=TRUE,abbr=TRUE),MONTH,mday(DATE))
+         MONTH=droplevels(month(DATE,label=TRUE)),
+         DAYTYPE=iMvDaytype(wday(DATE,label=TRUE),MONTH,mday(DATE))
   ) %>%
   group_by(YEAR,MONTH,DAYTYPE) %>%
   summarize(DAYS=n()) %>%

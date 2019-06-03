@@ -418,11 +418,11 @@ table1 <- function(fnpre) {
     dplyr::select(-YEAR) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH)) %>%
     tidyr::spread(DAYTYPE,DAYS) %>%
-    dplyr::mutate(ALL=WEEKDAY+WEEKEND,
+    dplyr::mutate(All=Weekday+Weekend,
                   MONTH=as.character(MONTH)) %>%
-    dplyr::select(MONTH,WEEKDAY,WEEKEND,ALL,DAYLEN) %>%
+    dplyr::select(MONTH,Weekday,Weekend,All,DAYLEN) %>%
     dplyr::rename(`LENGTH`=DAYLEN) %>%
-    dplyr::bind_rows(dplyr::summarize_at(.,vars(WEEKDAY:ALL),'sum')) %>%
+    dplyr::bind_rows(dplyr::summarize_at(.,vars(Weekday:All),'sum')) %>%
     dplyr::mutate(MONTH=replace(MONTH,is.na(MONTH),"Total"))
   ## Make the huxtable
   calTbl2 <- as_hux(calTbl1,add_colnames=TRUE) %>%
@@ -1001,18 +1001,9 @@ table9 <- function(fnpre) {
 
 
 ## Internals for Mains ----
-iSumLen <- function(dgb) {
-  dplyr::summarize(dgb,n=n(),mnLen=mean(LEN,na.rm=TRUE),
-                   seLen=FSA::se(LEN,na.rm=TRUE),varLen=var(LEN,na.rm=TRUE),
-                   minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
-    as.data.frame()
-}
-
-
 ## Creates day lengths from month names
 iMvDaylen <- function(x) {
-  mos <- c("January","February","March","April","May","June",
-           "July","August","September","October","November","December")
+  mos <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
   lens <- c(0,0,0,0,16,16,16,16,16,0,0,0)
   x <- plyr::mapvalues(x,from=mos,to=lens,warn=FALSE)
   FSA::fact2num(x)
@@ -1021,12 +1012,24 @@ iMvDaylen <- function(x) {
 ## Convert DOW to weekend or weekdays ... with holidays as weekends
 iMvDaytype <- function(wd,mon,md) {
   wd2 <- plyr::mapvalues(wd,from=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun"),
-                         to=c("WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY","WEEKDAY",
-                              "WEEKEND","WEEKEND"),warn=FALSE)
+                         to=c("Weekday","Weekday","Weekday","Weekday","Weekday",
+                              "Weekend","Weekend"),warn=FALSE)
   wd2 <- iHndlHolidays(mon,md,wd,wd2)
-  wd2 <- factor(wd2,levels=c("WEEKDAY","WEEKEND"))
+  wd2 <- factor(wd2,levels=c("Weekday","Weekend"))
   wd2  
 }
+
+## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
+iHndlHolidays <- function(mon,md,wd,dt) {
+  dplyr::case_when(
+    mon=="January" & md==1 ~ "Weekend",                # New Years Day
+    mon=="May" & md>=25 & wd=="Mon" ~ "Weekend",       # Memorial Day
+    mon=="July" & md==4 ~ "Weekend",                   # 4th of July
+    mon=="September" & md<=7 & wd=="Mon" ~ "Weekend",  # Labor Day
+    TRUE ~ as.character(dt)
+  )
+}
+
 
 ## Convert fin-clip codes to words
 iMvFinclips <- function(x) {
@@ -1138,9 +1141,18 @@ iMvLoc <- function(x) {
 
 ## Converts months to an ordered factor
 iOrderMonths <- function(x,addAll=FALSE) {
-  if (addAll) ordered(x,levels=c(format(ISOdate(2004,1:12,1),"%B"),"All"))
-  else ordered(x,levels=format(ISOdate(2004,1:12,1),"%B"))
+  if (addAll) ordered(x,levels=c(format(ISOdate(2004,1:12,1),"%b"),"All"))
+  else ordered(x,levels=format(ISOdate(2004,1:12,1),"%b"))
 }
+
+
+iSumLen <- function(dgb) {
+  dplyr::summarize(dgb,n=n(),mnLen=mean(LEN,na.rm=TRUE),
+                   seLen=FSA::se(LEN,na.rm=TRUE),varLen=var(LEN,na.rm=TRUE),
+                   minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
+    as.data.frame()
+}
+
 
 ## Converts missing values to zeroes
 iConvNA20 <- function(x) {
@@ -1150,16 +1162,6 @@ iConvNA20 <- function(x) {
   )
 }
 
-## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
-iHndlHolidays <- function(mon,md,wd,dt) {
-  dplyr::case_when(
-    mon=="January" & md==1 ~ "WEEKEND",                # New Years Day
-    mon=="May" & md>=25 & wd=="Mon" ~ "WEEKEND",       # Memorial Day
-    mon=="July" & md==4 ~ "WEEKEND",                   # 4th of July
-    mon=="September" & md<=7 & wd=="Mon" ~ "WEEKEND",  # Labor Day
-    TRUE ~ as.character(dt)
-  )
-}
 
 ## Compute hours of effort, put NAs if before start or after end of survey
 ##   period or if stop time is before start time.
