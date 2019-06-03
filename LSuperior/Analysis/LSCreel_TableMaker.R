@@ -1,33 +1,28 @@
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
-#
 # PROGRAM TO ANALYZE "BUS ROUTE" TYPE LAKE SUPERIOR CREEL
 #   SINGLE ROUTE  -   INTEGRATED EFFORT AT LANDING COUNT
-#
-#   VERSION 1         JULY, 2016  (Iyob T)
-#   VERSION 2         XXXX, 201X  (Derek O)
+#     VERSION 1         JULY, 2016  (Iyob T)
+#     VERSION 2         XXXX, 201X  (Derek O)
 #
 #  DIRECTIONS:
 #   * Fill in information under "USER-SPECIFIED INFORMATION"
 #   * Source the script.
-#
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
 ## USER-SPECIFIED INFORMATION
 ## Enter creel location (one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh")
-LOC <- "ash"
+LOC <- "wsh"
 ## Enter start and end dates (must be two digits mon/day and four-digit year)
 SDATE <- "05/21/2014"
 FDATE <- "09/30/2014"
-## Enter type of file to use (must be "CSV" or "SAS")
+## Enter type of input data file to use (must be "CSV" or "SAS")
 FTYPE <- "SAS"
-## Enter table number to print (must be between 1 and 9)
-TABLES <- c(1:8)
+## Enter table numbers to print (must be between 1 and 9)
+TABLES <- c(1:9)
 
 
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
-#
 # DO NOT CHANGE ANYTHING BENEATH HERE
-#
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 YEAR <- lubridate::year(as.Date(SDATE,"%m/%d/%Y"))
 LOC2 <-  plyr::mapvalues(LOC,warn=FALSE,
