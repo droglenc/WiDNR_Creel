@@ -13,13 +13,13 @@ options(max.print=2000)
 ## Main Helpers ----
 
 ## Read and prepare the interview data file
-readInterviewData <- function(LOC,SDATE,FDATE,type,
+readInterviewData <- function(wdir,LOC,SDATE,FDATE,type,
                               dropCLS=TRUE,dropHM=TRUE) {
   ## Add interview ID number
   ## Convert some codes to words
   ## Handle dates (find weekends and weekdays) & times (incl. hours of effort)
-  if (type=="CSV") d <- read.csv(paste0("data/",LOC,"ints.csv"))
-  else d <- haven::read_sas(paste0("data/",LOC,"ints.sas7bdat"))
+  if (type=="CSV") d <- read.csv(paste0(wdir,"data/",LOC,"ints.csv"))
+  else d <- haven::read_sas(paste0(wdir,"data/",LOC,"ints.sas7bdat"))
   d <- d %>%
     dplyr::mutate(INTID=1:n(),
                   STATE=iMvStates(STATE),
@@ -108,7 +108,7 @@ sumInterviewedEffort <- function(dints) {
 
 
 ## Read and prepare the interview data file
-readPressureCountData <- function(LOC,SDATE,FDATE,type,dropHM=TRUE) {
+readPressureCountData <- function(wdir,LOC,SDATE,FDATE,type,dropHM=TRUE) {
   ###   Find various varsions of dates (note that DATE had to be handled
   ###     differently than above b/c four rather than two digits used here).
   ###   Convert missing COUNTs to zeroes
@@ -116,8 +116,8 @@ readPressureCountData <- function(LOC,SDATE,FDATE,type,dropHM=TRUE) {
   ###   Convert average counts (the original COUNT variable) to "total effort"
   ###     during shift (by muliplying by the WAIT time) so that multiple shifts
   ###     on each day can be combined (from original SAS code).
-  if (type=="CSV") d <- read.csv(paste0("data/",LOC,"cnts.csv"))
-  else d <- haven::read_sas(paste0("data/",LOC,"cnts.sas7bdat"))
+  if (type=="CSV") d <- read.csv(paste0(wdir,"data/",LOC,"cnts.csv"))
+  else d <- haven::read_sas(paste0(wdir,"data/",LOC,"cnts.sas7bdat"))
   d <- d %>%
     dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
                   YEAR=lubridate::year(DATE),
@@ -201,17 +201,33 @@ rearrangeFishInfo <- function(dints) {
                    lenInts[,"LEN",drop=FALSE]) %>%
     dplyr::filter(!(is.na(SPECCODE) & is.na(CLIPCODE) & is.na(LEN)))
   
-  ## Expand records that were only counts of fish (when CLIPCODE==99)
-  if (any(sclInts$CLIPCODE==99)) {
-    ### isolate records to be expanded
-    tmp <- dplyr::filter(sclInts,CLIPCODE==99)
-    ### determine how many of each row to repeat, repeat those rows, 
-    ###   replace CLIPCODE with 40 (for not examined), replace LEN with NA
-    reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
-    tmp2 <- tmp[reprows,] %>%
-      dplyr::mutate(CLIPCODE=40,LEN=NA)
-    ### combine originals without records that needed expanding, with expanded
-    sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!=99),tmp2)
+  ## Expand records that were only counts of fish (when CLIPCODE==99 or when
+  ## CLIPCODE='099' ... extra work is needed here because the CLIPCODE can be
+  ## either numeric or character depending on original file type)
+  if (is.character(sclInts$CLIPCODE)) {
+    if (any(sclInts$CLIPCODE=='099',na.rm=TRUE)) {
+      ### isolate records to be expanded
+      tmp <- dplyr::filter(sclInts,CLIPCODE=='099')
+      ### determine how many of each row to repeat, repeat those rows, 
+      ###   replace CLIPCODE with '040' (for not examined), replace LEN with NA
+      reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
+      tmp2 <- tmp[reprows,] %>%
+        dplyr::mutate(CLIPCODE='040',LEN=NA)
+      ### combine originals without records that needed expanding, with expanded
+      sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!='099'),tmp2)
+    }
+  } else {
+    if (any(sclInts$CLIPCODE==99,na.rm=TRUE)) {
+      ### isolate records to be expanded
+      tmp <- dplyr::filter(sclInts,CLIPCODE==99)
+      ### determine how many of each row to repeat, repeat those rows, 
+      ###   replace CLIPCODE with 40 (for not examined), replace LEN with NA
+      reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
+      tmp2 <- tmp[reprows,] %>%
+        dplyr::mutate(CLIPCODE=40,LEN=NA)
+      ### combine originals without records that needed expanding, with expanded
+      sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!=99),tmp2)
+    }
   }
   
   ## Add words from codes
@@ -325,20 +341,16 @@ sumLengths <- function(d,var) {
   } else {
     lenSum %<>% dplyr::arrange(YEAR,SPECIES,MONTH,CLIP)
   }
-  ## remove rows that are duplicates of a previous row and neither the "clip" or
-  ## MONTH variables are "All" ... this indicates that the "clip" and All rows
-  ## are the same
-  dupes <- duplicated(lenSum[,-which(names(lenSum) %in% c(tmp,"MONTH"))])
-  dupes[lenSum[,which(names(lenSum)==tmp)]!="All" & 
-          lenSum[,which(names(lenSum)=="MONTH")]!="All"] <- FALSE
-  lenSum %<>% dplyr::filter(!dupes)
+  ## Remove rows that are duplicates of a previous row for just the summary vars
+  lenSum %<>% filter(FSA::repeatedRows2Keep(.,
+                      cols2use=c("n","mnLen","seLen","varLen","minLen","maxLen")))
   ## return data.frame
   as.data.frame(lenSum)
 }
 
 ## Make filename prefix
-fnPrefix <- function(wdir,LOC,SDATE) {
-  paste0(wdir,"/LSCreel_",lubridate::year(SDATE),"_",iMvLoc(LOC),"_")
+fnPrefix <- function(rdir,LOC,SDATE) {
+  paste0(rdir,"/",lubridate::year(SDATE),"_",iMvLoc(LOC),"_")
 }
 
 ## Convenience function for making a file of the data.frame in x
@@ -348,28 +360,53 @@ writeDF <- function(x,fnpre) {
 }
 
 
-## Tables ----
-makeTables <- function(tblcap,fnpre,which=1:9) {
-  options(warn=-1)
-  if (1 %in% which) table1(tblcap,fnpre)
-  if (2 %in% which) table2(tblcap,fnpre)
-  if (3 %in% which) table3(tblcap,fnpre)
-  if (4 %in% which) table4(tblcap,fnpre)
-  if (5 %in% which) table5(tblcap,fnpre)
-  if (6 %in% which) table6(tblcap,fnpre)
-  if (7 %in% which) table7(tblcap,fnpre)
-  if (8 %in% which) table8(tblcap,fnpre)
-  if (9 %in% which) table9(tblcap,fnpre)
-  options(warn=0)
-}
 
-table1 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Number of days by day type and assumed fishing day length (h)",
-               "for each month during the sampling period. These values will",
-               "be used to expand sampled observations to entire population.",
-               "<br><br>")
+## Tables ----
+tableCaptions <- function() {
+  tables <- captioner::captioner(prefix="Table")
+  tables(name="Table1",
+         caption=paste("Number of days by day type and assumed fishing day",
+                       "length (h) for each month during the sampling period.",
+                       "These values were used to expand sampled observations",
+                       "to entire population."))
+  tables(name="Table2",
+         caption=paste("Number of interviews (N) and amount of interviewed effort",
+                       "(Hours) by state, day type, type of fishery, and month."))
+  tables(name="Table3",
+         caption=paste("Number of day sampled and total party-hours of pressure",
+                       "month and day type (includes non-fishing effort)."))
+  tables(name="Table4",
+         caption=paste("TOtal Party-hours, persons per party, total individual-hours,",
+                       "mean trip length, and total number of trips by waters,",
+                       "fishery type, month, and day type. 'All' results are",
+                       "shown only for those species found in multiple months."))
+  tables(name="Table5",
+         caption=paste("Total harvest and harvest rates based on fishery-specific",
+                       "angling hours by waters, fishery, species, month and",
+                       "day type. 'All' results are shown only for those",
+                       "species found in multiple months."))
+  tables(name="Table6",
+         caption=paste("Summary statistics of all measured fish by species,",
+                       "month, and whether clipped or not. 'All' results are",
+                       "shown only in those months where both clipped and",
+                       "unclipped fish were observed."))
+  tables(name="Table7",
+         caption=paste0("Summary statistics of measured fish by species, month,",
+                        " and whether clipped or not. Only species for which some",
+                        " fin-clipped fish were recorded are shown (otherwise see ",
+                        tables('Table6',display='cite'),"). 'All' results are",
+                        " shown only in those months where both clipped and",
+                        " unclipped fish were observed."))
+  tables(name="Table8",
+         caption=paste("Number of fish examined for fin clips by species,",
+                       "month, and clip. 'All' results are shown only for those",
+                       "species where both clipped and unclipped fish were",
+                       "observed."))
+  tables(name="Table9",
+         caption="Detailed listing of all measured fish.")
+  tables
+}
+table1 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
   ##   Remove the year and creat columns of weekdays and weekends
@@ -391,6 +428,7 @@ table1 <- function(tblcap,fnpre,writeTable=TRUE) {
   calTbl2 <- as_hux(calTbl1,add_colnames=TRUE) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     # right align all but leftmost column
     set_align(row=everywhere,col=-1,value="right") %>%
     # Top label covers columns 2-4, centered, line underneath it
@@ -401,23 +439,14 @@ table1 <- function(tblcap,fnpre,writeTable=TRUE) {
     # Extra space above last (TOTAL) row
     set_top_padding(row=final(1),col=everywhere,value=10) %>%
     # Sets table & column widths
-    set_width(0.3) %>%
+    set_width(0.4) %>%
     set_col_width(col=c(.2,.2,.2,.2,.2)) %>%
-    iFinishTable(labelsRow=2,labelsCol=1,cap=cap)
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(calTbl2,fnpre,1)
-    cat("Table 1 made.\n")
-  }
+    iFinishTable(labelsRow=2,labelsCol=1)
   calTbl2
 }
 
 
-table2 <- function(tblcap,fnrpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Number of interviews (N) and amount of interviewed effort",
-               "(Hours) by state, day type, type of fishery, and month.<br><br>")
+table2 <- function(fnrpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
   ##   Properly order the MONTHs, FISHERYs, and STATEs
@@ -458,6 +487,8 @@ table2 <- function(tblcap,fnrpre,writeTable=TRUE) {
   tmpTbl2 <- as_hux(tmpTbl1) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_left_padding(row=everywhere,col=ends_with("NINTS"),value=15) %>%
     # Convert NAs to dashes
     set_na_string(row=everywhere,col=-(1:3),value="--") %>%
     # Put extra padding below ALL rows
@@ -465,17 +496,17 @@ table2 <- function(tblcap,fnrpre,writeTable=TRUE) {
     # Put extra padding above STATE rows
     set_top_padding(row=breakRows,col=everywhere,value=15) %>%
     # No decimals on NINTS
-    set_number_format(row=everywhere,col=ends_with("NINTS"),0) %>%
+    set_number_format(row=everywhere,col=ends_with("NINTS"),value=0) %>%
     # Two decimals on HOURS
-    set_number_format(row=everywhere,col=ends_with("HOURS"),0) %>%
+    set_number_format(row=everywhere,col=ends_with("HOURS"),value=0) %>%
     # Extra label at the top
     rbind(c("STATE","DAY TYPE","FISHERY",rep(c("N","Hours"),length(mos))),.) %>%
     rbind(c("","","",c(rbind(mos,""))),.) %>%
     # Right align values
     set_align(row=-1,col=-(1:3),value="right") %>%
     # Sets table width
-    set_width(0.6) %>%
-    iFinishTable(labelsRow=2,labelsCol=3,cap=cap)
+    set_width(0.99) %>%
+    iFinishTable(labelsRow=2,labelsCol=3)
   
   ## Creates month labels over N and Sum ... generic for different #s of months
   for (i in 1:length(mos)) {
@@ -484,20 +515,16 @@ table2 <- function(tblcap,fnrpre,writeTable=TRUE) {
       set_bottom_border(1,tmp,1) %>%
       set_align(1,tmp,"center")
   }
-  
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,2)
-    cat("Table 2 made.\n")
-  }
   tmpTbl2
 }
 
-table3 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Monthly pressure count summary by month and day type",
-               "(includes non-fishing effort).<br><br>")
+table3 <- function(fnpre,which=c("ALT","ORIG")) {
+  which <- match.arg(which)
+  if (which=="ALT") table3ALT(fnpre)
+  else table3ORIG(fnpre)
+}
+
+table3ALT <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
   ##   Get proper order of months and drop unused levels
@@ -505,16 +532,65 @@ table3 <- function(tblcap,fnpre,writeTable=TRUE) {
     dplyr::mutate(MONTH=iOrderMonths(MONTH)) %>%
     droplevels()
   
-  ## Function to take the square root of a sum ... used for computing the SD
-  ##   from summed variances below.
-  sumsqrt <- function(x) sqrt(sum(x))
+  ## Table of days sampled and total (SD) party hours by month and daytype.
+  ##   Removed first two rows (labels will be added back in huxtable),
+  ##   renamed columns
+  tmpTbl1 <- tabular((MONTH+1)~(DAYTYPE+1)*(NCOUNT+COUNT)*sum*Format(digits=14)+
+                       (DAYTYPE+1)*(VCOUNT)*sumsqrt*Format(digits=14),data=tmp)
+  tmpTbl1 <- as.matrix(tmpTbl1)
+  tmpTbl1 <- tmpTbl1[,c(1,2,3,8,4,5,9,6,7,10)]
+  colnames(tmpTbl1) <- c("MONTH",
+                         paste("WEEKDAY",c("NCOUNT","COUNT","SDCOUNT"),sep="."),
+                         paste("WEEKEND",c("NCOUNT","COUNT","SDCOUNT"),sep="."),
+                         paste("ALL",c("NCOUNT","COUNT","SDCOUNT"),sep="."))
+  tmpTbl1 <- as.data.frame(tmpTbl1[-(1:4),],stringsAsFactors=FALSE)
+  
+  ## Make the huxtable
+  tmpTbl2 <- as_hux(tmpTbl1) %>%
+    # Set all cell paddings
+    set_all_padding(1) %>%
+    set_top_padding(row=final(1),col=everywhere,value=10) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_left_padding(row=everywhere,col=ends_with("NCOUNT"),value=15) %>%
+    # No decimals on NCOUNT and COUNT
+    set_number_format(row=everywhere,col=ends_with("NCOUNT"),value=0) %>%
+    set_number_format(row=everywhere,col=ends_with("COUNT"),value=0) %>%
+    # One decimal on SD
+    set_number_format(row=everywhere,col=ends_with("SDCOUNT"),value=1) %>%
+    rbind(c("MONTH",rep(c("Sampled","Total","SD"),3)),.) %>%
+    rbind(c("",rep(c("Days","Party Hours",""),3)),.) %>%
+    rbind(c("","WEEKDAY","","","WEEKEND","","","ALL DAYS","",""),.) %>%
+    merge_cells(row=1,col=2:4) %>%
+    merge_cells(row=1,col=5:7) %>%
+    merge_cells(row=1,col=8:10) %>%
+    set_align(row=1,col=everywhere,value="center") %>%
+    merge_cells(row=2,col=3:4) %>%
+    merge_cells(row=2,col=6:7) %>%
+    merge_cells(row=2,col=9:10) %>%
+    set_bottom_border(row=2,col=c(3,6,9),value=1) %>%
+    set_align(row=2,col=everywhere,value="center") %>%
+    set_align(row=3,col=c(4,5,7,8,9,10),value="center") %>%
+    # Right align values for all but first three rows and first column
+    set_align(row=-(1:3),col=-1,value="right") %>%
+    set_width(0.5) %>%
+    iFinishTable(labelsRow=3,labelsCol=1)
+  tmpTbl2
+}
+
+## This one more closely matches SAS look
+table3ORIG <- function(fnpre) {
+  ## Prepare data.frame for huxtable
+  ##   Read saved file
+  ##   Get proper order of months and drop unused levels
+  tmp <- read.csv(paste0(fnpre,"pcount.csv")) %>%
+    dplyr::mutate(MONTH=iOrderMonths(MONTH)) %>%
+    droplevels()
   
   ## Table of days sampled and total (SD) party hours by month and daytype.
   ##   Removed first two rows (labels will be added back in huxtable),
   ##   renamed columns
-  tmpTbl1 <- as.matrix(tabular((MONTH+1)*(DAYTYPE+1)~(NCOUNT)*sum*Format(digits=0)+
-                                 (COUNT)*sum*Format(digits=7)+
-                                 (VCOUNT)*sumsqrt*Format(digits=7),data=tmp))
+  tmpTbl1 <- as.matrix(tabular((MONTH+1)*(DAYTYPE+1)~(NCOUNT+COUNT)*sum+
+                                 (VCOUNT)*sumsqrt,data=tmp))
   tmpTbl1 <- as.data.frame(tmpTbl1[-c(1,2),],stringsAsFactors=FALSE)
   names(tmpTbl1) <- c("MONTH","DAYTYPE","NCOUNT","COUNT","SDCOUNT")
   
@@ -522,11 +598,12 @@ table3 <- function(tblcap,fnpre,writeTable=TRUE) {
   ## Rows with "All" (except last) get extra space below
   allRows <- which(tmpTbl1$DAYTYPE=="All")
   allRows <- allRows[-length(allRows)]
-
+  
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmpTbl1) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     set_bottom_padding(row=allRows,col=everywhere,15) %>%
     # No decimals on NCOUNT and COUNT
     set_number_format(row=everywhere,col=c("NCOUNT","COUNT"),value=0) %>%
@@ -540,21 +617,11 @@ table3 <- function(tblcap,fnpre,writeTable=TRUE) {
     # Right align values for all but first row and first two columns
     set_align(row=-1,col=-(1:2),value="right") %>%
     set_width(0.25) %>%
-    iFinishTable(labelsRow=2,labelsCol=2,cap=cap)
-  
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,3)
-    cat("Table 3 made.\n")
-  }
+    iFinishTable(labelsRow=2,labelsCol=2)
   tmpTbl2
 }
 
-table4 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Monthly pressure count summary by waters, fishery type, month",
-               " and day type.<br><br>")
+table4 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
   ##   Make proper orders of MONTHs, WATERS, and FISHERYs
@@ -565,16 +632,12 @@ table4 <- function(tblcap,fnpre,writeTable=TRUE) {
                   FISHERY=iMvFishery(FISHERY)) %>%
     droplevels()
   
-  ## Function to take the square root of a sum ... used for computing the SD
-  ##   from summed variances below.
-  sumsqrt <- function(x) sqrt(sum(x))
-  
   ## Table of days sampled and total (SD) party hours by month and daytype.
   ##   Must convert "All" words to "TOTAL", removed the first two rows (labels
   ##   that will be added back with hustable), renamed columns
-  tmpTbl1 <- tabular((WATERS)*(FISHERY)*(MONTH+1)*(DAYTYPE+1)~
-                       (NINTS+HOURS+TRIPS+INDHRS+PHOURS)*sum*Format(digits=7)+
-                       (VHOURS+VTRIPS+VINDHRS+VPHOURS)*sumsqrt*Format(digits=7),
+  tmpTbl1 <- tabular((WATERS)*(FISHERY)*(MONTH+1)*(DAYTYPE+1)*DropEmpty(which="row")~
+                       (NINTS+HOURS+TRIPS+INDHRS+PHOURS)*sum+
+                       (VHOURS+VTRIPS+VINDHRS+VPHOURS)*sumsqrt,
                      data=tmp)
   tmpTbl1 <- as.matrix(tmpTbl1)
   colnames(tmpTbl1) <- c("WATERS","FISHERY","MONTH","DAYTYPE",
@@ -589,20 +652,23 @@ table4 <- function(tblcap,fnpre,writeTable=TRUE) {
     select(WATERS:DAYTYPE,PHOURS,SDPHOURS,PARTY,INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS)
   tmpTbl1[is.na(tmpTbl1)] <- NA
   tmpTbl1[,-(1:4)][tmpTbl1[,-(1:4)]<0.001] <- NA
+  tmpTbl1 %<>% dplyr::filter(FSA::repeatedRows2Keep(.,
+                              cols2ignore=c("WATERS","FISHERY","MONTH","DAYTYPE")))
   
-  ## Rows with "All" (except last) get extra space below
-  allRows <- which(tmpTbl1$DAYTYPE=="All")
-  allRows <- allRows[-length(allRows)]
+  ## Rows with a MONTH (except first) get extra space above
+  breakRows1 <- which(tmpTbl1$MONTH!="")
+  breakRows1 <- breakRows1[-1]
   ## Rows that have a fishery name (except first) get extra space above
-  breakRows <- which(tmpTbl1$FISHERY!="")
-  breakRows <- breakRows[-1]
+  breakRows2 <- which(tmpTbl1$FISHERY!="")
+  breakRows2 <- breakRows2[-1]
   
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmpTbl1) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
-    set_bottom_padding(row=allRows,col=everywhere,value=10) %>%
-    set_top_padding(row=breakRows,col=everywhere,value=15) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=breakRows1,col=everywhere,value=10) %>%
+    set_top_padding(row=breakRows2,col=everywhere,value=15) %>%
     # Change all NAs to dashes
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
     # Round these to columns
@@ -626,23 +692,12 @@ table4 <- function(tblcap,fnpre,writeTable=TRUE) {
     set_align(row=2,col=everywhere,value="center") %>%
     set_align(row=2,col=c(7,10),value="right") %>%
     set_align(row=-(1:2),col=-(1:4),value="right") %>%
-    set_width(0.6) %>%
-    iFinishTable(labelsRow=3,labelsCol=4,cap=cap)
-  
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,4)
-    cat("Table 4 made.\n")
-  }
+    set_width(0.7) %>%
+    iFinishTable(labelsRow=3,labelsCol=4)
   tmpTbl2
 }
 
-table5 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Total harvest and harvest rates based on fishery-specific",
-               " angling hours by waters, fishery, species, month and",
-               "day type.<br><br>")
+table5 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
   ##   Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
@@ -653,11 +708,7 @@ table5 <- function(tblcap,fnpre,writeTable=TRUE) {
                   FISHERY=iMvFishery(FISHERY),
                   SPECIES=iMvSpecies(SPECIES)) %>%
     droplevels()
-  
-  ## Function to take the square root of a sum ... used for computing the SD
-  ##   from summed variances below.
-  sumsqrt <- function(x) sqrt(sum(x,na.rm=TRUE))
-  
+
   ## Table of days sampled and total (SD) party hours by month and daytype.
   ##   Must convert "All" words to "TOTAL", removed the first two rows (labels
   ##   that will be added back with huxtable), renamed columns
@@ -695,20 +746,24 @@ table5 <- function(tblcap,fnpre,writeTable=TRUE) {
   zeroHarvs <- tmpTbl1$WEEKENDHARVEST==0
   tmpTbl1$WEEKENDHARVEST[zeroHarvs] <- NA
   tmpTbl1$WEEKENDSDHARVEST[zeroHarvs] <- NA
+  # Remove rows that are repeats of the row above it (for the numeric variables)
+  tmpTbl1 %<>% dplyr::filter(FSA::repeatedRows2Keep(.,
+                             cols2ignore=c("WATERS","FISHERY","SPECIES","MONTH")))
   
-  ## Rows with "All" (except last) get extra space below
-  allRows <- which(tmpTbl1$MONTH=="All")
-  allRows <- allRows[-length(allRows)]
+  ## Rows with a SPECIES name (except first) get extra space above
+  breakRows1 <- which(tmpTbl1$SPECIES!="")
+  breakRows1 <- breakRows1[-1]
   ## Rows that have a fishery name (except first) get extra space above
-  breakRows <- which(tmpTbl1$FISHERY!="")
-  breakRows <- breakRows[-1]
+  breakRows2 <- which(tmpTbl1$FISHERY!="")
+  breakRows2 <- breakRows2[-1]
 
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmpTbl1) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
-    set_bottom_padding(row=allRows,col=everywhere,value=10) %>%
-    set_top_padding(row=breakRows,col=everywhere,value=15) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=breakRows1,col=everywhere,value=10) %>%
+    set_top_padding(row=breakRows2,col=everywhere,value=25) %>%
     # Convert NAs to dashes
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
     # Set decimals
@@ -722,7 +777,7 @@ table5 <- function(tblcap,fnpre,writeTable=TRUE) {
                       col=c("WEEKDAYHRATE","WEEKENDHRATE","TOTALHRATE"),
                       value=4) %>%
     # Create nice column headers
-    rbind(c("","","","","WEEKDAY","","","WEEKEND","","","TOTAL","",""),
+    rbind(c("","","","","WEEKDAY","","","WEEKEND","","","ALL DAYS","",""),
           c("","","","","Harvest","","Harvest/","Harvest","","Harvest/",
             "Harvest","","Harvest/"),
           c("WATERS","FISHERY","SPECIES","MONTH","Number","SD","Angler-Hr",
@@ -738,30 +793,22 @@ table5 <- function(tblcap,fnpre,writeTable=TRUE) {
     set_align(row=1:2,col=everywhere,value="center") %>%
     set_align(row=-(1:2),col=-(1:2),value="right") %>%
     set_width(0.7) %>%
-    iFinishTable(labelsRow=3,labelsCol=4,cap=cap)
-  
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,5)
-    cat("Table 5 made.\n")
-  }
+    iFinishTable(labelsRow=3,labelsCol=4)
   tmpTbl2
 }
 
 
-table6 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Summary statistics of all measured fish by species, month, and",
-               "whether clipped or not.<br><br>")
+table6 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
+  ##   Remove fish for which a length was not recorded
   ##   Summarize lengths by whether clipped or not
   ##   Set proper order of MONTH, SPECIES, and CLIPPED
   ##   Arrange for table
   ##   Remove duplicate SPECIES and MONTH labels
   ##   Remove the YEAR variable
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
+    filter(!is.na(LEN)) %>%
     sumLengths(CLIPPED) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   SPECIES=iMvSpecies(SPECIES),
@@ -775,15 +822,19 @@ table6 <- function(tblcap,fnpre,writeTable=TRUE) {
     ) %>%
     select(-YEAR)
 
-  ## Which rows to add some more space above
-  breakRows <- which(tmp$SPECIES!="")
-  breakRows <- breakRows[-1]
+  ## Add some more space above where SPECIES & MONTY name is (except for first)
+  breakRows1 <- which(tmp$MONTH!="")
+  breakRows1 <- breakRows1[-1]
+  breakRows2 <- which(tmp$SPECIES!="")
+  breakRows2 <- breakRows2[-1]
   
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
-    set_top_padding(row=breakRows,col=everywhere,15) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=breakRows1,col=everywhere,10) %>%
+    set_top_padding(row=breakRows2,col=everywhere,25) %>%
     # Change NAs to dashes
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
     # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
@@ -798,26 +849,17 @@ table6 <- function(tblcap,fnpre,writeTable=TRUE) {
     set_bottom_border(row=1,col=4,1) %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.5) %>%
-    iFinishTable(labelsRow=2,labelsCol=3,cap=cap,lastRowTotal=FALSE)
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,6)
-    cat("Table 6 made.\n")
-  }
+    iFinishTable(labelsRow=2,labelsCol=3)
   tmpTbl2
 }
 
 
-table7 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Summary statistics of measured fish by species, month, and",
-               "whether clipped or not. Only species for which some",
-               "fin-clipped fish were recorded are shown (otherwise see",
-               "Table 6).<br><br>")
+table7 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
-  tmp <- read.csv(paste0(fnpre,"lengths.csv"))
+  ##   Remove fish for which a length was not recorded
+  tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
+    filter(!is.na(LEN))
   ## Find only those species for which a fin-slip was recorded
   specClipped <- as.character(unique(dplyr::filter(lengths,CLIPPED=="FINCLIP")$SPECIES))
   ##   Summarize lengths by whether clipped or not
@@ -825,7 +867,7 @@ table7 <- function(tblcap,fnpre,writeTable=TRUE) {
   ##   Arrange for table
   ##   Remove duplicate SPECIES and MONTH labels
   ##   Remove the YEAR variable
-  tmp <- sumLengths(filter(tmp,SPECIES==specClipped),CLIP) %>%
+  tmp <- sumLengths(filter(tmp,SPECIES %in% specClipped),CLIP) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   SPECIES=iMvSpecies(SPECIES),
                   CLIP=iMvFinclips(CLIP)) %>%
@@ -839,14 +881,18 @@ table7 <- function(tblcap,fnpre,writeTable=TRUE) {
     select(-YEAR)
 
   ## Which rows to add some more space above
-  breakRows <- which(tmp$SPECIES!="")
-  breakRows <- breakRows[-1]
+  breakRows1 <- which(tmp$MONTH!="")
+  breakRows1 <- breakRows1[-1]
+  breakRows2 <- which(tmp$SPECIES!="")
+  breakRows2 <- breakRows2[-1]
 
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
-    set_top_padding(row=breakRows,col=everywhere,value=15) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=breakRows1,col=everywhere,value=10) %>%
+    set_top_padding(row=breakRows2,col=everywhere,value=25) %>%
     # Change NAs to dashes
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
     # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
@@ -861,26 +907,19 @@ table7 <- function(tblcap,fnpre,writeTable=TRUE) {
     set_bottom_border(row=1,col=4,value=1) %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.4) %>%
-    iFinishTable(labelsRow=2,labelsCol=3,cap=cap,lastRowTotal=FALSE)
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,7)
-    cat("Table 7 made.\n")
-  }
+    iFinishTable(labelsRow=2,labelsCol=3)
   tmpTbl2
 }
 
 
-table8 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Number of fish examined for fin clips by species, month,",
-               "and clip.<br><br>")
+table8 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
+  ##   Remove fish that were not checked for clips
   ##   Make proper order of MONTHs, SPECIES and CLIPs
   ##   drop unused levels
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
+    filter(!is.na(CLIP)) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH),
                   SPECIES=iMvSpecies(SPECIES),
                   CLIP=iMvFinclips(CLIP)) %>%
@@ -891,7 +930,10 @@ table8 <- function(tblcap,fnpre,writeTable=TRUE) {
                        (MONTH+1)*(LEN)*(n=1),data=tmp)
   tmpTbl1 <- as.matrix(tmpTbl1)
   colnames(tmpTbl1) <- c(tmpTbl1[4,1:2],tmpTbl1[2,3:ncol(tmpTbl1)])
-  tmpTbl1 <- tmpTbl1[-(1:4),]
+  tmpTbl1 <- as.data.frame(tmpTbl1[-(1:4),])
+  # Remove rows that are repeats of the row above it (for the numeric variables)
+  tmpTbl1 %<>% dplyr::filter(FSA::repeatedRows2Keep(.,
+                              cols2ignore=c("SPECIES","CLIP")))
   
   ## remove rows that duplicate the previous row's All and the "clip" variable
   ## is "All" ... this indicates that the "clip" and All rows are the same
@@ -910,6 +952,7 @@ table8 <- function(tblcap,fnpre,writeTable=TRUE) {
   tmpTbl2 <- as_hux(tmpTbl1) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     set_top_padding(row=breakRows,col=everywhere,value=15) %>%
     # Add column labels
     rbind(c("","","MONTH",rep("",mos)),
@@ -920,20 +963,12 @@ table8 <- function(tblcap,fnpre,writeTable=TRUE) {
     set_align(row=everywhere,col=3:(mos+2+1),value="right") %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.35) %>%
-    iFinishTable(labelsRow=2,labelsCol=2,cap=cap,lastRowTotal=FALSE)
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,8)
-    cat("Table 8 made.\n")
-  }
+    iFinishTable(labelsRow=2,labelsCol=2)
   tmpTbl2
 }
 
 
-table9 <- function(tblcap,fnpre,writeTable=TRUE) {
-  ## Make table caption
-  cap <- paste(tblcap,
-               "Detailed listing of all measured fish.<br><br>")
+table9 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
@@ -960,18 +995,12 @@ table9 <- function(tblcap,fnpre,writeTable=TRUE) {
     # Add column labels
     rbind(c("SPECIES","STATE","SITE","FISHERY","DATE","LENGTH (in)","CLIP"),.) %>%
     set_width(0.5) %>%
-    iFinishTable(labelsRow=1,labelsCol=1,cap=cap,lastRowTotal=FALSE)
-  ## Print out to the file
-  if (writeTable) {
-    iWriteTable(tmpTbl2,fnpre,9)
-    cat("Table 9 made.\n")
-  }
+    iFinishTable(labelsRow=1,labelsCol=1)
   tmpTbl2
 }
 
 
 ## Internals for Mains ----
-
 iSumLen <- function(dgb) {
   dplyr::summarize(dgb,n=n(),mnLen=mean(LEN,na.rm=TRUE),
                    seLen=FSA::se(LEN,na.rm=TRUE),varLen=var(LEN,na.rm=TRUE),
@@ -1145,15 +1174,8 @@ iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
   )
 }
 
-## Construct main caption for tables
-iMakeMainCap <- function(LOC,SDATE,FDATE) {
-  paste0(lubridate::year(SDATE)," LAKE SUPERIOR CREEL SURVEY<br>",
-         iMvLoc(LOC),", ",format(SDATE,format="%m/%d/%y")," - ",
-         format(FDATE,format="%m/%d/%y"),"<br><br>")
-}
-
 ## Add final characteristics to all tables
-iFinishTable <- function(h,labelsRow,labelsCol,cap,lastRowTotal=FALSE) {
+iFinishTable <- function(h,labelsRow,labelsCol) {
   h <- h %>%
     # Line above top and below bottom of table
     set_top_border(row=1,col=everywhere,2) %>%
@@ -1162,13 +1184,7 @@ iFinishTable <- function(h,labelsRow,labelsCol,cap,lastRowTotal=FALSE) {
     set_bottom_border(row=labelsRow,col=everywhere,1) %>%
     # Bold rows and columns of labels
     set_bold(row=1:labelsRow,col=everywhere,TRUE) %>%
-    set_bold(row=everywhere,col=1:labelsCol,TRUE) %>%
-    # Puts on caption
-    set_caption(cap) %>%
-    set_caption_pos("topleft")
-  # Shade last total row
-  if (lastRowTotal) h <- set_background_color(h,row=final(),
-                                              col=everywhere,"gray95") 
+    set_bold(row=everywhere,col=1:labelsCol,TRUE)
   h
 }
 
@@ -1184,7 +1200,6 @@ iRepeatsPrevItem <- function(x) {
   c(FALSE,diff(x)==0)
 }
 
-showRoundedNumerics <- function(d,digits=3) {
-  d[sapply(d,is.numeric)] <- lapply(d[sapply(d,is.numeric)],round,digits=digits)
-  d
-}
+## Function to take the square root of a sum ... used for computing the SD
+##   from summed variances in the tables.
+sumsqrt <- function(x) sqrt(sum(x,na.rm=TRUE))

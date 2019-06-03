@@ -1,20 +1,37 @@
-## Setup ----
-source("LSCreel_helpers.R")
+#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
+#
+# PROGRAM TO ANALYZE "BUS ROUTE" TYPE LAKE SUPERIOR CREEL
+#   SINGLE ROUTE  -   INTEGRATED EFFORT AT LANDING COUNT
+#
+#   VERSION 1         JULY, 2016  (Iyob T)
+#   VERSION 2         XXXX, 201X  (Derek O)
+#
+#  DIRECTIONS:
+#   * Fill in initials for filename below at LOC
+#   * Fill in effective state and final dates for creel below at SDATE & FDATE
+#
+#  NOTES:
+#   * Counts (for Lake Superior) are average number of parties present during
+#     the wait time, not total effort seen during the wait time.
+#   * Only official holidays are New Years, Memorial Day, July Fourth, and Labor
+#     Day (Thanksgiving and Christmas are not included).
+#   * FINCLIP=99 means length field has number of fish harvested.
+#
+#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
+## Setup ----
 ### Converts SDATE and FDATE to useful objects
 SDATE <- as.Date(SDATE,"%m/%d/%Y")
 FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
-### Prepare results directory
-wdir <- paste0(here::here(),"/LSuperior/Analysis/",
-               lubridate::year(SDATE),"_SUPERIOR")
-suppressWarnings(dir.create(wdir))
+### Prepare working and results directory
+suppressWarnings(dir.create(RDIR))
+
+### Load helper files
+source(paste0(WDIR,"helpers/LSCreel_helpers.R"))
 
 ### Filename prefix
-fnpre <- fnPrefix(wdir,LOC,SDATE)
-
-### Main table cap
-tblcap <- iMakeMainCap(LOC,SDATE,FDATE)
+fnpre <- fnPrefix(RDIR,LOC,SDATE)
 
 ## Create expansion factors ----
 ### Make data.frame of dates from starting to ending date (entered above)
@@ -44,7 +61,7 @@ writeDF(calSum,fnpre)
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
 #!!!!!! YEAR variables; DATE is a different format; and I dropped the
 #!!!!!! CLIPXX, LENXX, and SPECXX variables that had no data.
-ints_ORIG <- readInterviewData(LOC,SDATE,FDATE,type=FTYPE,
+ints_ORIG <- readInterviewData(WDIR,LOC,SDATE,FDATE,type=FTYPE,
                                dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
   select(-FISH,-RES,-SUCCESS) %>%
@@ -88,7 +105,7 @@ effort <- sumInterviewedEffort(ints_NOFISH)
 #!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
 #!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
 #!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
-pcount <- readPressureCountData(LOC,SDATE,FDATE,type=FTYPE,dropHM=TRUE)
+pcount <- readPressureCountData(WDIR,LOC,SDATE,FDATE,type=FTYPE,dropHM=TRUE)
 
 ### Expand the daily count pressure data to be a summary for each MONTH and
 ### DAYTYPE with the following variables:

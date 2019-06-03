@@ -7,31 +7,41 @@
 #   VERSION 2         XXXX, 201X  (Derek O)
 #
 #  DIRECTIONS:
-#   * Fill in initials for filename below at LOC
-#   * Fill in effective state and final dates for creel below at SDATE & FDATE
-#
-#  NOTES:
-#   * Counts (for Lake Superior) are average number of parties present during
-#     the wait time, not total effort seen during the wait time.
-#   * Only official holidays are New Years, Memorial Day, July Fourth, and Labor
-#     Day (Thanksgiving and Christmas are not included).
-#   * FINCLIP=99 means length field has number of fish harvested.
+#   * Fill in information under "USER-SPECIFIED INFORMATION"
+#   * Source the script.
 #
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
-## User-Specified Information ----
-## Enter creel clerk location
-LOC <- "wsh"  # must be one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh"
-## Enter start and end dates of creel
-SDATE <- "05/21/2014" # must use two digits mon/day and four-digit year format
+## USER-SPECIFIED INFORMATION
+## Enter creel location (one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh")
+LOC <- "ash"
+## Enter start and end dates (must be two digits mon/day and four-digit year)
+SDATE <- "05/21/2014"
 FDATE <- "09/30/2014"
-## Enter type of file to use
-ftype <- "SAS"        # must use either "CSV" or "SAS"
+## Enter type of file to use (must be "CSV" or "SAS")
+FTYPE <- "SAS"
+## Enter table number to print (must be between 1 and 9)
+TABLES <- c(1:8)
 
-## Setup ----
-setwd(paste0(here::here(),"/LSuperior/Analysis"))
-source("LSCreel_DataPrep.R")
-makeTables(tblcap,fnpre)
 
-# For Testing
-#table6(tblcap,fnpre)
+#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
+#
+# DO NOT CHANGE ANYTHING BENEATH HERE
+#
+#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
+YEAR <- lubridate::year(as.Date(SDATE,"%m/%d/%Y"))
+LOC2 <-  plyr::mapvalues(LOC,warn=FALSE,
+                         from=c("ash","byf","cpw","lsb","rdc","sax","sup","wsh"),
+                         to=c("Ashland","Bayfield","Corny-Port Wing","Little Sand Bay",
+                              "Red Cliff","Saxon","Superior","Washburn"))
+WDIR <- paste0(here::here(),"/LSuperior/Analysis/")
+RDIR <- paste0(WDIR,YEAR,"_LSUPERIOR")
+
+rmarkdown::render(input=paste0(WDIR,"helpers/LSCreel_Tables_Template.Rmd"),
+                  params=list(LOC=LOC,SDATE=SDATE,FDATE=FDATE,
+                              FTYPE=FTYPE,TABLES=TABLES,
+                              WDIR=WDIR,RDIR=RDIR),
+                  output_file=paste0(YEAR,"_",LOC2,"_Tables.html"),
+                  output_dir=RDIR,
+                  output_format="html_document",
+                  clean=TRUE,quiet=TRUE)

@@ -1,0 +1,110 @@
+---
+title: "`r paste(lubridate::year(as.Date(SDATE,'%m/%d/%Y')),'LAKE SUPERIOR CREEL SURVEY RESULTS')`"
+params:
+  FDATE:
+    value: 09/30/2014
+  FTYPE:
+    value: SAS
+  LOC:
+    value: sup
+  SDATE:
+    value: 05/21/2014
+  TABLES:
+    value: !r c(1,2,3,4,5,6,7,8,9)
+  WDIR:
+    value: ""
+  RDIR:
+    value: ""
+output:
+  html_document:
+    theme: sandstone
+    css: tables.css
+---
+
+```{r input, echo=FALSE}
+## Grab User's Inputs from parameters
+LOC <- params$LOC
+SDATE <- params$SDATE
+FDATE <- params$FDATE
+FTYPE <- params$FTYPE
+TABLES <- params$TABLES
+WDIR <- params$WDIR
+RDIR <- params$RDIR
+```
+
+```{r setup, include=FALSE, message=FALSE}
+## Preliminaries
+knitr::opts_chunk$set(echo = FALSE)
+
+## Run the analysis
+source(paste0(WDIR,"helpers/LSCreel_DataPrep.R"))
+## Make table captions
+tables <- tableCaptions()
+```
+
+## `r paste0(iMvLoc(LOC),", ",format(SDATE,format='%m/%d/%y')," - ",format(FDATE,format='%m/%d/%y'))`
+#### Report run on `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
+
+
+```{r table1, eval=1 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table1"))
+table1(fnpre)
+```
+
+```{r table2, eval=2 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table2"))
+table2(fnpre)
+```
+
+```{r table3, eval=3 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table3"))
+table3(fnpre)
+```
+
+```{r table4, eval=4 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table4"))
+table4(fnpre)
+```
+
+```{r table5, eval=5 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table5"))
+table5(fnpre)
+```
+
+```{r table6, eval=6 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table6"))
+table6(fnpre)
+```
+
+```{r table7, eval=7 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table7"))
+table7(fnpre)
+```
+
+```{r table8, eval=8 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table8"))
+table8(fnpre)
+```
+
+```{r table9, eval=9 %in% TABLES, echo=FALSE, results='asis'}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table9"))
+table9(fnpre)
+```
