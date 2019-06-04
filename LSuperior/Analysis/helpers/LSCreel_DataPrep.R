@@ -73,13 +73,13 @@ ints_NOFISH <- select(ints_ORIG,INTID:PERSONS)
 ### Number of interviews (NINTS) and interviewed fishing effort (HOURS)
 ###   across sites within strata (STATE, DAYTYPE, FISHERY, MONTH).
 ### This is used for Table 2.
-intvdEffort <- ints_NOFISH %>%
+intvdEffortSimple <- ints_NOFISH %>%
   group_by(YEAR,STATE,DAYTYPE,FISHERY,MONTH,.drop=FALSE) %>%
   summarize(NINTS=n(),HOURS=sum(HOURS))
-writeDF(intvdEffort,fnpre)
+writeDF(intvdEffortSimple,fnpre)
 
 ### Summarized interviewed effort by WATERS, DAYTYPE, FISHERY, and MONTH ...
-### similar to above but by WATERS rather thatn STATE and more summaries ...
+### similar to above but by WATERS rather than STATE and more summaries ...
 ###   NINTS= Number of interviews
 ###   HOURS= Total interviewed effort (hours) of ALL parties
 ###   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
@@ -89,7 +89,7 @@ writeDF(intvdEffort,fnpre)
 ###         Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
 ###   PARTY= Party size (person's per party)
 #!!!!!! This matches Iyob's 'effort' after his line 183
-effort <- sumInterviewedEffort(ints_NOFISH)
+intvdEffort <- sumInterviewedEffort(ints_NOFISH)
 
 ## Pressure counts ----
 ### Read count pressure data and compute the following:
@@ -125,7 +125,7 @@ writeDF(pcount,fnpre)
 ### This is used for Table 4
 #!!!!!! This largely matches Iyob's 'effort' after his line 247
 #!!!!!! Note that Iyob rounded his numerics to three decimal places
-effortSum <- merge(effort,pcount,by=c("YEAR","MONTH","DAYTYPE")) %>%
+ttlEffort <- merge(intvdEffort,pcount,by=c("YEAR","MONTH","DAYTYPE")) %>%
   mutate(PHOURS=COUNT*PROP,
          VPHOURS=VCOUNT*(PROP^2),
          TRIPS=PHOURS/MTRIP,
@@ -134,7 +134,7 @@ effortSum <- merge(effort,pcount,by=c("YEAR","MONTH","DAYTYPE")) %>%
          VINDHRS=VPHOURS*(PARTY^2)) %>%
   select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,NINTS:PARTY,NCOUNT:VINDHRS) %>%
   arrange(YEAR,WATERS,DAYTYPE,FISHERY,MONTH)
-writeDF(effortSum,fnpre)
+writeDF(ttlEffort,fnpre)
 
 
 ## Calculate Harvest ----
@@ -148,16 +148,13 @@ ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
          SPECIES,CLIP,CLIPPED,LEN)
 
 ### Summarize harvest by strata and species
-###   HARVEST= Total observed harvest in interviews
-###   VHARVEST= Square of HARVEST (in SAS this is uncorrected sum-of-squares)
-###   COVAR= Start of a covariance calculation
 #!!!!!! This largely matches Iyob's 'ints_new' after his line 347
-harv <- sumHarvest(ints_FISH)
+intvdHarv <- sumObsHarvest(ints_FISH)
 
 ### Combine effort with harvest data (for NON-FISHING records)
 ### Remove non-fishing records from effort data, select specific variables
 #!!!!!! This largely matches Iyob's 'ints_effort' after his line 351
-effortSum2 <- filter(effortSum,FISHERY!="NON-FISHING") %>%
+ttlEffort2 <- filter(ttlEffort,FISHERY!="NON-FISHING") %>%
   select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
          NINTS,HOURS,VHOURS,INDHRS,PHOURS,VPHOURS)
 
@@ -166,14 +163,10 @@ effortSum2 <- filter(effortSum,FISHERY!="NON-FISHING") %>%
 ###   HARVEST= Total estimated harvest
 ###   VHARVEST= Variance of total estimated harvest
 ###   INDHRS= Hours of fishing effort for all individuals
-###   VHRATE= Variance of harvest rate
 ### This is used for Table 5.
 #!!!!!! This matches Iyob's 'ints_effort' after his line 375
-#!!!!!! NOTE THAT IYOB DID NOT MAINTAIN THE HRATE COMPUTED IN THIS FUNCTION
-harvestSum <- sumHarvestEffort(harv,effortSum2)
-
-rm(effortSum2)
-writeDF(harvestSum,fnpre)
+ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2)
+writeDF(ttlHarvest,fnpre)
 
 
 

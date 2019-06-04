@@ -242,11 +242,15 @@ rearrangeFishInfo <- function(dints) {
   as.data.frame(tmp)
 }
 
-## Summarize harvest
-sumHarvest <- function(d) {
+## Summarize observed harvest by strata and species
+##   HARVEST= Total _observed_ harvest in interviews
+##   VHARVEST= Square of HARVEST (in SAS this is uncorrected sum-of-squares)
+##   COVAR= Start of a covariance calculation
+sumObsHarvest <- function(d) {
   ## Compute harvest for each interview
   harv <- d %>%
-    dplyr::group_by(INTID,YEAR,WATERS,STATE,DAYTYPE,FISHERY,MONTH,DATE,HOURS,SPECIES) %>%
+    dplyr::group_by(INTID,YEAR,WATERS,STATE,DAYTYPE,
+                    FISHERY,MONTH,DATE,HOURS,SPECIES) %>%
     dplyr::summarize(HARVEST=n()) %>%
     dplyr::ungroup()
 
@@ -255,7 +259,7 @@ sumHarvest <- function(d) {
   h1 <- dplyr::filter(harv,!STATE %in% c("WI/MN","WI/MI"))
   h2 <- dplyr::filter(harv,STATE %in% c("WI/MN","WI/MI")) %>%
     dplyr::mutate(HOURS=0.5*HOURS,HARVEST=0.5*HARVEST)
-  ### Duplicated h2 to get other half of HOURS/HARVEST, label as NON-WISCONSIN
+  ### Duplicated h2 to get other half of HOURS/HARVEST, label as Non-WI
   h3 <- dplyr::mutate(h2,WATERS="Non-WI")
   ### Combine to get all interviews corrected for location
   ### Add COVAR variable
@@ -275,25 +279,29 @@ sumHarvest <- function(d) {
 
 ## Summarize Harvest and Effort
 ##   Merge harvest and effort data.frames
-##   Replace variables with 0 if NINTS is <1 or NA
-##   Calculate
+##   Replace variables with 0 if NINTS is =0 or NA
+##   Calculate the appropriate variances and covariances
+##   Note that:
+##     NINTS= Number of interviews
+##     HARVEST= Total estimated harvest
+##     VHARVEST= Variance of total estimated harvest
+##     INDHRS= Hours of fishing effort for all individuals
+##   Further note that the following are intermediate values & are not returned:
+##     HRATE, VHRATE, MHOURS, MHARV
 ##   Reduce variables and sort
 sumHarvestEffort <- function(h,f) {
   hf <- merge(h,f,by=c("YEAR","WATERS","DAYTYPE","FISHERY","MONTH"),all=TRUE) %>%
     dplyr::mutate(HOURS=ifelse(is.na(NINTS) | NINTS==0,NA,HOURS),
                   VHOURS=ifelse(is.na(NINTS) | NINTS==0,NA,VHOURS),
+                  VHOURS=(VHOURS-(HOURS^2)/NINTS)/(NINTS-1),
                   HARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,HARVEST),
                   VHARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,VHARVEST),
+                  VHARVEST=(VHARVEST-(HARVEST^2)/NINTS)/(NINTS-1),
                   COVAR=ifelse(is.na(NINTS) | NINTS==0,NA,COVAR),
-                  VHOURS=ifelse(is.na(NINTS) | NINTS==0,NA,
-                                (VHOURS-(HOURS^2)/NINTS)/(NINTS-1)),
-                  VHARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,
-                                  (VHARVEST-(HARVEST^2)/NINTS)/(NINTS-1)),
-                  COVAR=ifelse(is.na(NINTS) | NINTS==0,NA,
-                               (COVAR-HARVEST*HOURS/NINTS)/(NINTS-1)),
-                  HRATE=HARVEST/HOURS,
+                  COVAR=(COVAR-HARVEST*HOURS/NINTS)/(NINTS-1),
                   MHOURS=HOURS/NINTS,
                   MHARV=HARVEST/NINTS,
+                  HRATE=HARVEST/HOURS,
                   VHRATE=ifelse(MHARV==0 & NINTS>1,0,
                                 (VHARVEST/(MHARV^2))+(VHOURS/(MHOURS^2))-
                                   2*COVAR/MHARV/MHOURS),
@@ -301,7 +309,7 @@ sumHarvestEffort <- function(h,f) {
                   HARVEST=PHOURS*HRATE,
                   VHARVEST=(PHOURS^2)*VHRATE+(HRATE^2)*VPHOURS+VHRATE*VPHOURS) %>%
     dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES,
-                  NINTS,HARVEST,VHARVEST,INDHRS,HRATE,VHRATE) %>%
+                  NINTS,HARVEST,VHARVEST,INDHRS) %>%
     dplyr::arrange(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES)
   ## Return data.frame
   as.data.frame(hf)
@@ -440,7 +448,7 @@ table2 <- function(fnrpre) {
   ##   Read saved file
   ##   Properly order the MONTHs, FISHERYs, and STATEs
   ##   Drop levels that are not needed
-  tmp <- read.csv(paste0(fnpre,"intvdEffort.csv")) %>%
+  tmp <- read.csv(paste0(fnpre,"intvdEffortSimple.csv")) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH),
                   FISHERY=iMvFishery(FISHERY),
                   STATE=iMvStates(STATE)) %>%
@@ -613,7 +621,7 @@ table4 <- function(fnpre) {
   ##   Read saved file
   ##   Make proper orders of MONTHs, WATERS, and FISHERYs
   ##   drop unused levels
-  tmp <- read.csv(paste0(fnpre,"effortSum.csv")) %>%
+  tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH),
                   WATERS=factor(WATERS,levels=c("WI","NON-WI")),
                   FISHERY=iMvFishery(FISHERY)) %>%
@@ -689,7 +697,7 @@ table5 <- function(fnpre) {
   ##   Read saved file
   ##   Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
   ##   Drop unused levels
-  tmp <- read.csv(paste0(fnpre,"harvestSum.csv")) %>%
+  tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH),
                   WATERS=factor(WATERS,levels=c("WI","NON-WI")),
                   FISHERY=iMvFishery(FISHERY),

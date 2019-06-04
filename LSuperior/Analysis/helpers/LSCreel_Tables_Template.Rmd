@@ -23,7 +23,7 @@ output:
     css: tables.css
 ---
 
-```{r input}
+```{r input, echo=FALSE}
 ## Grab User's Inputs from parameters
 LOC <- params$LOC
 SDATE <- params$SDATE
@@ -116,7 +116,7 @@ table9(fnpre)
 ```{r figure9, eval=9 %in% FIGURES, fig.width=7, fig.height=8}
 cat("<br><br>")
 cat("<hr>")
-figure1(fnpre)
+figure9(fnpre)
 cat("<br>")
 cat(figures("Figure9"))
 

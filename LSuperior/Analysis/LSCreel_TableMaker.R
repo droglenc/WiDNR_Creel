@@ -11,14 +11,14 @@
 
 ## USER-SPECIFIED INFORMATION
 ## Enter creel location (one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh")
-LOC <- "wsh"
+LOC <- "sup"
 ## Enter start and end dates (must be two digits mon/day and four-digit year)
 SDATE <- "05/21/2014"
 FDATE <- "09/30/2014"
 ## Enter type of input data file to use (must be "CSV" or "SAS")
 FTYPE <- "SAS"
 ## Enter table numbers to print (must be between 1 and 9)
-TABLES <- c(1:8)
+TABLES <- c(2:5)
 ## Enter figure numbers to print (must be between 1 and 9)
 FIGURES <- c(9)
 
