@@ -119,23 +119,10 @@ pressureCount <- expandPressureCounts(pressureCount,calSum)
 writeDF(pressureCount,fnpre)
 
 ## Combining Effort and Counts ----
-### Combine interview effort and pressure counts into one data.frame
-### with new calculations
-###   PHOURS= Party hours
-###   TRIPS= Total trips
-###   INDHRS= Total individual hours
 ### This is used for Table 4
 #!!!!!! This largely matches Iyob's 'effort' after his line 247
 #!!!!!! Note that Iyob rounded his numerics to three decimal places
-ttlEffort <- merge(intvdEffort,pressureCount,by=c("YEAR","MONTH","DAYTYPE")) %>%
-  mutate(PHOURS=COUNT*PROP,
-         VPHOURS=VCOUNT*(PROP^2),
-         TRIPS=PHOURS/MTRIP,
-         VTRIPS=VPHOURS/(MTRIP^2),
-         INDHRS=PHOURS*PARTY,
-         VINDHRS=VPHOURS*(PARTY^2)) %>%
-  select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,NINTS:PARTY,NCOUNT:VINDHRS) %>%
-  arrange(YEAR,WATERS,DAYTYPE,FISHERY,MONTH)
+ttlEffort <- sumEffort(intvdEffort,pressureCount)
 writeDF(ttlEffort,fnpre)
 
 
