@@ -16,11 +16,11 @@ LOC <- "sup"
 SDATE <- "05/21/2014"
 FDATE <- "09/30/2014"
 ## Enter type of input data file to use (must be "CSV" or "SAS")
-FTYPE <- "SAS"
+FTYPE <- "CSV"
 ## Enter table numbers to print (must be between 1 and 9)
-TABLES <- c(2:5)
+TABLES <- c(1:8)
 ## Enter figure numbers to print (must be between 1 and 9)
-FIGURES <- c(9)
+FIGURES <- c(1:3)
 
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 # DO NOT CHANGE ANYTHING BENEATH HERE
