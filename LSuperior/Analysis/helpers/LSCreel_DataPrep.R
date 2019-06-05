@@ -48,7 +48,6 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
   summarize(DAYS=n()) %>%
   mutate(DAYLEN=iMvDaylen(MONTH)) %>%
   as.data.frame()
-writeDF(calSum,fnpre)
 
 
 ## Interviewed fishing effort ----
@@ -65,21 +64,16 @@ ints_ORIG <- readInterviewData(WDIR,LOC,SDATE,FDATE,type=FTYPE,
   select(-FISH,-RES,-SUCCESS) %>%
   droplevels()
 
-### A simplified data.frame that does not include any fish data
-###   HOURS is fishing effort by the party.
-###   PERSONS is number of individuals in the party.
-ints_NOFISH <- select(ints_ORIG,INTID:PERSONS)
+### A simplified data.frame that does not include any fish data and has been
+### adjusted for people that fished in a "mixed" state
+###   HOURS: fishing effort by the party.
+###   PERSONS: number of individuals in the party.
+###   INDHRS: people-hours of fishing effort.
+###   CHOURS: fishing effort (hours) for only completed trips
+ints_NOFISH <- select(ints_ORIG,INTID:PERSONS) %>%
+  prepInterviewedEffortData()
 
-### Number of interviews (NINTS) and interviewed fishing effort (HOURS)
-###   across sites within strata (STATE, DAYTYPE, FISHERY, MONTH).
-### This is used for Table 2.
-intvdEffortSimple <- ints_NOFISH %>%
-  group_by(YEAR,STATE,DAYTYPE,FISHERY,MONTH,.drop=FALSE) %>%
-  summarize(NINTS=n(),HOURS=sum(HOURS))
-writeDF(intvdEffortSimple,fnpre)
-
-### Summarized interviewed effort by WATERS, DAYTYPE, FISHERY, and MONTH ...
-### similar to above but by WATERS rather than STATE and more summaries ...
+### Summarized interviewed effort by STATE, DAYTYPE, FISHERY, and MONTH
 ###   NINTS= Number of interviews
 ###   HOURS= Total interviewed effort (hours) of ALL parties
 ###   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
@@ -88,8 +82,13 @@ writeDF(intvdEffortSimple,fnpre)
 ###         a given waters-fishery. Should sum to 1 within each month-daytype
 ###         Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
 ###   PARTY= Party size (person's per party)
+### This is used for Table 2.
+intvdEffortState <- sumInterviewedEffort(ints_NOFISH,STATE)
+
+### Summarized interviewed effort by WATERS, DAYTYPE, FISHERY, and MONTH ...
+### similar to above but by WATERS rather than STATE
 #!!!!!! This matches Iyob's 'effort' after his line 183
-intvdEffort <- sumInterviewedEffort(ints_NOFISH)
+intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH,WATERS)
 
 ## Pressure counts ----
 ### Read count pressure data and compute the following:
@@ -116,13 +115,12 @@ pressureCount <- readPressureCountData(WDIR,LOC,SDATE,FDATE,
 #!!!!!! This matches Iyob's 'counts' after his line 215 (except no SDCOUNT as
 #!!!!!! this is not used elsewhere and is just sqrt of VCOUNT).
 pressureCount <- expandPressureCounts(pressureCount,calSum)
-writeDF(pressureCount,fnpre)
 
 ## Combining Effort and Counts ----
 ### This is used for Table 4
 #!!!!!! This largely matches Iyob's 'effort' after his line 247
 #!!!!!! Note that Iyob rounded his numerics to three decimal places
-ttlEffort <- sumEffort(intvdEffort,pressureCount)
+ttlEffort <- sumEffort(intvdEffortWaters,pressureCount)
 writeDF(ttlEffort,fnpre)
 
 

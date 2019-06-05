@@ -3,7 +3,7 @@
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
 ## Load Packages ----
-rqrd <- c("FSA","lubridate","tables","tidyr","dplyr","magrittr","huxtable",
+rqrd <- c("FSA","lubridate","tidyr","dplyr","magrittr","huxtable",
           "kableExtra","captioner","ggplot2","patchwork","sugrrants","grid",
           "haven","knitr","here","readxl","tibble")
 for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
@@ -56,39 +56,47 @@ readInterviewData <- function(wdir,LOC,SDATE,FDATE,type,
 }
 
 
-##
-sumInterviewedEffort <- function(dints) {
-  ### Separate into only one and split states
-  ### All hours for split states are cut in half
+## Prepare the interviewed efffort data.frame by adjusting the number of hours
+## for people that fish in a "mixed" state. Also compute the people-hours and
+## the hours for completed trips
+prepInterviewedEffortData <- function(dints) {
+  ## Separate into only one and split states
   f1 <- dplyr::filter(dints,!STATE %in% c("WI/MN","WI/MI"))
   f2 <- dplyr::filter(dints,STATE %in% c("WI/MN","WI/MI")) %>%
+    ## All hours for split states are cut in half
     dplyr::mutate(HOURS=0.5*HOURS)
-  ### Duplicated f2 to get other half of HOURS, label as NON-WISCONSIN
+  ## Duplicate f2 for other half of HOURS, label as Non-WI
   f3 <- dplyr::mutate(f2,WATERS="Non-WI")
-
-  ### Combine to get all interviews corrected for location
-  ### Compute people-hours of fishing effort (in INDHRS)
-  ### Compute hours for only completed trips (in CHOURS)
+  
+  ## Combine to get all interviews corrected for location
   f <- rbind(f1,f2,f3) %>%
+    ## Compute people-hours of fishing effort (in INDHRS)
+    ## Compute hours for only completed trips (in CHOURS)
     dplyr::mutate(INDHRS=PERSONS*HOURS,
                   CHOURS=ifelse(STATUS=="Complete",HOURS,NA))
-  
-  ### Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH  
+  ## Return data.frame
+  f
+}
+
+##
+sumInterviewedEffort <- function(f,var) {
+  tmp <- rlang::quo_name(rlang::enquo(var))
+  ### Summarize interviewed effort data by WATERS/STATE, DAYTPE, FISHERY, MONTH  
   fsum <- f %>%
-    dplyr::group_by(YEAR,WATERS,DAYTYPE,FISHERY,MONTH) %>%
+    dplyr::group_by(YEAR,!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH) %>%
     dplyr::summarize(NINTS=dplyr::n(),
                      MTRIP=mean(CHOURS,na.rm=TRUE),
-                     VHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
+                     VHOURS=sum(HOURS^2,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
                      CHOURS=sum(CHOURS,na.rm=TRUE)) %>%
-    dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
+    dplyr::select(YEAR,!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH,
                   NINTS,HOURS,INDHRS,CHOURS,MTRIP,VHOURS) %>%
     as.data.frame()
   
   ### Summarize total interviewed hours by MONTH and DAYTYPE
   ### *** This is nints in SAS/IYOB code
-  fsum2 <- dints %>%
+  fsum2 <- f %>%
     dplyr::group_by(MONTH,DAYTYPE) %>%
     dplyr::summarize(THOURS=sum(HOURS,na.rm=TRUE)) %>%
     as.data.frame()
@@ -97,9 +105,9 @@ sumInterviewedEffort <- function(dints) {
   f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(PROP=HOURS/THOURS,
                   PARTY=INDHRS/HOURS) %>%
-    dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
+    dplyr::select(YEAR,!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH,
                   NINTS,HOURS,VHOURS,MTRIP,PROP,PARTY) %>%
-    dplyr::arrange(WATERS,DAYTYPE,FISHERY,MONTH)
+    dplyr::arrange(!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH)
   ### Return data.frame
   as.data.frame(f)
 }
@@ -574,25 +582,25 @@ tableCaptions <- function() {
          caption="Detailed listing of all measured fish.")
   tables
 }
-table1 <- function(fnpre) {
+table1 <- function(fnpre,calSum) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Remove the year and creat columns of weekdays and weekends
-  ##   Add a TOTAL days column and convert months to a character type (which is
-  ##     needed to add the total row later)
-  ##   Rearrange and rename some columns
-  ##   Add on a total row with a TOTAL label
-  calTbl1 <- read.csv(paste0(fnpre,"calSum.csv")) %>%
+  calTbl1 <- calSum %>%
+    ## Remove the year
     dplyr::select(-YEAR) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH)) %>%
+    ## Create columns of weekdays and weekends
     tidyr::spread(DAYTYPE,DAYS) %>%
+    ## Add a TOTAL days column
+    ## Convert months to a character type (needed to add the total row later)
     dplyr::mutate(All=Weekday+Weekend,
                   MONTH=as.character(MONTH)) %>%
+    ## Rearrange and rename some columns
     dplyr::select(MONTH,Weekday,Weekend,All,DAYLEN) %>%
     dplyr::rename(`Length`=DAYLEN) %>%
+    ##  Add on a total row with a 'All' label
     dplyr::bind_rows(dplyr::summarize_at(.,vars(Weekday:All),'sum')) %>%
     dplyr::mutate(MONTH=replace(MONTH,is.na(MONTH),"All"))
   names(calTbl1)[which(names(calTbl1)=="All")] <- "All Days"
+  
   ## Make the huxtable
   calTbl2 <- as_hux(calTbl1,add_colnames=TRUE) %>%
     # Set all cell paddings
@@ -615,37 +623,60 @@ table1 <- function(fnpre) {
 }
 
 
-table2 <- function(fnrpre) {
+table2 <- function(fnrpre,d) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Properly order the MONTHs, FISHERYs, and STATEs
-  ##   Drop levels that are not needed
-  tmp <- read.csv(paste0(fnpre,"intvdEffortSimple.csv")) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH),
-                  FISHERY=iMvFishery(FISHERY),
-                  STATE=iMvStates(STATE)) %>%
-    droplevels()
+  ## Restrict to only those variables needed for this table
+  tmp <- dplyr::select(d,STATE,DAYTYPE,FISHERY,MONTH,NINTS,HOURS)
   
-  ## Get a list of months, including "All"
-  mos <- c(levels(tmp$MONTH),"All")
+  ## Summarize by month
+  tmp1 <- dplyr::group_by(tmp,STATE,DAYTYPE,FISHERY) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE)) %>%
+    dplyr::mutate(MONTH="All") %>%
+    dplyr::select(names(tmp)) %>%
+    as.data.frame()
+  tmp <- rbind(tmp,tmp1)
+  ## Summarize by fishery
+  tmp1 <- dplyr::group_by(tmp,STATE,DAYTYPE,MONTH) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE)) %>%
+    dplyr::mutate(FISHERY="All") %>%
+    dplyr::select(names(tmp)) %>%
+    as.data.frame()
+  tmp <- rbind(tmp,tmp1)
+  ## Summarize by daytype
+  tmp1 <- dplyr::group_by(tmp,STATE,FISHERY,MONTH) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(tmp)) %>%
+    as.data.frame()
+  tmp <- rbind(tmp,tmp1)
+  ## Summarize by state
+  tmp1 <- dplyr::group_by(tmp,DAYTYPE,FISHERY,MONTH) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE)) %>%
+    dplyr::mutate(STATE="All") %>%
+    dplyr::select(names(tmp)) %>%
+    as.data.frame()
+  tmp <- rbind(tmp,tmp1)
   
-  ## Summary table of number and hours of interviews by state, day type, fishery
-  ##   and month.
-  tmp <- tabular((STATE+1)*(DAYTYPE+1)*(FISHERY+1) ~
-                   (MONTH+1)*(NINTS+HOURS)*sum*Format(digits=14),data=tmp)
-  tmpTbl1 <- as.matrix(tmp)
-  tmpTbl1 <- data.frame(tmpTbl1[-(1:4),],stringsAsFactors=FALSE)
-  ## Created better variable names
-  names(tmpTbl1) <- c("STATE","DAYTYPE","FISHERY",
-                       paste(rep(mos,each=2),
-                             rep(c("NINTS","HOURS"),length(mos)),sep="_"))
-  ## Converted results back to numeric
-  tmpTbl1[,-(1:3)] <- lapply(tmpTbl1[,-(1:3)],as.numeric)
-  ## Converted zeroes to NAs (for dashes in huxtable)
-  tmpTbl1[sapply(tmpTbl1,is.numeric)] <-
-    lapply(tmpTbl1[sapply(tmpTbl1,is.numeric)],round,digits=9)
-  tmpTbl1[,-(1:3)][tmpTbl1[,-(1:3)]<0.000000001] <- NA
-
+  mos <- as.character(unique(tmp$MONTH))
+  nms <- paste(rep(mos,each=2),c("NINTS","HOURS"),sep=".")
+  
+  ## Convert to wide format
+  tmpTbl1 <- tmp %>%
+    tidyr::gather(temp,value,NINTS:HOURS) %>%
+    tidyr::unite(temp1,MONTH,temp,sep=".") %>%
+    tidyr::spread(temp1,value) %>%
+    dplyr::select(STATE,DAYTYPE,FISHERY,nms) %>%
+    arrange(STATE,DAYTYPE,FISHERY) %>%
+    ## Remove repeated items in the first three variables
+    dplyr::mutate(STATE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="STATE"),
+                                "",as.character(STATE)),
+                  DAYTYPE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="DAYTYPE"),
+                                 "",as.character(DAYTYPE)))
+  
   ## Rows with "All" (except last) get extra space below
   allRows <- which(tmpTbl1$FISHERY=="All")
   allRows <- allRows[-length(allRows)]
@@ -678,18 +709,14 @@ table2 <- function(fnrpre) {
   for (i in 1:length(mos)) {
     tmp <- 2*(i+1)
     tmpTbl2 <- merge_cells(tmpTbl2,1,tmp:(tmp+1)) %>%
-#      set_bottom_border(1,tmp,1) %>%
       set_align(1,tmp,"center")
   }
   tmpTbl2
 }
 
-table3 <- function(fnpre) {
+table3 <- function(fnpre,pressureCount) {
   ## Prepare data.frame for huxtable
-  tmp <- read.csv(paste0(fnpre,"pressureCount.csv")) %>%
-    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+  tmp <- pressureCount %>%
     ## Select only variables for the table
     dplyr::select(-YEAR,-DAYS,-VCOUNT) %>%
     droplevels() %>%
@@ -943,7 +970,7 @@ table7 <- function(fnpre) {
   tmp <- sumLengths(filter(tmp,SPECIES %in% specClipped),CLIP) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   SPECIES=iMvSpecies(SPECIES),
-                  CLIP=iMvFinclips(CLIP)) %>%
+                  CLIP=iMvFinclips(CLIP,addAll=TRUE)) %>%
     dplyr::arrange(SPECIES,MONTH,CLIP) %>%
     droplevels() %>%
     ## Remove repeated items in the first three variables
@@ -985,31 +1012,51 @@ table7 <- function(fnpre) {
 
 table8 <- function(fnpre) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Remove fish that were not checked for clips
-  ##   Make proper order of MONTHs, SPECIES and CLIPs
-  ##   drop unused levels
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
+    ## Remove fish that were not checked for clips
     dplyr::filter(!is.na(CLIP)) %>%
+    ## Reduce to only variables needed for the table
+    dplyr::select(MONTH,SPECIES,CLIP) %>%
+    ## Make proper order of MONTHs, SPECIES and CLIPs
     dplyr::mutate(MONTH=iOrderMonths(MONTH),
                   SPECIES=iMvSpecies(SPECIES),
                   CLIP=iMvFinclips(CLIP)) %>%
-    droplevels()
+    ##   drop unused levels
+    droplevels() %>%
+    group_by(SPECIES,CLIP,MONTH) %>%
+    summarize(n=n()) %>%
+    as.data.frame()
   
-  ## Make table
-  tmpTbl1 <- tabular((SPECIES)*(CLIP+1)*DropEmpty(which="row")~
-                       (MONTH+1)*(LEN)*(n=1),data=tmp)
-  tmpTbl1 <- as.matrix(tmpTbl1)
-  colnames(tmpTbl1) <- c(tmpTbl1[4,1:2],tmpTbl1[2,3:ncol(tmpTbl1)])
-  tmpTbl1 <- as.data.frame(tmpTbl1[-(1:4),])
-  # Remove rows that are repeats of the row above it (for the numeric variables)
-  tmpTbl1 %<>% dplyr::filter(FSA::repeatedRows2Keep(.,
-                              cols2ignore=c("SPECIES","CLIP")))
+  ## Summarize across months
+  tmp1 <- group_by(tmp,SPECIES,CLIP) %>%
+    summarize(n=sum(n)) %>%
+    mutate(MONTH="All") %>%
+    select(names(tmp)) %>%
+    as.data.frame()
+  tmp <- rbind(tmp,tmp1)
+  ## Summarize across clips
+  tmp1 <- group_by(tmp,SPECIES,MONTH) %>%
+    summarize(n=sum(n)) %>%
+    mutate(CLIP="All") %>%
+    select(names(tmp)) %>%
+    as.data.frame()
+  tmp <- rbind(tmp,tmp1)
+
+  ## Find number of months (for in huxtable)
+  mos <- length(levels(tmp$MONTH))
+
+  ## Convert to wide format
+  tmpTbl1 <- tmp %>%
+    tidyr::spread(MONTH,n) %>%
+    arrange(SPECIES,CLIP) %>%
+    ## Remove repeated items in the species variables
+    dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
+                               "",as.character(SPECIES))) %>%
+    ## Remove repeated rows (for numeric variables)
+    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("SPECIES","CLIP")))
   
   ## Find rows that need more space
   breakRows <- which(tmpTbl1$SPECIES!="")[-1]
-  ## Find number of months
-  mos <- ncol(tmpTbl1)-3
 
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmpTbl1) %>%
@@ -1018,12 +1065,12 @@ table8 <- function(fnpre) {
     set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     set_top_padding(row=breakRows,col=everywhere,value=15) %>%
     # Add column labels
-    rbind(c("","","MONTH",rep("",mos)),
-          names(tmpTbl1),.) %>%
+    rbind(names(tmpTbl1),.) %>%
+    rbind(c("","","MONTH",rep("",mos-1)),.) %>%
     # Top label should extend across MONTHs columns with line underneath
-    merge_cells(row=1,col=3:(mos+2+1)) %>%
+    merge_cells(row=1,col=3:(mos+2)) %>%
     set_bottom_border(row=1,col=3,value=1) %>%
-    set_align(row=everywhere,col=3:(mos+2+1),value="right") %>%
+    set_align(row=everywhere,col=3:(mos+2),value="right") %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.35) %>%
     iFinishTable(labelsRow=2,labelsCol=2)
@@ -1380,7 +1427,7 @@ iMvSpecies <- function(x) {
 
 ## Convert fin-clip codes to words
 ##   99 is mapped to 40 as this happens after 99 is expanded to multiple lengths
-iMvFinclips <- function(x) {
+iMvFinclips <- function(x,addAll=TRUE) {
   tmp <- c('00: NONE','01: AD','02: AD+LV','03: AD+RV','04: AD+LP','05: AD+RP',
            '06: LV','07: RV','08: LP','09: RP','10: LV+RV','11: RP+LV',
            '12: AD+LV+RV','13: D','14: HATCHERY','15: LP+RV','16: D+RV',
@@ -1389,6 +1436,7 @@ iMvFinclips <- function(x) {
            '40: NOT EXAMINED',NA)
   if (is.numeric(x)) x <- plyr::mapvalues(x,from=c(0:24,40,99,NA),
                                           to=tmp,warn=FALSE)
+  if (addAll) tmp <- c(tmp,"All")
   x <- factor(x,levels=tmp[!duplicated(tmp)])
   x  
 }

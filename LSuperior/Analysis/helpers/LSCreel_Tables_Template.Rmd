@@ -54,21 +54,21 @@ figures <- figureCaptions()
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table1"))
-table1(fnpre)
+table1(fnpre,calSum)
 ```
 
 ```{r table2, eval=2 %in% TABLES}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table2"))
-table2(fnpre)
+table2(fnpre,intvdEffortState)
 ```
 
 ```{r table3, eval=3 %in% TABLES}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table3"))
-table3(fnpre)
+table3(fnpre,pressureCount)
 ```
 
 ```{r table4, eval=4 %in% TABLES}
