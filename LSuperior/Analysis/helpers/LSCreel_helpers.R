@@ -242,6 +242,7 @@ rearrangeFishInfo <- function(dints) {
   as.data.frame(tmp)
 }
 
+
 ## Summarize observed harvest by strata and species
 ##   HARVEST= Total _observed_ harvest in interviews
 ##   VHARVEST= Square of HARVEST (in SAS this is uncorrected sum-of-squares)
@@ -556,7 +557,7 @@ table3ALT <- function(fnpre) {
   ## Prepare data.frame for huxtable
   ##   Read saved file
   ##   Get proper order of months and drop unused levels
-  tmp <- read.csv(paste0(fnpre,"pcount.csv")) %>%
+  tmp <- read.csv(paste0(fnpre,"pressureCount.csv")) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH)) %>%
     droplevels()
   
@@ -784,107 +785,6 @@ table5 <- function(fnpre) {
     rbind(c("","","","","Harvest","","Harvest/","Harvest","","Harvest/",
             "Harvest","","Harvest/"),.) %>%
     rbind(c("","","","","Weekday","","","Weekend","","","All Days","",""),.) %>%
-    merge_cells(row=1,col=5:7) %>%
-    merge_cells(row=1,col=8:10) %>%
-    merge_cells(row=1,col=11:13) %>%
-    merge_cells(row=2,col=5:6) %>%
-    merge_cells(row=2,col=8:9) %>%
-    merge_cells(row=2,col=11:12) %>%
-    set_bottom_border(row=1:2,col=c(5,8,11),value=1) %>%
-    set_align(row=1:2,col=everywhere,value="center") %>%
-    set_align(row=-(1:2),col=-(1:2),value="right") %>%
-    set_width(0.7) %>%
-    iFinishTable(labelsRow=3,labelsCol=4)
-  tmpTbl2
-}
-
-
-table5_OLD <- function(fnpre) {
-  ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-  ##   Drop unused levels
-  tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH),
-                  WATERS=factor(WATERS,levels=c("WI","NON-WI")),
-                  FISHERY=iMvFishery(FISHERY),
-                  SPECIES=iMvSpecies(SPECIES)) %>%
-    droplevels()
-
-  ## Table of days sampled and total (SD) party hours by month and daytype.
-  ##   Must convert "All" words to "TOTAL", removed the first two rows (labels
-  ##   that will be added back with huxtable), renamed columns
-  tmpTbl1 <- tabular((WATERS)*(FISHERY+1)*(SPECIES)*(MONTH+1)*DropEmpty(which="row")~
-                       (DAYTYPE+1)*(HARVEST+INDHRS)*sum*Format(digits=14)+
-                       (DAYTYPE+1)*(VHARVEST)*sumsqrt*Format(digits=14),
-                     data=tmp)
-  tmpTbl1 <- as.matrix(tmpTbl1)
-  colnames(tmpTbl1) <- c("WATERS","FISHERY","SPECIES","MONTH",
-                         paste0("WEEKDAY",tmpTbl1[3,5:6]),
-                         paste0("WEEKEND",tmpTbl1[3,7:8]),
-                         paste0("TOTAL",tmpTbl1[3,9:10]),
-                         paste0("WEEKDAY",tmpTbl1[3,11]),
-                         paste0("WEEKEND",tmpTbl1[3,12]),
-                         paste0("TOTAL",tmpTbl1[3,13]))
-  tmpTbl1 <- tmpTbl1[-(1:4),]
-  tmpTbl1 <- as.data.frame(tmpTbl1,stringsAsFactors=FALSE)
-  tmpTbl1[,5:13] <- lapply(tmpTbl1[,5:13],as.numeric)
-  tmpTbl1 <- tmpTbl1 %>%
-    mutate(WEEKDAYHRATE=WEEKDAYHARVEST/WEEKDAYINDHRS,
-           WEEKENDHRATE=WEEKENDHARVEST/WEEKENDINDHRS,
-           TOTALHRATE=TOTALHARVEST/TOTALINDHRS) %>%
-    rename(WEEKDAYSDHARVEST=WEEKDAYVHARVEST,
-           WEEKENDSDHARVEST=WEEKENDVHARVEST,
-           TOTALSDHARVEST=TOTALVHARVEST,) %>%
-    select(WATERS:MONTH,WEEKDAYHARVEST,WEEKDAYSDHARVEST,WEEKDAYHRATE,
-           WEEKENDHARVEST,WEEKENDSDHARVEST,WEEKENDHRATE,
-           TOTALHARVEST,TOTALSDHARVEST,TOTALHRATE)
-  # Hack needed to deal with NaN results
-  tmpTbl1[is.na(tmpTbl1)] <- NA
-  # Set zero harvests and its SD to NA (for huxtable)
-  zeroHarvs <- tmpTbl1$WEEKDAYHARVEST==0
-  tmpTbl1$WEEKDAYHARVEST[zeroHarvs] <- NA
-  tmpTbl1$WEEKDAYSDHARVEST[zeroHarvs] <- NA
-  zeroHarvs <- tmpTbl1$WEEKENDHARVEST==0
-  tmpTbl1$WEEKENDHARVEST[zeroHarvs] <- NA
-  tmpTbl1$WEEKENDSDHARVEST[zeroHarvs] <- NA
-  # Remove rows that are repeats of the row above it (for the numeric variables)
-  tmpTbl1 %<>% dplyr::filter(FSA::repeatedRows2Keep(.,
-                             cols2ignore=c("WATERS","FISHERY","SPECIES","MONTH")))
-  
-  ## Rows with a SPECIES name (except first) get extra space above
-  breakRows1 <- which(tmpTbl1$SPECIES!="")
-  breakRows1 <- breakRows1[-1]
-  ## Rows that have a fishery name (except first) get extra space above
-  breakRows2 <- which(tmpTbl1$FISHERY!="")
-  breakRows2 <- breakRows2[-1]
-
-  ## Make the huxtable
-  tmpTbl2 <- as_hux(tmpTbl1) %>%
-    # Set all cell paddings
-    set_all_padding(1) %>%
-    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
-    set_top_padding(row=breakRows1,col=everywhere,value=10) %>%
-    set_top_padding(row=breakRows2,col=everywhere,value=25) %>%
-    # Convert NAs to dashes
-    set_na_string(row=everywhere,col=-(1:4),value="--") %>%
-    # Set decimals
-    set_number_format(row=everywhere,
-                      col=c("WEEKDAYHARVEST","WEEKENDHARVEST","TOTALHARVEST"),
-                      value=0) %>%
-    set_number_format(row=everywhere,
-                      col=c("WEEKDAYSDHARVEST","WEEKENDSDHARVEST","TOTALSDHARVEST"),
-                      value=1) %>%
-    set_number_format(row=everywhere,
-                      col=c("WEEKDAYHRATE","WEEKENDHRATE","TOTALHRATE"),
-                      value=4) %>%
-    # Create nice column headers
-    rbind(c("","","","","Weekday","","","Weekend","","","ALL DAYS","",""),
-          c("","","","","Harvest","","Harvest/","Harvest","","Harvest/",
-            "Harvest","","Harvest/"),
-          c("WATERS","FISHERY","SPECIES","MONTH","Number","SD","Angler-Hr",
-            "Number","SD","Angler-Hr","Number","SD","Angler-Hr"),
-          .) %>%
     merge_cells(row=1,col=5:7) %>%
     merge_cells(row=1,col=8:10) %>%
     merge_cells(row=1,col=11:13) %>%

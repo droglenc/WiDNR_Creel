@@ -103,7 +103,8 @@ intvdEffort <- sumInterviewedEffort(ints_NOFISH)
 #!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
 #!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
 #!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
-pcount <- readPressureCountData(WDIR,LOC,SDATE,FDATE,type=FTYPE,dropHM=TRUE)
+pressureCount <- readPressureCountData(WDIR,LOC,SDATE,FDATE,
+                                       type=FTYPE,dropHM=TRUE)
 
 ### Expand the daily count pressure data to be a summary for each MONTH and
 ### DAYTYPE with the following variables:
@@ -114,18 +115,19 @@ pcount <- readPressureCountData(WDIR,LOC,SDATE,FDATE,type=FTYPE,dropHM=TRUE)
 ### This is used for Table 3.
 #!!!!!! This matches Iyob's 'counts' after his line 215 (except no SDCOUNT as
 #!!!!!! this is not used elsewhere and is just sqrt of VCOUNT).
-pcount <- expandPressureCounts(pcount,calSum)
-writeDF(pcount,fnpre)
+pressureCount <- expandPressureCounts(pressureCount,calSum)
+writeDF(pressureCount,fnpre)
 
 ## Combining Effort and Counts ----
-### Combine effort and pressure counts into one data.frame with new calculations
+### Combine interview effort and pressure counts into one data.frame
+### with new calculations
 ###   PHOURS= Party hours
 ###   TRIPS= Total trips
 ###   INDHRS= Total individual hours
 ### This is used for Table 4
 #!!!!!! This largely matches Iyob's 'effort' after his line 247
 #!!!!!! Note that Iyob rounded his numerics to three decimal places
-ttlEffort <- merge(intvdEffort,pcount,by=c("YEAR","MONTH","DAYTYPE")) %>%
+ttlEffort <- merge(intvdEffort,pressureCount,by=c("YEAR","MONTH","DAYTYPE")) %>%
   mutate(PHOURS=COUNT*PROP,
          VPHOURS=VCOUNT*(PROP^2),
          TRIPS=PHOURS/MTRIP,
@@ -164,7 +166,7 @@ ttlEffort2 <- filter(ttlEffort,FISHERY!="NON-FISHING") %>%
 ###   VHARVEST= Variance of total estimated harvest
 ###   INDHRS= Hours of fishing effort for all individuals
 ### This is used for Table 5.
-#!!!!!! This matches Iyob's 'ints_effort' after his line 375
+#!!!!!! This contains Iyob's 'ints_effort' after his line 375
 ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2)
 writeDF(ttlHarvest,fnpre)
 
