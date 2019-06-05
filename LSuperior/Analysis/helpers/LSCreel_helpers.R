@@ -22,7 +22,7 @@ readInterviewData <- function(wdir,LOC,SDATE,FDATE,type,
   if (type=="CSV") d <- read.csv(paste0(wdir,"data/",LOC,"ints.csv"))
   else d <- haven::read_sas(paste0(wdir,"data/",LOC,"ints.sas7bdat"))
   d <- d %>%
-    dplyr::mutate(INTID=1:n(),
+    dplyr::mutate(INTID=1:dplyr::n(),
                   STATE=iMvStates(STATE),
                   WATERS=iMvWaters(STATE),
                   FISHERY=iMvFishery(FISHERY),
@@ -76,7 +76,7 @@ sumInterviewedEffort <- function(dints) {
   ### Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH  
   fsum <- f %>%
     dplyr::group_by(YEAR,WATERS,DAYTYPE,FISHERY,MONTH) %>%
-    dplyr::summarize(NINTS=n(),
+    dplyr::summarize(NINTS=dplyr::n(),
                      MTRIP=mean(CHOURS,na.rm=TRUE),
                      VHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
@@ -154,7 +154,7 @@ expandPressureCounts <- function(dcnts,cal) {
     dplyr::ungroup() %>%
     ### Summarizes daily pressure counts by month and daytype
     dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
-    dplyr::summarize(NCOUNT=n(),
+    dplyr::summarize(NCOUNT=dplyr::n(),
                      VCOUNT=var(COUNT),
                      COUNT=mean(COUNT,na.rm=TRUE)) %>%
     dplyr::ungroup() %>%
@@ -164,26 +164,30 @@ expandPressureCounts <- function(dcnts,cal) {
                   VCOUNT=VCOUNT/NCOUNT*(DAYS^2)) %>%
     dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,COUNT,VCOUNT)
   ## Find totals across DAYTYPEs
-  dcnts1 <- group_by(dcnts,YEAR,MONTH) %>%
-    summarize(NCOUNT=sum(NCOUNT),DAYS=sum(DAYS),
-              COUNT=sum(COUNT),VCOUNT=sum(VCOUNT)) %>%
-    mutate(DAYTYPE="All") %>%
-    select(names(dcnts)) %>%
+  dcnts1 <- dplyr::group_by(dcnts,YEAR,MONTH) %>%
+    dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
+                     DAYS=sum(DAYS,na.rm=TRUE),
+                     COUNT=sum(COUNT,na.rm=TRUE),
+                     VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(dcnts)) %>%
     as.data.frame()
   dcnts <- rbind(dcnts,dcnts1)
   ## Find totals across all MONTHs
-  dcnts2 <- group_by(dcnts,YEAR,DAYTYPE) %>%
-    summarize(NCOUNT=sum(NCOUNT),DAYS=sum(DAYS),
-              COUNT=sum(COUNT),VCOUNT=sum(VCOUNT)) %>%
-    mutate(MONTH="All") %>%
-    select(names(dcnts)) %>%
+  dcnts2 <- dplyr::group_by(dcnts,YEAR,DAYTYPE) %>%
+    dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
+                     DAYS=sum(DAYS,na.rm=TRUE),
+                     COUNT=sum(COUNT,na.rm=TRUE),
+                     VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
+    dplyr::mutate(MONTH="All") %>%
+    dplyr::select(names(dcnts)) %>%
     as.data.frame()
   dcnts <- rbind(dcnts,dcnts2)
   ## Convert to SDs and rearrange variables
-  dcnts %<>% mutate(SDCOUNT=sqrt(VCOUNT)) %>%
-    select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,SDCOUNT,VCOUNT) %>%
-    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
-    arrange(YEAR,MONTH,DAYTYPE) %>%
+  dcnts %<>% dplyr::mutate(SDCOUNT=sqrt(VCOUNT)) %>%
+    dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,SDCOUNT,VCOUNT) %>%
+    dplyr::mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    dplyr::arrange(YEAR,MONTH,DAYTYPE) %>%
     as.data.frame()
   ## Return data.frame
   dcnts
@@ -212,64 +216,86 @@ sumEffort <- function(ieff,pct) {
   ##   TRIPS= Total trips (VTRIPS is a start to its variance calculation)
   ##   INDHRS= Total individual hours (VINDHRS is a start to its variance calc)
   eff <- merge(ieff,pct,by=c("YEAR","MONTH","DAYTYPE")) %>%
-    mutate(PHOURS=COUNT*PROP,
-           VPHOURS=VCOUNT*(PROP^2),
-           TRIPS=PHOURS/MTRIP,
-           VTRIPS=VPHOURS/(MTRIP^2),
-           INDHRS=PHOURS*PARTY,
-           VINDHRS=VPHOURS*(PARTY^2)) %>%
-    group_by(YEAR,WATERS,FISHERY,MONTH,DAYTYPE) %>%
-    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
-              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
-              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
-              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
+    dplyr::mutate(PHOURS=COUNT*PROP,
+                  VPHOURS=VCOUNT*(PROP^2),
+                  TRIPS=PHOURS/MTRIP,
+                  VTRIPS=VPHOURS/(MTRIP^2),
+                  INDHRS=PHOURS*PARTY,
+                  VINDHRS=VPHOURS*(PARTY^2)) %>%
+    dplyr::group_by(YEAR,WATERS,FISHERY,MONTH,DAYTYPE) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     PHOURS=sum(PHOURS,na.rm=TRUE),
+                     VPHOURS=sum(VPHOURS,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE),
+                     VINDHRS=sum(VINDHRS,na.rm=TRUE),
+                     TRIPS=sum(TRIPS,na.rm=TRUE),
+                     VTRIPS=sum(VTRIPS,na.rm=TRUE)) %>%
     as.data.frame()
   
   ## Summarize across Daytypes
-  eff1 <- group_by(eff,YEAR,WATERS,FISHERY,MONTH) %>%
-    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
-              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
-              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
-              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
-    mutate(DAYTYPE="All") %>%
-    select(names(eff)) %>%
+  eff1 <- dplyr::group_by(eff,YEAR,WATERS,FISHERY,MONTH) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     PHOURS=sum(PHOURS,na.rm=TRUE),
+                     VPHOURS=sum(VPHOURS,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE),
+                     VINDHRS=sum(VINDHRS,na.rm=TRUE),
+                     TRIPS=sum(TRIPS,na.rm=TRUE),
+                     VTRIPS=sum(VTRIPS,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(eff)) %>%
     as.data.frame()
   ## Combine those summaries to original data.frame
   eff <- rbind(eff,eff1)
   
   ## Summarize across Months
-  eff2 <- group_by(eff,YEAR,WATERS,FISHERY,DAYTYPE) %>%
-    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
-              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
-              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
-              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
-    mutate(MONTH="All") %>%
-    select(names(eff)) %>%
+  eff2 <- dplyr::group_by(eff,YEAR,WATERS,FISHERY,DAYTYPE) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     PHOURS=sum(PHOURS,na.rm=TRUE),
+                     VPHOURS=sum(VPHOURS,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE),
+                     VINDHRS=sum(VINDHRS,na.rm=TRUE),
+                     TRIPS=sum(TRIPS,na.rm=TRUE),
+                     VTRIPS=sum(VTRIPS,na.rm=TRUE)) %>%
+    dplyr::mutate(MONTH="All") %>%
+    dplyr::select(names(eff)) %>%
     as.data.frame()
   ## Combine those summaries to original data.frame
   eff <- rbind(eff,eff2)
   
   ## Summarize across Fisheries
-  eff3 <- group_by(eff,YEAR,WATERS,MONTH,DAYTYPE) %>%
-    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
-              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
-              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
-              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
-    mutate(FISHERY="All") %>%
-    select(names(eff)) %>%
+  eff3 <- dplyr::group_by(eff,YEAR,WATERS,MONTH,DAYTYPE) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     PHOURS=sum(PHOURS,na.rm=TRUE),
+                     VPHOURS=sum(VPHOURS,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE),
+                     VINDHRS=sum(VINDHRS,na.rm=TRUE),
+                     TRIPS=sum(TRIPS,na.rm=TRUE),
+                     VTRIPS=sum(VTRIPS,na.rm=TRUE)) %>%
+    dplyr::mutate(FISHERY="All") %>%
+    dplyr::select(names(eff)) %>%
     as.data.frame()
   ## Combine those summaries to original data.frame
   eff <- rbind(eff,eff3) %>%
     ## Add on Persons per party and mean trip length
-    mutate(PARTY=INDHRS/PHOURS,MTRIP=PHOURS/TRIPS) %>%
+    dplyr::mutate(PARTY=INDHRS/PHOURS,MTRIP=PHOURS/TRIPS) %>%
     ## Convert variances to standard deviations
-    mutate(SDPHOURS=sqrt(VPHOURS),SDINDHRS=sqrt(VINDHRS),SDTRIPS=sqrt(VTRIPS)) %>%
+    dplyr::mutate(SDPHOURS=sqrt(VPHOURS),
+                  SDINDHRS=sqrt(VINDHRS),
+                  SDTRIPS=sqrt(VTRIPS)) %>%
     ## Put variables in specific order
-    select(YEAR,WATERS,FISHERY,MONTH,DAYTYPE,
-           PHOURS,SDPHOURS,PARTY,INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS,
-           NINTS,HOURS,VHOURS,VPHOURS,VINDHRS,VTRIPS) %>%
+    dplyr::select(YEAR,WATERS,FISHERY,MONTH,DAYTYPE,
+                  PHOURS,SDPHOURS,PARTY,INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS,
+                  NINTS,HOURS,VHOURS,VPHOURS,VINDHRS,VTRIPS) %>%
     ## Arrange
-    arrange(YEAR,WATERS,FISHERY,MONTH,DAYTYPE)
+    dplyr::arrange(YEAR,WATERS,FISHERY,MONTH,DAYTYPE)
   # return final data.frame
   eff
 }
@@ -358,7 +384,7 @@ sumObsHarvest <- function(d) {
   harv <- d %>%
     dplyr::group_by(INTID,YEAR,WATERS,STATE,DAYTYPE,
                     FISHERY,MONTH,DATE,HOURS,SPECIES) %>%
-    dplyr::summarize(HARVEST=n()) %>%
+    dplyr::summarize(HARVEST=dplyr::n()) %>%
     dplyr::ungroup()
 
   ### Separate into only one and split states
@@ -374,9 +400,9 @@ sumObsHarvest <- function(d) {
     dplyr::mutate(COVAR=HARVEST*HOURS)
   ### Summarize harvest by strata and species
   harv %<>% dplyr::group_by(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES) %>%
-    dplyr::summarize(VHARVEST=sum(HARVEST^2),
-                     HARVEST=sum(HARVEST),
-                     COVAR=sum(COVAR)) %>%
+    dplyr::summarize(VHARVEST=sum(HARVEST^2,na.rm=TRUE),
+                     HARVEST=sum(HARVEST,na.rm=TRUE),
+                     COVAR=sum(COVAR,na.rm=TRUE)) %>%
     as.data.frame() %>%
     dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,SPECIES,
                   HARVEST,VHARVEST,COVAR)
@@ -391,7 +417,7 @@ sumHarvestEffort <- function(h,f) {
   ##   Merge harvest and effort data.frames
   hf <- merge(h,f,by=c("YEAR","WATERS","DAYTYPE","FISHERY","MONTH"),all=TRUE) %>%
     ## Remove for SPECIES that do not exist
-    filter(!is.na(SPECIES)) %>%
+    dplyr::filter(!is.na(SPECIES)) %>%
     ## Replace variables with 0 if NINTS is =0 or NA
     ## Calculate the appropriate variances and covariances
     ##   NINTS= Number of interviews
@@ -423,31 +449,38 @@ sumHarvestEffort <- function(h,f) {
     droplevels()
 
   ## Summarizes across day-types
-  hf1 <- group_by(hf,YEAR,WATERS,FISHERY,SPECIES,MONTH) %>%
-    summarize(HARVEST=sum(HARVEST),VHARVEST=sum(VHARVEST),INDHRS=sum(INDHRS)) %>%
-    mutate(DAYTYPE="All") %>%
-    select(names(hf)) %>%
+  hf1 <- dplyr::group_by(hf,YEAR,WATERS,FISHERY,SPECIES,MONTH) %>%
+    dplyr::summarize(HARVEST=sum(HARVEST,na.rm=TRUE),
+                     VHARVEST=sum(VHARVEST,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(hf)) %>%
     as.data.frame()
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf1)
   ## Summarizes across months
-  hf2 <- group_by(hf,YEAR,WATERS,FISHERY,SPECIES,DAYTYPE) %>%
-    summarize(HARVEST=sum(HARVEST),VHARVEST=sum(VHARVEST),INDHRS=sum(INDHRS)) %>%
-    mutate(MONTH="All") %>%
-    select(names(hf)) %>%
+  hf2 <- dplyr::group_by(hf,YEAR,WATERS,FISHERY,SPECIES,DAYTYPE) %>%
+    dplyr::summarize(HARVEST=sum(HARVEST,na.rm=TRUE),
+                     VHARVEST=sum(VHARVEST,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    dplyr::mutate(MONTH="All") %>%
+    dplyr::select(names(hf)) %>%
     as.data.frame()
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf2)
   ## Summarizes across fisheries
-  hf3 <- group_by(hf,YEAR,WATERS,SPECIES,MONTH,DAYTYPE) %>%
-    summarize(HARVEST=sum(HARVEST),VHARVEST=sum(VHARVEST),INDHRS=sum(INDHRS)) %>%
-    mutate(FISHERY="All") %>%
-    select(names(hf)) %>%
+  hf3 <- dplyr::group_by(hf,YEAR,WATERS,SPECIES,MONTH,DAYTYPE) %>%
+    dplyr::summarize(HARVEST=sum(HARVEST,na.rm=TRUE),
+                     VHARVEST=sum(VHARVEST,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    dplyr::mutate(FISHERY="All") %>%
+    dplyr::select(names(hf)) %>%
     as.data.frame()
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf3) %>%
     ## Add on harvest rate and SD of harvees
-    dplyr::mutate(HRATE=HARVEST/INDHRS,SDHARVEST=sqrt(VHARVEST)) %>%
+    dplyr::mutate(HRATE=HARVEST/INDHRS,
+                  SDHARVEST=sqrt(VHARVEST)) %>%
     ## Rearrange variables and rows
     dplyr::select(YEAR:SPECIES,INDHRS,HARVEST,SDHARVEST,VHARVEST,HRATE) %>%
     dplyr::arrange(YEAR,WATERS,DAYTYPE,FISHERY,SPECIES,MONTH)
@@ -493,7 +526,6 @@ sumLengths <- function(d,var) {
   ## return data.frame
   as.data.frame(lenSum)
 }
-
 
 
 
@@ -618,8 +650,7 @@ table2 <- function(fnrpre) {
   allRows <- which(tmpTbl1$FISHERY=="All")
   allRows <- allRows[-length(allRows)]
   ## Rows that have a state name (except first) get extra space above
-  breakRows <- which(tmpTbl1$STATE!="")
-  breakRows <- breakRows[-1]
+  breakRows <- which(tmpTbl1$STATE!="")[-1]
 
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmpTbl1) %>%
@@ -663,14 +694,14 @@ table3 <- function(fnpre) {
     dplyr::select(-YEAR,-DAYS,-VCOUNT) %>%
     droplevels() %>%
     ## Convert to wide format
-    gather(temp,value,NCOUNT:SDCOUNT) %>%
-    unite(temp1,DAYTYPE,temp,sep=".") %>%
-    spread(temp1,value) %>%
-    select(MONTH,
-           Weekday.NCOUNT,Weekday.COUNT,Weekday.SDCOUNT,
-           Weekend.NCOUNT,Weekend.COUNT,Weekend.SDCOUNT,
-           All.NCOUNT,All.COUNT,All.SDCOUNT) %>%
-    arrange(MONTH)
+    tidyr::gather(temp,value,NCOUNT:SDCOUNT) %>%
+    tidyr::unite(temp1,DAYTYPE,temp,sep=".") %>%
+    tidyr::spread(temp1,value) %>%
+    dplyr::select(MONTH,
+                  Weekday.NCOUNT,Weekday.COUNT,Weekday.SDCOUNT,
+                  Weekend.NCOUNT,Weekend.COUNT,Weekend.SDCOUNT,
+                  All.NCOUNT,All.COUNT,All.SDCOUNT) %>%
+    dplyr::arrange(MONTH)
 
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmp) %>%
@@ -713,11 +744,11 @@ table4 <- function(fnpre) {
                   MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
     ## Select only variables for the table
-    select(WATERS,FISHERY,MONTH,DAYTYPE,PHOURS,SDPHOURS,PARTY,
-           INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS) %>%
+    dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,PHOURS,SDPHOURS,PARTY,
+                  INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS) %>%
     ## Drop unused levels
     droplevels() %>%
-    arrange(WATERS,FISHERY,MONTH,DAYTYPE) %>%
+    dplyr::arrange(WATERS,FISHERY,MONTH,DAYTYPE) %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(WATERS=ifelse(!FSA::repeatedRows2Keep(.,cols2use="WATERS"),
                                 "",as.character(WATERS)),
@@ -777,18 +808,19 @@ table5 <- function(fnpre) {
                   FISHERY=iMvFishery(FISHERY,addAll=TRUE),
                   SPECIES=iMvSpecies(SPECIES)) %>%
     ## Select only variables for the table
-    select(WATERS,FISHERY,SPECIES,MONTH,DAYTYPE,HARVEST,SDHARVEST,HRATE) %>%
+    dplyr::select(WATERS,FISHERY,SPECIES,MONTH,DAYTYPE,
+                  HARVEST,SDHARVEST,HRATE) %>%
     ## Drop unused levels
     droplevels() %>%
     ## Convert to wide format
-    gather(temp,value,HARVEST:HRATE) %>%
-    unite(temp1,DAYTYPE,temp,sep=".") %>%
-    spread(temp1,value) %>%
-    select(WATERS,FISHERY,SPECIES,MONTH,
-           Weekday.HARVEST,Weekday.SDHARVEST,Weekday.HRATE,
-           Weekend.HARVEST,Weekend.SDHARVEST,Weekend.HRATE,
-           All.HARVEST,All.SDHARVEST,All.HRATE,) %>%
-    arrange(WATERS,FISHERY,SPECIES,MONTH) %>%
+    tidyr::gather(temp,value,HARVEST:HRATE) %>%
+    tidyr::unite(temp1,DAYTYPE,temp,sep=".") %>%
+    tidyr::spread(temp1,value) %>%
+    dplyr::select(WATERS,FISHERY,SPECIES,MONTH,
+                  Weekday.HARVEST,Weekday.SDHARVEST,Weekday.HRATE,
+                  Weekend.HARVEST,Weekend.SDHARVEST,Weekend.HRATE,
+                  All.HARVEST,All.SDHARVEST,All.HRATE,) %>%
+    dplyr::arrange(WATERS,FISHERY,SPECIES,MONTH) %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(WATERS=ifelse(!FSA::repeatedRows2Keep(.,cols2use="WATERS"),
                                 "",as.character(WATERS)),
@@ -850,26 +882,24 @@ table6 <- function(fnpre) {
   ##   Remove duplicate SPECIES and MONTH labels
   ##   Remove the YEAR variable
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
-    filter(!is.na(LEN)) %>%
+    dplyr::filter(!is.na(LEN)) %>%
     sumLengths(CLIPPED) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   SPECIES=iMvSpecies(SPECIES),
                   CLIPPED=factor(CLIPPED,
                                  levels=c("No Clip","Clip","All"))) %>%
-    arrange(SPECIES,MONTH,CLIPPED) %>%
+    dplyr::arrange(SPECIES,MONTH,CLIPPED) %>%
     droplevels() %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
                                 "",as.character(SPECIES)),
                   MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
                                  "",as.character(MONTH))) %>%
-    select(-YEAR)
+    dplyr::select(-YEAR)
 
   ## Add some more space above where SPECIES & MONTY name is (except for first)
-  breakRows1 <- which(tmp$MONTH!="")
-  breakRows1 <- breakRows1[-1]
-  breakRows2 <- which(tmp$SPECIES!="")
-  breakRows2 <- breakRows2[-1]
+  breakRows1 <- which(tmp$MONTH!="")[-1]
+  breakRows2 <- which(tmp$SPECIES!="")[-1]
   
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmp) %>%
@@ -902,7 +932,7 @@ table7 <- function(fnpre) {
   ##   Read saved file
   ##   Remove fish for which a length was not recorded
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
-    filter(!is.na(LEN))
+    dplyr::filter(!is.na(LEN))
   ## Find only those species for which a fin-slip was recorded
   specClipped <- as.character(unique(dplyr::filter(lengths,CLIPPED=="Clip")$SPECIES))
   ##   Summarize lengths by whether clipped or not
@@ -914,20 +944,18 @@ table7 <- function(fnpre) {
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   SPECIES=iMvSpecies(SPECIES),
                   CLIP=iMvFinclips(CLIP)) %>%
-    arrange(SPECIES,MONTH,CLIP) %>%
+    dplyr::arrange(SPECIES,MONTH,CLIP) %>%
     droplevels() %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
                                  "",as.character(SPECIES)),
                   MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
                                "",as.character(MONTH))) %>%
-    select(-YEAR)
+    dplyr::select(-YEAR)
 
   ## Which rows to add some more space above
-  breakRows1 <- which(tmp$MONTH!="")
-  breakRows1 <- breakRows1[-1]
-  breakRows2 <- which(tmp$SPECIES!="")
-  breakRows2 <- breakRows2[-1]
+  breakRows1 <- which(tmp$MONTH!="")[-1]
+  breakRows2 <- which(tmp$SPECIES!="")[-1]
 
   ## Make the huxtable
   tmpTbl2 <- as_hux(tmp) %>%
@@ -962,7 +990,7 @@ table8 <- function(fnpre) {
   ##   Make proper order of MONTHs, SPECIES and CLIPs
   ##   drop unused levels
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
-    filter(!is.na(CLIP)) %>%
+    dplyr::filter(!is.na(CLIP)) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH),
                   SPECIES=iMvSpecies(SPECIES),
                   CLIP=iMvFinclips(CLIP)) %>%
@@ -979,8 +1007,7 @@ table8 <- function(fnpre) {
                               cols2ignore=c("SPECIES","CLIP")))
   
   ## Find rows that need more space
-  breakRows <- which(tmpTbl1$SPECIES!="")
-  breakRows <- breakRows[-1]
+  breakRows <- which(tmpTbl1$SPECIES!="")[-1]
   ## Find number of months
   mos <- ncol(tmpTbl1)-3
 
@@ -1017,8 +1044,7 @@ table9 <- function(fnpre) {
     droplevels() %>%
     dplyr::mutate(SPECIES=ifelse(duplicated(SPECIES),"",levels(SPECIES)[SPECIES]))
   ## Find rows for extra space above
-  breakRows <- which(tmp$SPECIES!="")
-  breakRows <- breakRows[-1]
+  breakRows <- which(tmp$SPECIES!="")[-1]
   ## Make huxtable
   tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
@@ -1062,7 +1088,7 @@ figureCaptions <- function() {
 }
 
 theme_creel <- function() {
-  theme_bw(base_size=16) +
+  theme_bw(base_size=14) +
     theme(
       legend.position="bottom",
       legend.title=element_blank(),
@@ -1082,7 +1108,7 @@ figure1 <- function(fnpre) {
     ## Just WI waters
     dplyr::filter(WATERS=="WI") %>%
     ## Get the total total total rows (to find topN)
-    filter(MONTH=="All",DAYTYPE=="All",FISHERY=="All")
+    dplyr::filter(MONTH=="All",DAYTYPE=="All",FISHERY=="All")
   
   ## Make the plot
   p <- ggplot(data=tmp,aes(x=SPECIES,y=HARVEST)) +
@@ -1110,19 +1136,19 @@ figure2 <- function(fnpre,topN=3) {
     ## Just WI waters
     dplyr::filter(WATERS=="WI")
   ## Remove MONTH, DAYTYPE, and FISHERY total rows (i.e., == "All)
-  tmp1 <- filter(tmp,MONTH!="All",DAYTYPE!="All",FISHERY!="All")
+  tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE!="All",FISHERY!="All")
   ## Get the DAYTYPE total rows (for error bars in ggplot)
-  tmp2 <- filter(tmp,MONTH!="All",DAYTYPE=="All",FISHERY!="All") %>%
-    mutate(DAYTYPE=NA)
+  tmp2 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE=="All",FISHERY!="All") %>%
+    dplyr::mutate(DAYTYPE=NA)
   ## Get the total total total rows (to find topN)
-  tmp3 <- filter(tmp,MONTH=="All",DAYTYPE=="All",FISHERY=="All")
+  tmp3 <- dplyr::filter(tmp,MONTH=="All",DAYTYPE=="All",FISHERY=="All")
   
   ## Find topN species by total harvest
   TOPN <- dplyr::top_n(tmp3,topN,HARVEST)$SPECIES
   
   ## Reduce to only the topN species (by HARVEST)
-  tmp1 %<>% filter(SPECIES %in% TOPN)
-  tmp2 %<>% filter(SPECIES %in% TOPN)
+  tmp1 %<>% dplyr::filter(SPECIES %in% TOPN)
+  tmp2 %<>% dplyr::filter(SPECIES %in% TOPN)
   
   ## Make the plot
   p <- ggplot(data=tmp1,aes(x=MONTH,y=HARVEST,fill=DAYTYPE)) +
@@ -1149,16 +1175,16 @@ figure3 <- function(fnpre,topN=3) {
     ## Just WI waters
     dplyr::filter(WATERS=="WI")
   ## Get the DAYTYPE nd FISHERY total rows (for error bars in ggplot)
-  tmp1 <- filter(tmp,MONTH!="All",DAYTYPE=="All",FISHERY=="All") %>%
-    mutate(DAYTYPE=NA)
+  tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE=="All",FISHERY=="All") %>%
+    dplyr::mutate(DAYTYPE=NA)
   ## Get the total total total rows (to find topN)
-  tmp2 <- filter(tmp,MONTH=="All",DAYTYPE=="All",FISHERY=="All")
+  tmp2 <- dplyr::filter(tmp,MONTH=="All",DAYTYPE=="All",FISHERY=="All")
   
   ## Find topN species by total harvest
   TOPN <- dplyr::top_n(tmp2,topN,HARVEST)$SPECIES
   
   ## Reduce to only the topN species (by HARVEST)
-  tmp1 %<>% filter(SPECIES %in% TOPN)
+  tmp1 %<>% dplyr::filter(SPECIES %in% TOPN)
 
   ## Make the plot
   p <- ggplot(data=tmp1,aes(x=MONTH,y=HRATE,group=SPECIES,color=SPECIES)) +
@@ -1397,7 +1423,7 @@ iOrderMonths <- function(x,addAll=FALSE) {
 
 
 iSumLen <- function(dgb) {
-  dplyr::summarize(dgb,n=n(),mnLen=mean(LEN,na.rm=TRUE),
+  dplyr::summarize(dgb,n=dplyr::n(),mnLen=mean(LEN,na.rm=TRUE),
                    seLen=FSA::se(LEN,na.rm=TRUE),varLen=var(LEN,na.rm=TRUE),
                    minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
     as.data.frame()

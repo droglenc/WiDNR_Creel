@@ -1,5 +1,5 @@
 ---
-title: "`r paste(lubridate::year(as.Date(SDATE,'%m/%d/%Y')),'LAKE SUPERIOR CREEL SURVEY RESULTS')`"
+title: "`r paste(lubridate::year(as.Date(SDATE,'%m/%d/%Y')),'LAKE SUPERIOR CREEL SURVEY')`"
 params:
   FDATE:
     value: 09/30/2014
@@ -46,8 +46,8 @@ tables <- tableCaptions()
 figures <- figureCaptions()
 ```
 
-## `r paste0(iMvLoc(LOC),", ",format(SDATE,format='%m/%d/%y')," - ",format(FDATE,format='%m/%d/%y'))`
-#### Report run on `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
+## `r paste("Report for",iMvLoc(LOC),"from",format(SDATE,format='%B %d, %Y'),"to",format(FDATE,format='%B %d, %Y'))`
+#### Run on `r format(lubridate::now(),format="%B %d, %Y at %H:%M")`
 
 
 ```{r table1, eval=1 %in% TABLES}
