@@ -11,7 +11,7 @@
 
 ## USER-SPECIFIED INFORMATION
 ## Enter creel location (one of "ash","byf","cpw","lsb","rdc","sax","sup", "wsh")
-LOC <- "sup"
+LOC <- "wsh"
 ## Enter start and end dates (must be two digits mon/day and four-digit year)
 SDATE <- "05/21/2014"
 FDATE <- "09/30/2014"

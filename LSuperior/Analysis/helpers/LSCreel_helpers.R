@@ -169,6 +169,89 @@ expandPressureCounts <- function(dcnts,cal) {
 }
 
 
+## Summarized total fishing effort by strata
+
+sumEffort <- function(ieff,pct) {
+  ## Combine interview effort and pressure counts into one data.frame
+  ## with new calculations
+  ##   NINTS= Number of interviews
+  ##   HOURS= Total interviewed effort (hours) of ALL parties
+  ##   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
+  ##   MTRIP= Mean interviewed effort (hours) by COMPLETED parties
+  ##   PROP= Proportion of total interviewed effort for month-daytype that is in
+  ##         a given waters-fishery.
+  ##   PARTY= Party size (person's per party)
+  ##   NCOUNT= Number of days clerk estimated pressure counts
+  ##   DAYS= Number of days in the month
+  ##   COUNT= Total pressure count (number of boats)
+  ##   VCOUNT= Variance of pressure count (SD^2)
+  ##   PHOURS= Party hours (VPHOURS is a start to its variance calculation)
+  ##   TRIPS= Total trips (VTRIPS is a start to its variance calculation)
+  ##   INDHRS= Total individual hours (VINDHRS is a start to its variance calc)
+  eff <- merge(ieff,pct,by=c("YEAR","MONTH","DAYTYPE")) %>%
+    mutate(PHOURS=COUNT*PROP,
+           VPHOURS=VCOUNT*(PROP^2),
+           TRIPS=PHOURS/MTRIP,
+           VTRIPS=VPHOURS/(MTRIP^2),
+           INDHRS=PHOURS*PARTY,
+           VINDHRS=VPHOURS*(PARTY^2)) %>%
+    group_by(YEAR,WATERS,FISHERY,MONTH,DAYTYPE) %>%
+    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
+              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
+              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
+              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
+    as.data.frame()
+  
+  ## Summarize across Daytypes
+  eff1 <- group_by(eff,YEAR,WATERS,FISHERY,MONTH) %>%
+    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
+              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
+              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
+              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
+    mutate(DAYTYPE="All") %>%
+    select(names(eff)) %>%
+    as.data.frame()
+  ## Combine those summaries to original data.frame
+  eff <- rbind(eff,eff1)
+  
+  ## Summarize across Months
+  eff2 <- group_by(eff,YEAR,WATERS,FISHERY,DAYTYPE) %>%
+    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
+              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
+              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
+              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
+    mutate(MONTH="All") %>%
+    select(names(eff)) %>%
+    as.data.frame()
+  ## Combine those summaries to original data.frame
+  eff <- rbind(eff,eff2)
+  
+  ## Summarize across Fisheries
+  eff3 <- group_by(eff,YEAR,WATERS,MONTH,DAYTYPE) %>%
+    summarize(NINTS=sum(NINTS),HOURS=sum(HOURS),VHOURS=sum(VHOURS),
+              PHOURS=sum(PHOURS),VPHOURS=sum(VPHOURS),
+              INDHRS=sum(INDHRS),VINDHRS=sum(VINDHRS),
+              TRIPS=sum(TRIPS),VTRIPS=sum(VTRIPS)) %>%
+    mutate(FISHERY="All") %>%
+    select(names(eff)) %>%
+    as.data.frame()
+  ## Combine those summaries to original data.frame
+  eff <- rbind(eff,eff3) %>%
+    ## Add on Persons per party and mean trip length
+    mutate(PARTY=INDHRS/PHOURS,MTRIP=PHOURS/TRIPS) %>%
+    ## Convert variances to standard deviations
+    mutate(SDPHOURS=sqrt(VPHOURS),SDINDHRS=sqrt(VINDHRS),SDTRIPS=sqrt(VTRIPS)) %>%
+    ## Put variables in specific order
+    select(YEAR,WATERS,FISHERY,MONTH,DAYTYPE,
+           PHOURS,SDPHOURS,PARTY,INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS,
+           NINTS,HOURS,VHOURS,VPHOURS,VINDHRS,VTRIPS) %>%
+    ## Arrange
+    arrange(YEAR,WATERS,FISHERY,MONTH,DAYTYPE)
+  # return final data.frame
+  eff
+}
+
+
 ## Rearrange fish information from interviews
 rearrangeFishInfo <- function(dints) {
   ## Get the main information about the interview
@@ -652,47 +735,34 @@ table3ORIG <- function(fnpre) {
 
 table4 <- function(fnpre) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Make proper orders of MONTHs, WATERS, and FISHERYs
-  ##   drop unused levels
   tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH),
-                  WATERS=factor(WATERS,levels=c("WI","NON-WI")),
-                  FISHERY=iMvFishery(FISHERY)) %>%
-    droplevels()
-  
-  ## Table of days sampled and total (SD) party hours by month and daytype.
-  ##   Must convert "All" words to "TOTAL", removed the first two rows (labels
-  ##   that will be added back with hustable), renamed columns
-  tmpTbl1 <- tabular((WATERS)*(FISHERY)*(MONTH+1)*(DAYTYPE+1)*DropEmpty(which="row")~
-                       (NINTS+HOURS+TRIPS+INDHRS+PHOURS)*sum*Format(digits=14)+
-                       (VHOURS+VTRIPS+VINDHRS+VPHOURS)*sumsqrt*Format(digits=14),
-                     data=tmp)
-  tmpTbl1 <- as.matrix(tmpTbl1)
-  colnames(tmpTbl1) <- c("WATERS","FISHERY","MONTH","DAYTYPE",
-                         tmpTbl1[1,5:13])
-  tmpTbl1 <- tmpTbl1[-(1:2),]
-  tmpTbl1 <- as.data.frame(tmpTbl1,stringsAsFactors=FALSE)
-  tmpTbl1[,5:13] <- lapply(tmpTbl1[,5:13],as.numeric)
-  tmpTbl1 <- tmpTbl1 %>%
-    mutate(PARTY=INDHRS/PHOURS,
-           MTRIP=PHOURS/TRIPS) %>%
-    rename(SDHOURS=VHOURS,SDTRIPS=VTRIPS,SDINDHRS=VINDHRS,SDPHOURS=VPHOURS) %>%
-    select(WATERS:DAYTYPE,PHOURS,SDPHOURS,PARTY,INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS)
-  tmpTbl1[is.na(tmpTbl1)] <- NA
-  tmpTbl1[,-(1:4)][tmpTbl1[,-(1:4)]<0.00000001] <- NA
-  tmpTbl1 %<>% dplyr::filter(FSA::repeatedRows2Keep(.,
-                              cols2ignore=c("WATERS","FISHERY","MONTH","DAYTYPE")))
-  
+    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
+    dplyr::mutate(WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
+                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
+                  MONTH=iOrderMonths(MONTH,addAll=TRUE),
+                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    ## Select only variables for the table
+    select(WATERS,FISHERY,MONTH,DAYTYPE,PHOURS,SDPHOURS,PARTY,
+           INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS) %>%
+    ## Drop unused levels
+    droplevels() %>%
+    arrange(WATERS,FISHERY,MONTH,DAYTYPE) %>%
+    ## Remove repeated items in the first three variables
+    dplyr::mutate(WATERS=ifelse(!FSA::repeatedRows2Keep(.,cols2use="WATERS"),
+                                "",as.character(WATERS)),
+                  FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use="FISHERY"),
+                                 "",as.character(FISHERY)),
+                  MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                                 "",as.character(MONTH))) %>%
+    as.data.frame()
+
   ## Rows with a MONTH (except first) get extra space above
-  breakRows1 <- which(tmpTbl1$MONTH!="")
-  breakRows1 <- breakRows1[-1]
+  breakRows1 <- which(tmp$MONTH!="")[-1]
   ## Rows that have a fishery name (except first) get extra space above
-  breakRows2 <- which(tmpTbl1$FISHERY!="")
-  breakRows2 <- breakRows2[-1]
+  breakRows2 <- which(tmp$FISHERY!="")[-1]
   
   ## Make the huxtable
-  tmpTbl2 <- as_hux(tmpTbl1) %>%
+  tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
     set_right_padding(row=everywhere,col=everywhere,value=5) %>%
@@ -706,12 +776,11 @@ table4 <- function(fnpre) {
                       value=1) %>%
     set_number_format(row=everywhere,col=c("PARTY","MTRIP"),value=2) %>%
     # Creating column headers
-    rbind(c("","","","","","","Persons","","","Mean","",""),
-          c("","","","","Party Hours","","per","Ind. Hours","","Trip",
-            "Trips",""),
-          c("WATERS","FISHERY","MONTH","DAY TYPE","Total","SD","Party",
-            "Total","SD","Length","Total","SD"),
-          .) %>%
+    rbind(c("WATERS","FISHERY","MONTH","DAY TYPE","Total","SD","Party",
+            "Total","SD","Length","Total","SD"),.) %>%
+    rbind(c("","","","","Party Hours","","per","Ind. Hours","","Trip",
+            "Trips",""),.) %>%
+    rbind(c("","","","","","","Persons","","","Mean","",""),.) %>%
     merge_cells(row=2,col=5:6) %>%
     set_bottom_border(row=2,col=5,value=1) %>%
     merge_cells(row=2,col=8:9) %>%
@@ -721,7 +790,7 @@ table4 <- function(fnpre) {
     set_align(row=2,col=everywhere,value="center") %>%
     set_align(row=2,col=c(7,10),value="right") %>%
     set_align(row=-(1:2),col=-(1:4),value="right") %>%
-    set_width(0.7) %>%
+    set_width(0.8) %>%
     iFinishTable(labelsRow=3,labelsCol=4)
   tmpTbl2
 }
@@ -818,10 +887,11 @@ table6 <- function(fnpre) {
                                  levels=c("No Clip","Clip","All"))) %>%
     arrange(SPECIES,MONTH,CLIPPED) %>%
     droplevels() %>%
-    dplyr::mutate(SPECIES=ifelse(iRepeatsPrevItem(SPECIES),"",
-                                 levels(SPECIES)[SPECIES]),
-                  MONTH=ifelse(iRepeatsPrevItem(MONTH),"",levels(MONTH)[MONTH])
-    ) %>%
+    ## Remove repeated items in the first three variables
+    dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
+                                "",as.character(SPECIES)),
+                  MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                                 "",as.character(MONTH))) %>%
     select(-YEAR)
 
   ## Add some more space above where SPECIES & MONTY name is (except for first)
@@ -875,11 +945,11 @@ table7 <- function(fnpre) {
                   CLIP=iMvFinclips(CLIP)) %>%
     arrange(SPECIES,MONTH,CLIP) %>%
     droplevels() %>%
-    dplyr::mutate(CLIP=ifelse(is.na(CLIP),"All",as.character(CLIP)),
-                  SPECIES=ifelse(iRepeatsPrevItem(SPECIES),"",
-                                 levels(SPECIES)[SPECIES]),
-                  MONTH=ifelse(iRepeatsPrevItem(MONTH),"",levels(MONTH)[MONTH])
-    ) %>%
+    ## Remove repeated items in the first three variables
+    dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
+                                 "",as.character(SPECIES)),
+                  MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                               "",as.character(MONTH))) %>%
     select(-YEAR)
 
   ## Which rows to add some more space above
@@ -1389,13 +1459,6 @@ iFinishTable <- function(h,labelsRow,labelsCol) {
 ## write table out to file
 iWriteTable <- function(h,fnpre,TABLE) {
   huxtable::quick_html(h,file=paste0(fnpre,"Table",TABLE,".html"))
-}
-
-## Determines if previous item in a vector is repeated in current item
-iRepeatsPrevItem <- function(x) {
-  if (is.character(x)) x <- factor(x)
-  if (is.factor(x)) x <- as.numeric(x)
-  c(FALSE,diff(x)==0)
 }
 
 ## Function to take the square root of a sum ... used for computing the SD
