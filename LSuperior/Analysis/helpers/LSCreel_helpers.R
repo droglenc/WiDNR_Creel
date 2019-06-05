@@ -162,18 +162,41 @@ expandPressureCounts <- function(dcnts,cal) {
     merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(COUNT=COUNT*DAYS,
                   VCOUNT=VCOUNT/NCOUNT*(DAYS^2)) %>%
-    dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,COUNT,VCOUNT) %>%
-    dplyr::arrange(YEAR,DAYTYPE,MONTH)
+    dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,COUNT,VCOUNT)
+  ## Find totals across DAYTYPEs
+  dcnts1 <- group_by(dcnts,YEAR,MONTH) %>%
+    summarize(NCOUNT=sum(NCOUNT),DAYS=sum(DAYS),
+              COUNT=sum(COUNT),VCOUNT=sum(VCOUNT)) %>%
+    mutate(DAYTYPE="All") %>%
+    select(names(dcnts)) %>%
+    as.data.frame()
+  dcnts <- rbind(dcnts,dcnts1)
+  ## Find totals across all MONTHs
+  dcnts2 <- group_by(dcnts,YEAR,DAYTYPE) %>%
+    summarize(NCOUNT=sum(NCOUNT),DAYS=sum(DAYS),
+              COUNT=sum(COUNT),VCOUNT=sum(VCOUNT)) %>%
+    mutate(MONTH="All") %>%
+    select(names(dcnts)) %>%
+    as.data.frame()
+  dcnts <- rbind(dcnts,dcnts2)
+  ## Convert to SDs and rearrange variables
+  dcnts %<>% mutate(SDCOUNT=sqrt(VCOUNT)) %>%
+    select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,SDCOUNT,VCOUNT) %>%
+    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    arrange(YEAR,MONTH,DAYTYPE) %>%
+    as.data.frame()
   ## Return data.frame
-  as.data.frame(dcnts)
+  dcnts
 }
 
 
 ## Summarized total fishing effort by strata
 
 sumEffort <- function(ieff,pct) {
-  ## Combine interview effort and pressure counts into one data.frame
-  ## with new calculations
+  ## Remove 'All' DAYTYPE and MONTH rows from pressureCount results
+  pct %<>% dplyr::filter(DAYTYPE!="All") %>%
+    dplyr::filter(MONTH!="All")
+  ## Combine interview effort and pressure counts with new calculations
   ##   NINTS= Number of interviews
   ##   HOURS= Total interviewed effort (hours) of ALL parties
   ##   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
@@ -630,45 +653,37 @@ table2 <- function(fnrpre) {
   tmpTbl2
 }
 
-table3 <- function(fnpre,which=c("ALT","ORIG")) {
-  which <- match.arg(which)
-  if (which=="ALT") table3ALT(fnpre)
-  else table3ORIG(fnpre)
-}
-
-table3ALT <- function(fnpre) {
+table3 <- function(fnpre) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Get proper order of months and drop unused levels
   tmp <- read.csv(paste0(fnpre,"pressureCount.csv")) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH)) %>%
-    droplevels()
-  
-  ## Table of days sampled and total (SD) party hours by month and daytype.
-  ##   Removed first two rows (labels will be added back in huxtable),
-  ##   renamed columns
-  tmpTbl1 <- tabular((MONTH+1)~(DAYTYPE+1)*(NCOUNT+COUNT)*sum*Format(digits=14)+
-                       (DAYTYPE+1)*(VCOUNT)*sumsqrt*Format(digits=14),data=tmp)
-  tmpTbl1 <- as.matrix(tmpTbl1)
-  tmpTbl1 <- tmpTbl1[,c(1,2,3,8,4,5,9,6,7,10)]
-  colnames(tmpTbl1) <- c("MONTH",
-                         paste("Weekday",c("NCOUNT","COUNT","SDCOUNT"),sep="."),
-                         paste("Weekend",c("NCOUNT","COUNT","SDCOUNT"),sep="."),
-                         paste("All",c("NCOUNT","COUNT","SDCOUNT"),sep="."))
-  tmpTbl1 <- as.data.frame(tmpTbl1[-(1:4),],stringsAsFactors=FALSE)
-  
+    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
+    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
+                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    ## Select only variables for the table
+    dplyr::select(-YEAR,-DAYS,-VCOUNT) %>%
+    droplevels() %>%
+    ## Convert to wide format
+    gather(temp,value,NCOUNT:SDCOUNT) %>%
+    unite(temp1,DAYTYPE,temp,sep=".") %>%
+    spread(temp1,value) %>%
+    select(MONTH,
+           Weekday.NCOUNT,Weekday.COUNT,Weekday.SDCOUNT,
+           Weekend.NCOUNT,Weekend.COUNT,Weekend.SDCOUNT,
+           All.NCOUNT,All.COUNT,All.SDCOUNT) %>%
+    arrange(MONTH)
+
   ## Make the huxtable
-  tmpTbl2 <- as_hux(tmpTbl1) %>%
+  tmpTbl2 <- as_hux(tmp) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
     set_top_padding(row=final(1),col=everywhere,value=10) %>%
     set_right_padding(row=everywhere,col=everywhere,value=5) %>%
-    set_left_padding(row=everywhere,col=ends_with("NCOUNT"),value=15) %>%
+    set_left_padding(row=everywhere,col=ends_with(".NCOUNT"),value=15) %>%
     # No decimals on NCOUNT and COUNT
-    set_number_format(row=everywhere,col=ends_with("NCOUNT"),value=0) %>%
-    set_number_format(row=everywhere,col=ends_with("COUNT"),value=0) %>%
+    set_number_format(row=everywhere,col=ends_with(".NCOUNT"),value=0) %>%
+    set_number_format(row=everywhere,col=ends_with(".COUNT"),value=0) %>%
     # One decimal on SD
-    set_number_format(row=everywhere,col=ends_with("SDCOUNT"),value=1) %>%
+    set_number_format(row=everywhere,col=ends_with(".SDCOUNT"),value=1) %>%
     rbind(c("MONTH",rep(c("Sampled","Total","SD"),3)),.) %>%
     rbind(c("",rep(c("Days","Party Hours",""),3)),.) %>%
     rbind(c("","Weekday","","","Weekend","","","All Days","",""),.) %>%
@@ -686,50 +701,6 @@ table3ALT <- function(fnpre) {
     set_align(row=-(1:3),col=-1,value="right") %>%
     set_width(0.5) %>%
     iFinishTable(labelsRow=3,labelsCol=1)
-  tmpTbl2
-}
-
-## This one more closely matches SAS look
-table3ORIG <- function(fnpre) {
-  ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Get proper order of months and drop unused levels
-  tmp <- read.csv(paste0(fnpre,"pcount.csv")) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH)) %>%
-    droplevels()
-  
-  ## Table of days sampled and total (SD) party hours by month and daytype.
-  ##   Removed first two rows (labels will be added back in huxtable),
-  ##   renamed columns
-  tmpTbl1 <- as.matrix(tabular((MONTH+1)*(DAYTYPE+1)~(NCOUNT+COUNT)*sum+
-                                 (VCOUNT)*sumsqrt,data=tmp))
-  tmpTbl1 <- as.data.frame(tmpTbl1[-c(1,2),],stringsAsFactors=FALSE)
-  names(tmpTbl1) <- c("MONTH","DAYTYPE","NCOUNT","COUNT","SDCOUNT")
-  
-  ## Find which rows to shade as a sum
-  ## Rows with "All" (except last) get extra space below
-  allRows <- which(tmpTbl1$DAYTYPE=="All")
-  allRows <- allRows[-length(allRows)]
-  
-  ## Make the huxtable
-  tmpTbl2 <- as_hux(tmpTbl1) %>%
-    # Set all cell paddings
-    set_all_padding(1) %>%
-    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
-    set_bottom_padding(row=allRows,col=everywhere,15) %>%
-    # No decimals on NCOUNT and COUNT
-    set_number_format(row=everywhere,col=c("NCOUNT","COUNT"),value=0) %>%
-    # One decimal on SD
-    set_number_format(row=everywhere,col=c("SDCOUNT"),value=1) %>%
-    rbind(c("MONTH","DAY TYPE","Sampled","Total","St. Dev."),.) %>%
-    rbind(c("","","Days","Party Hours",""),.) %>%
-    merge_cells(row=1,col=4:5) %>%
-    set_bottom_border(row=1,col=4,value=1) %>%
-    set_align(row=1,col=everywhere,value="center") %>%
-    # Right align values for all but first row and first two columns
-    set_align(row=-1,col=-(1:2),value="right") %>%
-    set_width(0.25) %>%
-    iFinishTable(labelsRow=2,labelsCol=2)
   tmpTbl2
 }
 
@@ -1455,12 +1426,3 @@ iFinishTable <- function(h,labelsRow,labelsCol) {
     set_bold(row=everywhere,col=1:labelsCol,TRUE)
   h
 }
-
-## write table out to file
-iWriteTable <- function(h,fnpre,TABLE) {
-  huxtable::quick_html(h,file=paste0(fnpre,"Table",TABLE,".html"))
-}
-
-## Function to take the square root of a sum ... used for computing the SD
-##   from summed variances in the tables.
-sumsqrt <- function(x) sqrt(sum(x,na.rm=TRUE))
