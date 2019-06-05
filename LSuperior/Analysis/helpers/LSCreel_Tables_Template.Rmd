@@ -12,7 +12,7 @@ params:
   TABLES:
     value: !r c(1,2,3,4,5,6,7,8,9)
   FIGURES:
-    value: !r c(1,2)
+    value: !r c(1,2,3,4,5,6,7,8,9)
   WDIR:
     value: ""
   RDIR:
@@ -113,7 +113,7 @@ cat(tables("Table9"))
 table9(fnpre)
 ```
 
-```{r figure1, eval=1 %in% FIGURES, fig.width=5, fig.height=3.5}
+```{r eval=1 %in% FIGURES, fig.width=5, fig.height=3.5}
 cat("<br><br>")
 cat("<hr>")
 figure1(fnpre)
@@ -121,7 +121,7 @@ cat("<br>")
 cat(figures("Figure1"))
 ```
 
-```{r figure2, eval=2 %in% FIGURES, fig.width=7}
+```{r eval=2 %in% FIGURES, fig.width=5, fig.height=8}
 cat("<br><br>")
 cat("<hr>")
 figure2(fnpre)
@@ -129,7 +129,7 @@ cat("<br>")
 cat(figures("Figure2"))
 ```
 
-```{r figure3, eval=3 %in% FIGURES, fig.width=5, fig.height=3.5}
+```{r eval=3 %in% FIGURES, fig.width=5, fig.height=3.5}
 cat("<br><br>")
 cat("<hr>")
 figure3(fnpre)
@@ -137,12 +137,28 @@ cat("<br>")
 cat(figures("Figure3"))
 ```
 
-```{r figure4, eval=3 %in% FIGURES, fig.width=7, fig.height=8}
+```{r eval=4 %in% FIGURES, fig.width=7}
 cat("<br><br>")
 cat("<hr>")
 figure4(fnpre)
 cat("<br>")
 cat(figures("Figure4"))
+```
+
+```{r eval=5 %in% FIGURES, fig.width=5, fig.height=3.5}
+cat("<br><br>")
+cat("<hr>")
+figure5(fnpre)
+cat("<br>")
+cat(figures("Figure5"))
+```
+
+```{r eval=6 %in% FIGURES, fig.width=7, fig.height=8}
+cat("<br><br>")
+cat("<hr>")
+figure6(fnpre)
+cat("<br>")
+cat(figures("Figure6"))
 ```
 
 ```{r}

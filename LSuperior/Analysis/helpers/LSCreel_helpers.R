@@ -7,7 +7,7 @@ rqrd <- c("FSA","lubridate","tidyr","dplyr","magrittr","huxtable",
           "kableExtra","captioner","ggplot2","patchwork","sugrrants","grid",
           "haven","knitr","here","readxl","tibble")
 for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
-                                                          character.only=TRUE))
+                                  character.only=TRUE))
 
 ## Main Helpers ----
 
@@ -1113,21 +1113,30 @@ table9 <- function(fnpre) {
 figureCaptions <- function() {
   figures <- captioner::captioner(prefix="Figure")
   figures(name="Figure1",
+          caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
+                        "by month and day type. Errors bars are +/-1SD on total",
+                        "effort across both day types. Also see Table 4."))
+  figures(name="Figure2",
+          caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
+                        "by month, fishery type, and day type. Errors bars are",
+                        "+/-1SD on total effort across both day types. Also",
+                        "see Table 4."))
+  figures(name="Figure3",
           caption=paste("Total harvest of all species observed for WISCONSIN",
                         "waters only. Errors bars are +/-1SD on total harvest.",
                         "Also see Table 5."))
-  figures(name="Figure2",
-          caption=paste("Total harvest of the three most commonly harvested",
+  figures(name="Figure4",
+          caption=paste("Total harvest of the most commonly harvested",
                         "fish separated by fishery type, day type, and month",
                         "for WISCONSIN waters only. Errors bars are +/-1SD on",
                         "the total harvest across both day types. Also see",
                         "Table 5."))
-  figures(name="Figure3",
+  figures(name="Figure5",
           caption=paste("Harvest rate (total harvest per angler-hour) by month",
-                        "of the three most commonly harvested fish for",
+                        "of the most commonly harvested fish for",
                         "WISCONSIN waters only. Also see Table 5."))
-  figures(name="Figure4",
-          caption=paste("Density plot of total length by month for the three",
+  figures(name="Figure6",
+          caption=paste("Density plot of total length by month for the",
                         "most commonly measured fish. Sample size is for",
                         "combined clipped and not clipped fish. Also see",
                         "Tables 6 and 9."))
@@ -1145,6 +1154,74 @@ theme_creel <- function() {
 }
 
 figure1 <- function(fnpre) {
+  tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
+    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
+    dplyr::mutate(WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
+                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
+                  MONTH=iOrderMonths(MONTH,addAll=TRUE),
+                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    ## Select only variables for the figuree
+    dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
+    ## Select only WI waters and not All months or fisheries
+    dplyr::filter(WATERS=="WI",MONTH!="All") %>%
+    ## Drop unused levels
+    droplevels()
+  ## Remove DAYTYPE and FISHERY total rows (i.e., == "All)
+  tmp1 <- dplyr::filter(tmp,DAYTYPE!="All") %>%
+    dplyr::filter(FISHERY!="All")
+  ## Get the DAYTYPE and FISHERYtotal rows (for error bars in ggplot)
+  tmp2 <- dplyr::filter(tmp,DAYTYPE=="All",FISHERY=="All") %>%
+    dplyr::mutate(DAYTYPE=NA,FISHERY=NA)
+  
+  ## Make the plot
+  p <- ggplot(data=tmp1,aes(x=MONTH,y=INDHRS,fill=DAYTYPE)) +
+    geom_bar(stat="identity") +
+    geom_errorbar(data=tmp2,aes(ymin=INDHRS-SDINDHRS,ymax=INDHRS+SDINDHRS),
+                  width=0.2) +
+    xlab("Month") +
+    ylab("Total Effort (Angler-Hrs)") +
+    scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
+    scale_color_discrete(breaks=c("Weekday","Weekend")) +
+    theme_creel()
+  p
+}
+  
+
+figure2 <- function(fnpre) {
+  tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
+    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
+    dplyr::mutate(WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
+                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
+                  MONTH=iOrderMonths(MONTH,addAll=TRUE),
+                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    ## Select only variables for the figuree
+    dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
+    ## Select only WI waters and not All months or Fisheries
+    dplyr::filter(WATERS=="WI",MONTH!="All") %>%
+    dplyr::filter(FISHERY!="All") %>%
+    ## Drop unused levels
+    droplevels()
+  ## Remove DAYTYPE total rows (i.e., == "All)
+  tmp1 <- dplyr::filter(tmp,DAYTYPE!="All")
+  ## Get the DAYTYPE total rows (for error bars in ggplot)
+  tmp2 <- dplyr::filter(tmp,DAYTYPE=="All") %>%
+    dplyr::mutate(DAYTYPE=NA)
+  
+  ## Make the plot
+  p <- ggplot(data=tmp1,aes(x=MONTH,y=INDHRS,fill=DAYTYPE)) +
+    geom_bar(stat="identity") +
+    geom_errorbar(data=tmp2,aes(ymin=INDHRS-SDINDHRS,ymax=INDHRS+SDINDHRS),
+                  width=0.2) +
+    facet_grid(FISHERY~.) +
+    xlab("Month") +
+    ylab("Total Effort (Angler-Hrs)") +
+    scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
+    scale_color_discrete(breaks=c("Weekday","Weekend")) +
+    theme_creel()
+  p
+}
+
+figure3 <- function(fnpre) {
   tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
@@ -1172,7 +1249,7 @@ figure1 <- function(fnpre) {
   p
 }
 
-figure2 <- function(fnpre,topN=3) {
+figure4 <- function(fnpre,topN=3) {
   tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
@@ -1211,7 +1288,7 @@ figure2 <- function(fnpre,topN=3) {
   p
 }
 
-figure3 <- function(fnpre,topN=3) {
+figure5 <- function(fnpre,topN=3) {
   tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
@@ -1244,7 +1321,7 @@ figure3 <- function(fnpre,topN=3) {
   p
 }
 
-figure4 <- function(fnpre,topN=3) {
+figure6 <- function(fnpre,topN=3) {
   # Turn warnings off (turned back on below)
   options(warn=-1)
   # Read and prepare lengths data file
@@ -1299,13 +1376,13 @@ writeDF <- function(x,fnpre) {
 iMvDaylen <- function(x) {
   mos <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
   lens <- c(0,0,0,0,16,16,16,16,16,0,0,0)
-  x <- plyr::mapvalues(x,from=mos,to=lens,warn=FALSE)
+  x <- FSA::mapvalues(x,from=mos,to=lens,warn=FALSE)
   FSA::fact2num(x)
 }
 
 ## Convert DOW to weekend or weekdays ... with holidays as weekends
 iMvDaytype <- function(wd,mon,md) {
-  wd2 <- plyr::mapvalues(wd,from=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun"),
+  wd2 <- FSA::mapvalues(wd,from=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun"),
                          to=c("Weekday","Weekday","Weekday","Weekday","Weekday",
                               "Weekend","Weekend"),warn=FALSE)
   wd2 <- iHndlHolidays(mon,md,wd,wd2)
@@ -1328,9 +1405,8 @@ iHndlHolidays <- function(mon,md,wd,dt) {
 ## Convert state codes to words
 iMvStates <- function(x) {
   tmp <- c("WI","MN","MI","WI/MN","WI/MI")
-  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:5,to=tmp,warn=FALSE)
-  x <- factor(x,levels=tmp)
-  x
+  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:5,to=tmp,warn=FALSE)
+  factor(x,levels=tmp)
 }
 
 ## Create "waters" variable to identify if the fished area was in WI or not
@@ -1350,18 +1426,16 @@ iMvFishery <- function(x,addAll=FALSE) {
            "ICE-BOBBING","BAD RIVER","NON-FISHING","SHORE","TRIBAL","COMBINED")
   tmp <- c("Cold-Open","Warm-Open","Ice-Mouth","Ice-Warm","Ice-Bob",
            "Bad R.","Non-Fishing","Shore","Tribal","Combined")
-  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:10,to=tmp,warn=FALSE)
+  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:10,to=tmp,warn=FALSE)
   if (addAll) tmp <- c(tmp,"All")
-  x <- factor(x,levels=tmp)
-  x
+  factor(x,levels=tmp)
 }
 
 ## Convert status codes to words
 iMvStatus <- function(x) {
   tmp <- c("Complete","Incomplete")
-  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:2,to=tmp,warn=FALSE)
-  x <- factor(x,levels=tmp)
-  x
+  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:2,to=tmp,warn=FALSE)
+  factor(x,levels=tmp)
 }
 
 ## Convert residency codes to words
@@ -1369,9 +1443,8 @@ iMvStatus <- function(x) {
 iMvResidency <- function(x) {
   old <- c("Resident","Non-Resident","Resident/Non-Resident")
   tmp <- c("Res","Non-Res","Res/Non-Res")
-  if (is.numeric(x)) x <- plyr::mapvalues(x,from=1:3,to=tmp,warn=FALSE)
-  x <- factor(x,levels=tmp)
-  x
+  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:3,to=tmp,warn=FALSE)
+  factor(x,levels=tmp)
 }
 
 ## Compute hours of effort, put NAs if before start or after end of survey
@@ -1386,8 +1459,6 @@ iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
     TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
   )
 }
-
-
 
 ## Convert fish species codes to words ... note possibly three sets of codes
 iMvSpecies <- function(x) {
@@ -1420,9 +1491,8 @@ iMvSpecies <- function(x) {
   nms <- FSA::capFirst(nms)
   nms[length(nms)] <- NA
   lvls <- FSA::capFirst(lvls)
-  if (!any(x %in% nms)) x <- plyr::mapvalues(x,from=code,to=nms,warn=FALSE)
-  x <- factor(x,levels=lvls)
-  x
+  if (!any(x %in% nms)) x <- FSA::mapvalues(x,from=code,to=nms,warn=FALSE)
+  factor(x,levels=lvls)
 }
 
 ## Convert fin-clip codes to words
@@ -1434,11 +1504,10 @@ iMvFinclips <- function(x,addAll=TRUE) {
            '17: D+RP','18: AD+RM','19: LP+RM','20: LP+LV','21: D+AD',
            '22: D+LV+RV','23: D+LP','24: D+LV','40: NOT EXAMINED',
            '40: NOT EXAMINED',NA)
-  if (is.numeric(x)) x <- plyr::mapvalues(x,from=c(0:24,40,99,NA),
+  if (is.numeric(x)) x <- FSA::mapvalues(x,from=c(0:24,40,99,NA),
                                           to=tmp,warn=FALSE)
   if (addAll) tmp <- c(tmp,"All")
-  x <- factor(x,levels=tmp[!duplicated(tmp)])
-  x  
+  factor(x,levels=tmp[!duplicated(tmp)])
 }
 
 ## Adds whether a fish was clipped or not
@@ -1452,15 +1521,12 @@ iFinclipped <- function(x) {
 }
 
 
-
-
-
 ## Create long name from abbreviated location name
 iMvLoc <- function(x) {
   codes <- c("ash","byf","cpw","lsb","rdc","sax","sup","wsh")
   names <- c("Ashland","Bayfield","Corny-Port Wing","Little Sand Bay",
              "Red Cliff","Saxon","Superior","Washburn")
-  plyr::mapvalues(x,from=codes,to=names,warn=FALSE)
+  FSA::mapvalues(x,from=codes,to=names,warn=FALSE)
 }
 
 ## Converts months to an ordered factor
