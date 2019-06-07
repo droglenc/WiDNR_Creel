@@ -64,16 +64,21 @@ ints_ORIG <- readInterviewData(WDIR,LOC,SDATE,FDATE,type=FTYPE,
   select(-FISH,-RES,-SUCCESS) %>%
   droplevels()
 
-### A simplified data.frame that does not include any fish data and has been
-### adjusted for people that fished in a "mixed" state
+### A simplified data.frame that does not include any fish data
 ###   HOURS: fishing effort by the party.
 ###   PERSONS: number of individuals in the party.
-###   INDHRS: people-hours of fishing effort.
-###   CHOURS: fishing effort (hours) for only completed trips
-ints_NOFISH <- select(ints_ORIG,INTID:PERSONS) %>%
-  prepInterviewedEffortData()
+ints_NOFISH <- select(ints_ORIG,INTID:PERSONS)
 
-### Summarized interviewed effort by STATE, DAYTYPE, FISHERY, and MONTH
+### Number of interviews (NINTS) and interviewed fishing effort (HOURS)
+###   across sites within strata (STATE, DAYTYPE, FISHERY, MONTH).
+### This is used for Table 2.
+intvdEffortStates <- ints_NOFISH %>%
+  group_by(YEAR,STATE,DAYTYPE,FISHERY,MONTH,.drop=FALSE) %>%
+  summarize(NINTS=n(),HOURS=sum(HOURS)) %>%
+  as.data.frame()
+
+### Summarized interviewed effort by WATERS, DAYTYPE, FISHERY, and MONTH ...
+### similar to above but by WATERS rather than STATE and more summaries ...
 ###   NINTS= Number of interviews
 ###   HOURS= Total interviewed effort (hours) of ALL parties
 ###   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
@@ -82,13 +87,8 @@ ints_NOFISH <- select(ints_ORIG,INTID:PERSONS) %>%
 ###         a given waters-fishery. Should sum to 1 within each month-daytype
 ###         Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
 ###   PARTY= Party size (person's per party)
-### This is used for Table 2.
-intvdEffortState <- sumInterviewedEffort(ints_NOFISH,STATE)
-
-### Summarized interviewed effort by WATERS, DAYTYPE, FISHERY, and MONTH ...
-### similar to above but by WATERS rather than STATE
 #!!!!!! This matches Iyob's 'effort' after his line 183
-intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH,WATERS)
+intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 
 ## Pressure counts ----
 ### Read count pressure data and compute the following:

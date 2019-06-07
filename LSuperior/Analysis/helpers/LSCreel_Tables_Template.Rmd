@@ -1,22 +1,22 @@
 ---
-title: "`r paste(lubridate::year(as.Date(SDATE,'%m/%d/%Y')),'LAKE SUPERIOR CREEL SURVEY')`"
+title: "LAKE SUPERIOR CREEL SURVEY"
 params:
-  FDATE:
-    value: 09/30/2014
-  FTYPE:
-    value: SAS
   LOC:
     value: sup
   SDATE:
     value: 05/21/2014
+  FDATE:
+    value: 09/30/2014
+  FTYPE:
+    value: SAS
   TABLES:
     value: !r c(1,2,3,4,5,6,7,8,9)
   FIGURES:
     value: !r c(1,2,3,4,5,6,7,8,9)
   WDIR:
-    value: ""
+    value: "C:/aaaWork/Research/WiDNR_Creel/LSuperior/Analysis/"
   RDIR:
-    value: ""
+    value: "C:/aaaWork/Research/WiDNR_Creel/LSuperior/Analysis/2014_LSUPERIOR"
 output:
   html_document:
     theme: sandstone
@@ -61,14 +61,14 @@ table1(fnpre,calSum)
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table2"))
-table2(fnpre,intvdEffortState)
+table2(intvdEffortStates)
 ```
 
 ```{r table3, eval=3 %in% TABLES}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table3"))
-table3(fnpre,pressureCount)
+table3(pressureCount)
 ```
 
 ```{r table4, eval=4 %in% TABLES}
@@ -104,13 +104,6 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table8"))
 table8(fnpre)
-```
-
-```{r table9, eval=9 %in% TABLES}
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table9"))
-table9(fnpre)
 ```
 
 ```{r eval=1 %in% FIGURES, fig.width=5, fig.height=3.5}
@@ -160,6 +153,15 @@ figure6(fnpre)
 cat("<br>")
 cat(figures("Figure6"))
 ```
+
+
+```{r table9, eval=9 %in% TABLES}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table9"))
+table9(fnpre)
+```
+
 
 ```{r}
 cat("<br><br>")

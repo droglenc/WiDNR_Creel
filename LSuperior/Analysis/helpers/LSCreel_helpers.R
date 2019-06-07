@@ -14,14 +14,12 @@ for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
 ## Read and prepare the interview data file
 readInterviewData <- function(wdir,LOC,SDATE,FDATE,type,
                               dropCLS=TRUE,dropHM=TRUE) {
-  ## Add interview ID number
-  ## Convert some codes to words
-  ## Handle dates (find weekends and weekdays) & times (incl. hours of effort)
-  ## NOTE: USING DATABASE VERSION OF DAYTYPE EVEN THOUGH IT HAS ERRORS SO THAT
-  ##       I CAN TEST AGAINST SAS OUPTUT
   if (type=="CSV") d <- read.csv(paste0(wdir,"data/",LOC,"ints.csv"))
   else d <- haven::read_sas(paste0(wdir,"data/",LOC,"ints.sas7bdat"))
   d <- d %>%
+    ## Add interview ID number
+    ## Convert some codes to words
+    ## Handle dates (find weekends and weekdays) & times (incl. hours of effort)
     dplyr::mutate(INTID=1:dplyr::n(),
                   STATE=iMvStates(STATE),
                   WATERS=iMvWaters(STATE),
@@ -32,13 +30,9 @@ readInterviewData <- function(wdir,LOC,SDATE,FDATE,type,
                   YEAR=lubridate::year(DATE),
                   MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
                   WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
-                  DAYTYPE=factor(FSA::mapvalues(DAYTYPE,from=1:2,
-                                                to=c("Weekday","Weekend"))),
-                  DAYTYPE2=iMvDaytype(WDAY,MONTH,DAY),
+                  DAYTYPE=iMvDaytype(WDAY,MONTH,DAY),
                   HOURS=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,
                                    DATE,SDATE,FDATE))
-  ## Drop hours and minutes variables if asked to
-  if (dropHM) d <- dplyr::select(d,-(STARTMM:STOPHH))
   ## Drop CLIP, LEN, and SPEC variables that have no data, if asked to
   if (dropCLS) {
     allNA <- sapply(d,function(x) {
@@ -49,54 +43,48 @@ readInterviewData <- function(wdir,LOC,SDATE,FDATE,type,
   }
   ## Rearrange variables
   d %<>% dplyr::select(INTID,DATE,YEAR,WATERS,STATE,DAYTYPE,FISHERY,
-                       MONTH,DAY,SITE,STATUS,HOURS,PERSONS,RES,FISH,SUCCESS,
-                       contains("SPEC"),contains("CLIP"),contains("LEN"))
+                       MONTH,DAY,SITE,STATUS,HOURS,STARTHH,STARTMM,STOPHH,STOPMM,
+                       PERSONS,RES,FISH,SUCCESS,contains("SPEC"),
+                       contains("CLIP"),contains("LEN"))
+  ## Drop hours and minutes variables if asked to
+  if (dropHM)  d %<>% dplyr::select(-STARTHH,-STARTMM,-STOPHH,-STOPMM)
   ## Return data.frame
   as.data.frame(d)
 }
 
-
-## Prepare the interviewed efffort data.frame by adjusting the number of hours
-## for people that fish in a "mixed" state. Also compute the people-hours and
-## the hours for completed trips
-prepInterviewedEffortData <- function(dints) {
-  ## Separate into only one and split states
+##
+sumInterviewedEffort <- function(dints) {
+  ### Separate into only one and split states
+  ### All hours for split states are cut in half
   f1 <- dplyr::filter(dints,!STATE %in% c("WI/MN","WI/MI"))
   f2 <- dplyr::filter(dints,STATE %in% c("WI/MN","WI/MI")) %>%
-    ## All hours for split states are cut in half
     dplyr::mutate(HOURS=0.5*HOURS)
-  ## Duplicate f2 for other half of HOURS, label as Non-WI
+  ### Duplicated f2 to get other half of HOURS, label as NON-WISCONSIN
   f3 <- dplyr::mutate(f2,WATERS="Non-WI")
   
-  ## Combine to get all interviews corrected for location
+  ### Combine to get all interviews corrected for location
+  ### Compute people-hours of fishing effort (in INDHRS)
+  ### Compute hours for only completed trips (in CHOURS)
   f <- rbind(f1,f2,f3) %>%
-    ## Compute people-hours of fishing effort (in INDHRS)
-    ## Compute hours for only completed trips (in CHOURS)
     dplyr::mutate(INDHRS=PERSONS*HOURS,
                   CHOURS=ifelse(STATUS=="Complete",HOURS,NA))
-  ## Return data.frame
-  f
-}
-
-##
-sumInterviewedEffort <- function(f,var) {
-  tmp <- rlang::quo_name(rlang::enquo(var))
-  ### Summarize interviewed effort data by WATERS/STATE, DAYTPE, FISHERY, MONTH  
+  
+  ### Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH  
   fsum <- f %>%
-    dplyr::group_by(YEAR,!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH) %>%
+    dplyr::group_by(YEAR,WATERS,DAYTYPE,FISHERY,MONTH) %>%
     dplyr::summarize(NINTS=dplyr::n(),
                      MTRIP=mean(CHOURS,na.rm=TRUE),
-                     HOURS=sum(HOURS,na.rm=TRUE),
                      VHOURS=sum(HOURS^2,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
                      CHOURS=sum(CHOURS,na.rm=TRUE)) %>%
-    dplyr::select(YEAR,!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH,
+    dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
                   NINTS,HOURS,INDHRS,CHOURS,MTRIP,VHOURS) %>%
     as.data.frame()
   
   ### Summarize total interviewed hours by MONTH and DAYTYPE
   ### *** This is nints in SAS/IYOB code
-  fsum2 <- f %>%
+  fsum2 <- dints %>%
     dplyr::group_by(MONTH,DAYTYPE) %>%
     dplyr::summarize(THOURS=sum(HOURS,na.rm=TRUE)) %>%
     as.data.frame()
@@ -105,9 +93,9 @@ sumInterviewedEffort <- function(f,var) {
   f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(PROP=HOURS/THOURS,
                   PARTY=INDHRS/HOURS) %>%
-    dplyr::select(YEAR,!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH,
+    dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
                   NINTS,HOURS,VHOURS,MTRIP,PROP,PARTY) %>%
-    dplyr::arrange(!!rlang::enquo(var),DAYTYPE,FISHERY,MONTH)
+    dplyr::arrange(WATERS,DAYTYPE,FISHERY,MONTH)
   ### Return data.frame
   as.data.frame(f)
 }
@@ -550,7 +538,7 @@ tableCaptions <- function() {
                        "(Hrs) by state, day type, type of fishery, and month."))
   tables(name="Table3",
          caption=paste("Number of day sampled and total party-hours of pressure",
-                       "month and day type (includes non-fishing effort)."))
+                       "by month and day type (includes non-fishing effort)."))
   tables(name="Table4",
          caption=paste("Total Party-hours, persons per party, total individual-hours,",
                        "mean trip length, and total number of trips by waters,",
@@ -623,7 +611,7 @@ table1 <- function(fnpre,calSum) {
 }
 
 
-table2 <- function(fnrpre,d) {
+table2 <- function(d) {
   ## Prepare data.frame for huxtable
   ## Restrict to only those variables needed for this table
   tmp <- dplyr::select(d,STATE,DAYTYPE,FISHERY,MONTH,NINTS,HOURS)
@@ -714,7 +702,7 @@ table2 <- function(fnrpre,d) {
   tmpTbl2
 }
 
-table3 <- function(fnpre,pressureCount) {
+table3 <- function(pressureCount) {
   ## Prepare data.frame for huxtable
   tmp <- pressureCount %>%
     ## Select only variables for the table
@@ -783,7 +771,11 @@ table4 <- function(fnpre) {
                                  "",as.character(FISHERY)),
                   MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
                                  "",as.character(MONTH))) %>%
-    as.data.frame()
+    ## Remove rows that are repeats (for the numeric variables) of the row above
+    ## it, which happens if the species was captured in only one month
+    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("WATERS","FISHERY",
+                                                         "MONTH","DAYTYPE"))) %>%
+  as.data.frame()
 
   ## Rows with a MONTH (except first) get extra space above
   breakRows1 <- which(tmp$MONTH!="")[-1]
@@ -942,8 +934,8 @@ table6 <- function(fnpre) {
     set_number_format(row=everywhere,col=c("mnLen","seLen","varLen"),2) %>%
     set_number_format(row=everywhere,col=c("minLen","maxLen"),1) %>%
     # Add column labels
-    rbind(c("","","","Length (in.)","","","","",""),
-          c("SPECIES","MONTH","Clipped?","N","Mean","SE","Var","Min","Max"),.) %>%
+    rbind(c("SPECIES","MONTH","Clipped?","N","Mean","SE","Var","Min","Max"),.) %>%
+    rbind(c("","","","Length (in.)","","","","",""),.) %>%
     # Top label should extend across 4-9 columns with line underneath
     merge_cells(row=1,col=4:9) %>%
     set_bottom_border(row=1,col=4,1) %>%
@@ -998,8 +990,8 @@ table7 <- function(fnpre) {
     set_number_format(row=everywhere,col=c("mnLen","seLen","varLen"),value=2) %>%
     set_number_format(row=everywhere,col=c("minLen","maxLen"),1) %>%
     # Add column labels
-    rbind(c("","","","Length (in.)","","","","",""),
-          c("SPECIES","MONTH","Clip","N","Mean","SE","Var","Min","Max"),.) %>%
+    rbind(c("SPECIES","MONTH","Clip","N","Mean","SE","Var","Min","Max"),.) %>%
+    rbind(c("","","","Length (in.)","","","","",""),.) %>%
     # Top label should extend across 4-9 columns with line underneath
     merge_cells(row=1,col=4:9) %>%
     set_bottom_border(row=1,col=4,value=1) %>%

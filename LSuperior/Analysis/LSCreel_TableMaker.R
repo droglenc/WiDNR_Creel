@@ -14,10 +14,10 @@
 LOCATION <- c("ash","sup","wsh")
 ## Enter start and end dates (must be two digits mon/day and four-digit year)
 ##   If multiple locations, separate dates with commas (or use one common date)
-START_DATE <- c("05/21/2014")
+START_DATE <- c("05/16/2014","05/21/2014","05/14/2014")
 END_DATE <- c("09/30/2014")
 ## Enter type of input data file to use (must be "CSV" or "SAS")
-FTYPE <- "CSV"
+FTYPE <- "SAS"
 ## Enter table numbers to print (must be between 1 and 9)
 TABLES <- c(1:8)
 ## Enter figure numbers to print (must be between 1 and 9)
