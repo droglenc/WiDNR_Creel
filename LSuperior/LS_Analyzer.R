@@ -4,8 +4,12 @@
 #     XXXX, 201X (version 2 - Derek O);  JULY, 2016 (version 1 - Iyob T)
 #
 #  DIRECTIONS:
-#   * Complete information under "USER-SPECIFIED INFORMATION" below
-#   * Source the script.
+#   * Make sure interview and count data files are in a "data" folder inside a
+#     folder called "LS_Analysis_YEAR" (where YEAR is replaced with the year
+#     to be analyzed).
+#   * Complete information under "USER-SPECIFIED INFORMATION" below.
+#   * Source this script.
+#   * See resulting files in LS_Analysis_YEAR folder.
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
 ## USER-SPECIFIED INFORMATION
@@ -41,10 +45,10 @@ LOCATION2 <-  FSA::mapvalues(LOCATION,warn=FALSE,
 for (i in seq_along(LOCATION)) {
   message("Processing '",LOCATION[i],"' location.")
   YEAR <- lubridate::year(as.Date(START_DATE[i],"%m/%d/%Y"))
-  WDIR <- paste0(here::here(),"/LSuperior/Analysis/")
-  RDIR <- paste0(WDIR,YEAR,"_LSUPERIOR")
-  OUTFILE <- paste0(YEAR,"_",LOCATION2[i],"_Tables.html")
-  rmarkdown::render(input=paste0(WDIR,"helpers/LSCreel_Tables_Template.Rmd"),
+  WDIR <- paste0(here::here(),"/LSuperior/")
+  RDIR <- paste0(WDIR,"LS_Analysis_",YEAR,"/")
+  OUTFILE <- paste0("Analysis_",LOCATION2[i],"_",YEAR,".html")
+  rmarkdown::render(input=paste0(WDIR,"Helpers/LS_Analysis_Template.Rmd"),
                     params=list(LOC=LOCATION[i],
                                 SDATE=START_DATE[i],FDATE=END_DATE[i],
                                 FTYPE=FTYPE,TABLES=TABLES,FIGURES=FIGURES,

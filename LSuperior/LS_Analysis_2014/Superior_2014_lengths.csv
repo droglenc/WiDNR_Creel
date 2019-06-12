@@ -1,0 +1,998 @@
+YEAR,STATE,FISHERY,MONTH,DATE,SITE,SPECIES,CLIP,CLIPPED,LEN
+2014,WI,Warm-Open,May,2014-05-23,905,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,May,2014-05-23,905,Walleye,00: NONE,No Clip,15.6
+2014,WI,Warm-Open,May,2014-05-24,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,May,2014-05-24,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Warm-Open,May,2014-05-24,903,Walleye,00: NONE,No Clip,21.5
+2014,WI,Warm-Open,May,2014-05-24,903,Walleye,00: NONE,No Clip,24
+2014,WI,Warm-Open,May,2014-05-24,903,Walleye,00: NONE,No Clip,23.5
+2014,WI/MN,Warm-Open,May,2014-05-25,903,Walleye,00: NONE,No Clip,29
+2014,WI,Warm-Open,May,2014-05-25,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,May,2014-05-25,903,Walleye,00: NONE,No Clip,22.5
+2014,WI,Warm-Open,May,2014-05-26,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,May,2014-05-26,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,May,2014-05-26,903,Walleye,00: NONE,No Clip,19
+2014,WI,Warm-Open,May,2014-05-26,903,Walleye,00: NONE,No Clip,21
+2014,WI,Cold-Open,May,2014-05-26,903,Lake Trout,00: NONE,No Clip,28
+2014,WI,Cold-Open,May,2014-05-30,903,Coho,00: NONE,No Clip,15.8
+2014,WI,Cold-Open,May,2014-05-30,903,Coho,00: NONE,No Clip,14.7
+2014,WI,Cold-Open,May,2014-05-30,903,Lake Trout,00: NONE,No Clip,23.5
+2014,WI,Cold-Open,May,2014-05-30,903,Rainbow Trout,00: NONE,No Clip,27
+2014,WI,Warm-Open,May,2014-05-30,903,Walleye,00: NONE,No Clip,23
+2014,WI,Warm-Open,May,2014-05-30,903,Walleye,00: NONE,No Clip,23.5
+2014,WI,Warm-Open,May,2014-05-30,905,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,May,2014-05-30,905,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,May,2014-05-30,905,Northern Pike,00: NONE,No Clip,22
+2014,WI,Warm-Open,May,2014-05-30,905,Walleye,00: NONE,No Clip,23
+2014,WI,Warm-Open,May,2014-05-31,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,May,2014-05-31,903,Walleye,00: NONE,No Clip,19
+2014,WI/MN,Cold-Open,May,2014-05-31,903,Lake Trout,00: NONE,No Clip,29
+2014,WI,Cold-Open,May,2014-05-31,903,Coho,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,19.8
+2014,WI,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,17.2
+2014,WI/MN,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,17.2
+2014,WI/MN,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,15
+2014,WI/MN,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,15
+2014,WI/MN,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,20.2
+2014,WI/MN,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,19.4
+2014,WI/MN,Cold-Open,Jun,2014-06-01,903,Coho,00: NONE,No Clip,14.5
+2014,WI/MN,Warm-Open,Jun,2014-06-01,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,22
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,19
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,18.8
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,16
+2014,WI,Warm-Open,Jun,2014-06-03,903,Walleye,00: NONE,No Clip,18.5
+2014,WI/MN,Cold-Open,Jun,2014-06-03,903,Lake Trout,00: NONE,No Clip,31
+2014,WI/MN,Cold-Open,Jun,2014-06-03,903,Lake Trout,00: NONE,No Clip,24
+2014,WI/MN,Cold-Open,Jun,2014-06-03,903,Lake Trout,00: NONE,No Clip,26.5
+2014,WI/MN,Cold-Open,Jun,2014-06-03,903,Chinook,00: NONE,No Clip,24
+2014,WI/MN,Cold-Open,Jun,2014-06-03,903,Brown Trout,00: NONE,No Clip,26
+2014,WI,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,26
+2014,WI/MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,27
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,29
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,28
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,25
+2014,MN,Cold-Open,Jun,2014-06-04,903,Coho,00: NONE,No Clip,16.5
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,28
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,22.5
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,24
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,18
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,16
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,15
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jun,2014-06-04,903,Walleye,00: NONE,No Clip,18
+2014,WI/MN,Cold-Open,Jun,2014-06-04,903,Coho,00: NONE,No Clip,16
+2014,WI/MN,Cold-Open,Jun,2014-06-04,903,Coho,00: NONE,No Clip,15.5
+2014,WI/MN,Cold-Open,Jun,2014-06-04,903,Coho,00: NONE,No Clip,17
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,23
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,26
+2014,MN,Cold-Open,Jun,2014-06-04,903,Lake Trout,00: NONE,No Clip,26.8
+2014,MN,Cold-Open,Jun,2014-06-04,903,Chinook,00: NONE,No Clip,16
+2014,MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,22
+2014,MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,26
+2014,MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,22.5
+2014,MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,26.5
+2014,WI,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,24
+2014,WI,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,25
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,21
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,20
+2014,WI,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,24
+2014,WI,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,23.5
+2014,WI,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,25
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,25
+2014,WI,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,25
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jun,2014-06-07,903,Yellow Perch,00: NONE,No Clip,10
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,22
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Brown Trout,00: NONE,No Clip,29
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Coho,00: NONE,No Clip,17
+2014,WI,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,23
+2014,WI,Cold-Open,Jun,2014-06-07,903,Brown Trout,00: NONE,No Clip,22
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jun,2014-06-07,903,Yellow Perch,00: NONE,No Clip,9.5
+2014,MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,25.5
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,21.5
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,21
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,24.5
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,24
+2014,WI/MN,Cold-Open,Jun,2014-06-07,903,Coho,00: NONE,No Clip,NA
+2014,MN,Warm-Open,Jun,2014-06-07,903,Lake Trout,00: NONE,No Clip,26.5
+2014,MN,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,18
+2014,MN,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,18
+2014,MN,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,15
+2014,MN,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,15
+2014,MN,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,15.5
+2014,MN,Warm-Open,Jun,2014-06-07,903,Northern Pike,00: NONE,No Clip,27
+2014,MN,Warm-Open,Jun,2014-06-07,903,Northern Pike,00: NONE,No Clip,26
+2014,WI/MN,Warm-Open,Jun,2014-06-07,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jun,2014-06-08,905,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Jun,2014-06-08,905,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Jun,2014-06-08,905,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Jun,2014-06-08,905,Walleye,00: NONE,No Clip,19
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,23
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,19.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,21
+2014,WI,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,17
+2014,WI,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,17
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,22
+2014,WI/MN,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,18.5
+2014,WI/MN,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,17.5
+2014,WI/MN,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,20.3
+2014,WI/MN,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,17.3
+2014,WI/MN,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,17
+2014,MN,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,27
+2014,MN,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,28
+2014,MN,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,20
+2014,MN,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,25
+2014,MN,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,16
+2014,MN,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,25.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,23
+2014,WI,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,16
+2014,WI,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,15.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,16
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,25
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,19
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,27.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,17.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,27.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,24.8
+2014,WI,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,16
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,23
+2014,MN,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,29
+2014,MN,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,15
+2014,MN,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,14.5
+2014,MN,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,26
+2014,MN,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,24.5
+2014,MN,Cold-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,18
+2014,MN,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,24.5
+2014,MN,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,16
+2014,MN,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,15
+2014,MN,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,16.5
+2014,MN,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,17
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,26
+2014,WI,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,16.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,15
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,22
+2014,WI/MN,Cold-Open,Jun,2014-06-08,903,Northern Pike,00: NONE,No Clip,28
+2014,WI/MN,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,17
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,26
+2014,WI,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,16
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,19.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,22
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,26
+2014,MN,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,16
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,25.3
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,23.5
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,21
+2014,WI,Cold-Open,Jun,2014-06-08,903,Brown Trout,00: NONE,No Clip,21.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Chinook,00: NONE,No Clip,17.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,25
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,26.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,25.5
+2014,WI,Warm-Open,Jun,2014-06-08,903,Black Crappie,00: NONE,No Clip,11.5
+2014,WI,Warm-Open,Jun,2014-06-08,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Lake Trout,00: NONE,No Clip,19.5
+2014,WI,Cold-Open,Jun,2014-06-08,903,Coho,00: NONE,No Clip,14.5
+2014,WI/MN,Warm-Open,Jun,2014-06-08,905,Walleye,00: NONE,No Clip,16
+2014,WI/MN,Warm-Open,Jun,2014-06-08,905,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,23
+2014,WI,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,16
+2014,WI/MN,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,15
+2014,MN,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,21.5
+2014,MN,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,21.5
+2014,MN,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,17.5
+2014,MN,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,18
+2014,WI/MN,Cold-Open,Jun,2014-06-09,903,Lake Trout,00: NONE,No Clip,18.5
+2014,WI/MN,Cold-Open,Jun,2014-06-09,903,Chinook,00: NONE,No Clip,17.5
+2014,WI/MN,Warm-Open,Jun,2014-06-09,905,Walleye,00: NONE,No Clip,19.5
+2014,WI/MN,Warm-Open,Jun,2014-06-09,905,Walleye,00: NONE,No Clip,20.5
+2014,WI/MN,Warm-Open,Jun,2014-06-09,905,Walleye,00: NONE,No Clip,17
+2014,WI/MN,Warm-Open,Jun,2014-06-09,905,Walleye,00: NONE,No Clip,17.5
+2014,WI/MN,Warm-Open,Jun,2014-06-09,905,Northern Pike,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Jun,2014-06-09,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,21
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,23
+2014,WI,Warm-Open,Jun,2014-06-10,903,Black Crappie,00: NONE,No Clip,10.5
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,16
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,26
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Jun,2014-06-10,903,Walleye,00: NONE,No Clip,17
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,27.7
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,23.5
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,21.8
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.8
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.7
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,22.4
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,21.9
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,20.5
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,14.7
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,16.7
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,15.7
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,19.9
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,30.9
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,25
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.6
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,16.5
+2014,WI/MN,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,18.3
+2014,WI/MN,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,15.2
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,21.8
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,22.3
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,09: RP,Clip,25.7
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,20
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,25.8
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.9
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,15.4
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,16.6
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,14.7
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,15.6
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,16.2
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,13.9
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,16
+2014,WI,Cold-Open,Jun,2014-06-13,903,Coho,00: NONE,No Clip,16.2
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,18.9
+2014,WI,Cold-Open,Jun,2014-06-13,903,Brown Trout,00: NONE,No Clip,20.6
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,19
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,15.2
+2014,WI,Warm-Open,Jun,2014-06-13,903,Yellow Perch,00: NONE,No Clip,8.9
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,22.4
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.5
+2014,WI/MN,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.3
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,21.9
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.4
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,23.6
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,26.1
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,21.3
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,22
+2014,WI,Cold-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,31.7
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,15.8
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,18.1
+2014,WI/MN,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,23.3
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,09: RP,Clip,28.4
+2014,WI,Warm-Open,Jun,2014-06-13,905,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Jun,2014-06-13,905,Walleye,00: NONE,No Clip,17.1
+2014,WI,Warm-Open,Jun,2014-06-13,905,Walleye,00: NONE,No Clip,17.8
+2014,WI,Cold-Open,Jun,2014-06-13,905,Chinook,00: NONE,No Clip,17
+2014,WI,Warm-Open,Jun,2014-06-13,905,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Jun,2014-06-13,905,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Jun,2014-06-13,905,Walleye,00: NONE,No Clip,16
+2014,WI/MN,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,16.6
+2014,WI/MN,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,16
+2014,WI/MN,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,17.2
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,26.8
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Jun,2014-06-13,903,Yellow Perch,00: NONE,No Clip,8.7
+2014,WI,Warm-Open,Jun,2014-06-13,903,Yellow Perch,00: NONE,No Clip,9
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Warm-Open,Jun,2014-06-13,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Cold-Open,Jun,2014-06-13,903,Lake Trout,00: NONE,No Clip,21
+2014,WI,Cold-Open,Jun,2014-06-13,903,Siscowet,00: NONE,No Clip,25.4
+2014,WI/MN,Cold-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,15.4
+2014,WI/MN,Cold-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,17.9
+2014,WI/MN,Cold-Open,Jun,2014-06-14,903,Coho,00: NONE,No Clip,16.9
+2014,WI/MN,Cold-Open,Jun,2014-06-14,903,Chinook,00: NONE,No Clip,20.9
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,18.8
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,20.5
+2014,WI/MN,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,26.7
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,16
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,15.6
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,28
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,25.8
+2014,WI,Warm-Open,Jun,2014-06-14,903,Northern Pike,00: NONE,No Clip,31.9
+2014,WI,Warm-Open,Jun,2014-06-14,903,Lake Trout,00: NONE,No Clip,26.7
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,20.2
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,23.4
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,20.4
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,20.1
+2014,WI,Warm-Open,Jun,2014-06-14,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Jun,2014-06-14,905,Walleye,00: NONE,No Clip,16.7
+2014,WI,Warm-Open,Jun,2014-06-14,905,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Jun,2014-06-14,905,Walleye,00: NONE,No Clip,18.1
+2014,WI,Warm-Open,Jun,2014-06-16,903,Walleye,00: NONE,No Clip,25.8
+2014,WI,Warm-Open,Jun,2014-06-16,903,Walleye,00: NONE,No Clip,18.1
+2014,WI,Warm-Open,Jun,2014-06-16,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Cold-Open,Jun,2014-06-16,903,Lake Trout,00: NONE,No Clip,22.5
+2014,WI,Warm-Open,Jun,2014-06-16,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Jun,2014-06-16,903,Black Crappie,00: NONE,No Clip,12.4
+2014,WI,Warm-Open,Jun,2014-06-20,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Jun,2014-06-20,903,Walleye,00: NONE,No Clip,20.7
+2014,WI,Warm-Open,Jun,2014-06-20,903,Walleye,00: NONE,No Clip,16.1
+2014,WI,Warm-Open,Jun,2014-06-21,903,Walleye,00: NONE,No Clip,18.6
+2014,WI,Cold-Open,Jun,2014-06-22,903,Brown Trout,00: NONE,No Clip,23.2
+2014,WI,Cold-Open,Jun,2014-06-22,903,Chinook,00: NONE,No Clip,18.6
+2014,WI,Cold-Open,Jun,2014-06-22,903,Lake Trout,00: NONE,No Clip,34.5
+2014,WI,Warm-Open,Jun,2014-06-22,903,Walleye,00: NONE,No Clip,17.1
+2014,WI,Warm-Open,Jun,2014-06-22,903,Walleye,00: NONE,No Clip,16.7
+2014,WI,Warm-Open,Jun,2014-06-22,903,Walleye,00: NONE,No Clip,17.1
+2014,WI,Warm-Open,Jun,2014-06-22,903,Walleye,00: NONE,No Clip,19
+2014,WI/MN,Cold-Open,Jun,2014-06-22,903,Lake Trout,00: NONE,No Clip,30.5
+2014,WI/MN,Warm-Open,Jun,2014-06-22,905,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Jun,2014-06-22,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Jun,2014-06-22,903,Walleye,00: NONE,No Clip,17.2
+2014,WI,Warm-Open,Jun,2014-06-22,903,Walleye,00: NONE,No Clip,20
+2014,MN,Warm-Open,Jun,2014-06-25,903,Walleye,00: NONE,No Clip,17.5
+2014,MN,Warm-Open,Jun,2014-06-25,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Warm-Open,Jun,2014-06-26,905,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Jun,2014-06-26,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Warm-Open,Jun,2014-06-29,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Jul,2014-07-03,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jul,2014-07-03,903,Walleye,00: NONE,No Clip,19.6
+2014,WI/MN,Cold-Open,Jul,2014-07-03,903,Lake Trout,00: NONE,No Clip,21.5
+2014,WI,Cold-Open,Jul,2014-07-03,903,Lake Trout,00: NONE,No Clip,21.6
+2014,WI,Cold-Open,Jul,2014-07-03,903,Lake Trout,00: NONE,No Clip,20.9
+2014,WI,Cold-Open,Jul,2014-07-03,903,Lake Trout,00: NONE,No Clip,21
+2014,WI,Cold-Open,Jul,2014-07-03,903,Lake Trout,00: NONE,No Clip,19.4
+2014,WI,Cold-Open,Jul,2014-07-03,903,Lake Trout,00: NONE,No Clip,21.5
+2014,MN,Cold-Open,Jul,2014-07-03,903,Chinook,00: NONE,No Clip,24.9
+2014,MN,Cold-Open,Jul,2014-07-03,903,Lake Trout,00: NONE,No Clip,21.6
+2014,WI,Warm-Open,Jul,2014-07-03,903,Walleye,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Jul,2014-07-03,903,Black Crappie,00: NONE,No Clip,10.8
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,18.6
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,16.2
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,20.5
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,24.6
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,25.9
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,23.1
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,20.1
+2014,WI,Warm-Open,Jul,2014-07-04,903,Northern Pike,00: NONE,No Clip,26.1
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,23
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,21.9
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,19.7
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,22.4
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,22.2
+2014,WI,Cold-Open,Jul,2014-07-04,903,Lake Trout,00: NONE,No Clip,21.3
+2014,WI,Cold-Open,Jul,2014-07-04,903,Coho,00: NONE,No Clip,20
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,23.8
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,19.3
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,19
+2014,WI,Warm-Open,Jul,2014-07-04,903,Walleye,00: NONE,No Clip,23.4
+2014,WI,Warm-Open,Jul,2014-07-05,903,Walleye,00: NONE,No Clip,24.5
+2014,WI,Warm-Open,Jul,2014-07-05,903,Walleye,00: NONE,No Clip,24.9
+2014,WI,Cold-Open,Jul,2014-07-05,903,Lake Trout,00: NONE,No Clip,24.6
+2014,WI,Cold-Open,Jul,2014-07-05,903,Lake Trout,00: NONE,No Clip,22.3
+2014,WI,Cold-Open,Jul,2014-07-05,903,Lake Trout,00: NONE,No Clip,24.4
+2014,WI,Cold-Open,Jul,2014-07-05,903,Lake Trout,00: NONE,No Clip,23.7
+2014,WI,Cold-Open,Jul,2014-07-05,903,Lake Trout,00: NONE,No Clip,25.7
+2014,WI,Cold-Open,Jul,2014-07-05,903,Siscowet,00: NONE,No Clip,22
+2014,WI,Cold-Open,Jul,2014-07-05,903,Lake Trout,00: NONE,No Clip,21.2
+2014,WI,Cold-Open,Jul,2014-07-05,903,Lake Trout,00: NONE,No Clip,21.7
+2014,WI,Cold-Open,Jul,2014-07-05,903,Siscowet,00: NONE,No Clip,27.4
+2014,WI,Cold-Open,Jul,2014-07-06,903,Lake Trout,00: NONE,No Clip,21.2
+2014,WI,Cold-Open,Jul,2014-07-06,903,Lake Trout,00: NONE,No Clip,18.7
+2014,WI,Cold-Open,Jul,2014-07-06,903,Lake Trout,00: NONE,No Clip,20.2
+2014,WI,Warm-Open,Jul,2014-07-06,903,Walleye,00: NONE,No Clip,25.8
+2014,WI,Warm-Open,Jul,2014-07-06,903,Black Crappie,00: NONE,No Clip,12.5
+2014,WI,Warm-Open,Jul,2014-07-06,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jul,2014-07-07,903,Walleye,00: NONE,No Clip,18.4
+2014,WI,Warm-Open,Jul,2014-07-07,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jul,2014-07-07,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jul,2014-07-07,905,Walleye,00: NONE,No Clip,15
+2014,WI,Cold-Open,Jul,2014-07-07,903,Brown Trout,00: NONE,No Clip,22.3
+2014,WI,Cold-Open,Jul,2014-07-07,903,Brown Trout,00: NONE,No Clip,22.4
+2014,WI,Warm-Open,Jul,2014-07-07,903,Walleye,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Jul,2014-07-07,903,Yellow Perch,00: NONE,No Clip,10.6
+2014,WI,Warm-Open,Jul,2014-07-08,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Warm-Open,Jul,2014-07-08,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Jul,2014-07-08,903,Walleye,00: NONE,No Clip,23.1
+2014,WI,Warm-Open,Jul,2014-07-11,903,Walleye,00: NONE,No Clip,18.6
+2014,WI,Warm-Open,Jul,2014-07-11,903,Walleye,00: NONE,No Clip,20.4
+2014,WI,Warm-Open,Jul,2014-07-11,903,Walleye,00: NONE,No Clip,23.6
+2014,WI,Warm-Open,Jul,2014-07-11,903,Walleye,00: NONE,No Clip,20.4
+2014,WI,Warm-Open,Jul,2014-07-11,903,Black Crappie,00: NONE,No Clip,12.4
+2014,WI,Warm-Open,Jul,2014-07-11,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Warm-Open,Jul,2014-07-11,903,Walleye,00: NONE,No Clip,17.7
+2014,MN,Cold-Open,Jul,2014-07-12,903,Siscowet,00: NONE,No Clip,26.2
+2014,MN,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,21.1
+2014,MN,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,24.9
+2014,MN,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,32.5
+2014,MN,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,25.4
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,27
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,20.4
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,16
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Jul,2014-07-12,903,Black Crappie,00: NONE,No Clip,12
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,18.4
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,19.4
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,21.4
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,31.5
+2014,WI,Cold-Open,Jul,2014-07-12,903,Coho,00: NONE,No Clip,15.5
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,17.8
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,21.1
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,21.5
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,19.9
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,25.5
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,15.1
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Jul,2014-07-12,903,Black Crappie,00: NONE,No Clip,12.3
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,25.1
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,27
+2014,WI,Cold-Open,Jul,2014-07-12,903,Chinook,00: NONE,No Clip,22.9
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,18.1
+2014,WI,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,15.1
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,19.4
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,27.5
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,19.6
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,15.6
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,19
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,18.2
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,18.3
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,20.2
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,20.7
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,22
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,21.1
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,23.2
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,24.7
+2014,WI,Cold-Open,Jul,2014-07-12,903,Lake Trout,00: NONE,No Clip,24.7
+2014,WI,Cold-Open,Jul,2014-07-12,903,Coho,00: NONE,No Clip,16.1
+2014,WI/MN,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,15.6
+2014,WI/MN,Warm-Open,Jul,2014-07-12,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Jul,2014-07-12,905,Black Crappie,00: NONE,No Clip,14
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,24.2
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,29.1
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,24.2
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,19.6
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,22.9
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Cold-Open,Jul,2014-07-13,903,Lake Trout,00: NONE,No Clip,17.7
+2014,WI,Cold-Open,Jul,2014-07-13,903,Lake Trout,00: NONE,No Clip,17.8
+2014,WI,Cold-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Jul,2014-07-13,903,Walleye,00: NONE,No Clip,19.4
+2014,WI,Warm-Open,Jul,2014-07-15,903,Walleye,00: NONE,No Clip,24
+2014,WI,Warm-Open,Jul,2014-07-15,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Jul,2014-07-15,903,Walleye,00: NONE,No Clip,23.5
+2014,WI,Warm-Open,Jul,2014-07-15,903,Walleye,00: NONE,No Clip,22.6
+2014,WI,Warm-Open,Jul,2014-07-15,903,Walleye,00: NONE,No Clip,18.1
+2014,WI/MN,Warm-Open,Jul,2014-07-15,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,18.6
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,24.8
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,17.1
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,16.6
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,16.6
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Warm-Open,Jul,2014-07-16,903,Walleye,00: NONE,No Clip,17.1
+2014,WI,Warm-Open,Jul,2014-07-16,903,Black Crappie,00: NONE,No Clip,11.4
+2014,WI,Warm-Open,Jul,2014-07-16,903,Black Crappie,00: NONE,No Clip,10.5
+2014,WI,Warm-Open,Jul,2014-07-16,905,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,27.4
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,21.7
+2014,WI,Warm-Open,Jul,2014-07-19,903,Lake Trout,01: AD,Clip,19.5
+2014,WI,Cold-Open,Jul,2014-07-19,903,Coho,00: NONE,No Clip,19.6
+2014,WI,Warm-Open,Jul,2014-07-19,903,Lake Trout,00: NONE,No Clip,22.6
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Cold-Open,Jul,2014-07-19,903,Lake Trout,00: NONE,No Clip,18.1
+2014,WI,Cold-Open,Jul,2014-07-19,903,Lake Trout,00: NONE,No Clip,17.7
+2014,WI,Cold-Open,Jul,2014-07-19,903,Lake Trout,00: NONE,No Clip,16.1
+2014,WI,Warm-Open,Jul,2014-07-19,903,Black Crappie,00: NONE,No Clip,11.9
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,15.6
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,15.6
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,18.8
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,16.8
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,15.2
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Jul,2014-07-19,903,Walleye,00: NONE,No Clip,18.6
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,23.5
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17.1
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,20.2
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,20.4
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,16.6
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,16.8
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Cold-Open,Jul,2014-07-20,903,Lake Trout,00: NONE,No Clip,26
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,19.6
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,16
+2014,WI,Cold-Open,Jul,2014-07-20,903,Lake Trout,00: NONE,No Clip,32.8
+2014,WI,Cold-Open,Jul,2014-07-20,903,Lake Trout,00: NONE,No Clip,20.6
+2014,WI,Cold-Open,Jul,2014-07-20,903,Chinook,00: NONE,No Clip,18.9
+2014,WI,Cold-Open,Jul,2014-07-20,903,Lake Trout,00: NONE,No Clip,20.2
+2014,WI,Cold-Open,Jul,2014-07-20,903,Lake Trout,00: NONE,No Clip,26
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17.1
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Warm-Open,Jul,2014-07-20,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,22.6
+2014,WI,Warm-Open,Jul,2014-07-21,903,Black Crappie,00: NONE,No Clip,12.4
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,23.6
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Cold-Open,Jul,2014-07-21,903,Lake Trout,00: NONE,No Clip,25.7
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Cold-Open,Jul,2014-07-21,903,Lake Trout,00: NONE,No Clip,17.2
+2014,WI,Cold-Open,Jul,2014-07-21,903,Lake Trout,00: NONE,No Clip,17.9
+2014,WI,Cold-Open,Jul,2014-07-21,903,Lake Trout,00: NONE,No Clip,23.4
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,18.7
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,23.1
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,17.6
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Jul,2014-07-21,903,Yellow Perch,00: NONE,No Clip,10.5
+2014,WI,Warm-Open,Jul,2014-07-21,903,Walleye,00: NONE,No Clip,21.5
+2014,WI,Warm-Open,Jul,2014-07-25,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,17.5
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Jul,2014-07-26,903,Black Crappie,00: NONE,No Clip,9.5
+2014,WI,Warm-Open,Jul,2014-07-26,903,Northern Pike,00: NONE,No Clip,29.1
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Jul,2014-07-26,903,Yellow Perch,00: NONE,No Clip,10.9
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,17.6
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,22.2
+2014,WI,Cold-Open,Jul,2014-07-26,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Cold-Open,Jul,2014-07-26,903,Lake Trout,00: NONE,No Clip,17.9
+2014,WI/MN,Cold-Open,Jul,2014-07-26,905,Chinook,00: NONE,No Clip,21.5
+2014,WI,Warm-Open,Jul,2014-07-27,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jul,2014-07-27,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Jul,2014-07-27,903,Walleye,00: NONE,No Clip,15.8
+2014,WI,Warm-Open,Jul,2014-07-27,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Jul,2014-07-27,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Jul,2014-07-28,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Warm-Open,Jul,2014-07-28,903,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Jul,2014-07-28,903,Walleye,00: NONE,No Clip,15.5
+2014,MN,Cold-Open,Jul,2014-07-31,903,Lake Trout,00: NONE,No Clip,14.9
+2014,MN,Cold-Open,Jul,2014-07-31,903,Coho,00: NONE,No Clip,18.4
+2014,MN,Cold-Open,Jul,2014-07-31,903,Chinook,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Jul,2014-07-31,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Jul,2014-07-31,903,Walleye,00: NONE,No Clip,23.2
+2014,WI,Warm-Open,Jul,2014-07-31,903,Walleye,00: NONE,No Clip,16.3
+2014,WI,Warm-Open,Jul,2014-07-31,903,Walleye,00: NONE,No Clip,16.8
+2014,WI,Warm-Open,Jul,2014-07-31,903,Yellow Perch,00: NONE,No Clip,12
+2014,WI,Cold-Open,Jul,2014-07-31,903,Lake Trout,00: NONE,No Clip,17.2
+2014,WI,Warm-Open,Jul,2014-07-31,903,Walleye,00: NONE,No Clip,20.1
+2014,WI,Warm-Open,Aug,2014-08-01,903,Walleye,00: NONE,No Clip,21.6
+2014,WI,Warm-Open,Aug,2014-08-01,903,Walleye,00: NONE,No Clip,15.9
+2014,WI/MN,Cold-Open,Aug,2014-08-01,903,Lake Trout,00: NONE,No Clip,18.3
+2014,WI/MN,Cold-Open,Aug,2014-08-01,903,Lake Trout,00: NONE,No Clip,17.1
+2014,WI/MN,Cold-Open,Aug,2014-08-01,903,Lake Trout,00: NONE,No Clip,17.7
+2014,WI/MN,Cold-Open,Aug,2014-08-01,903,Lake Trout,01: AD,Clip,17.3
+2014,WI/MN,Cold-Open,Aug,2014-08-01,903,Chinook,00: NONE,No Clip,18.2
+2014,WI,Cold-Open,Aug,2014-08-02,903,Chinook,00: NONE,No Clip,18.9
+2014,WI,Cold-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,22.2
+2014,WI,Cold-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,19.3
+2014,WI,Cold-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,16.7
+2014,WI,Cold-Open,Aug,2014-08-02,903,Chinook,00: NONE,No Clip,19.6
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,01: AD,Clip,18.5
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,01: AD,Clip,19.2
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,18.3
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,21.7
+2014,WI,Warm-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Warm-Open,Aug,2014-08-02,903,Black Crappie,00: NONE,No Clip,10.4
+2014,WI,Warm-Open,Aug,2014-08-02,903,Black Crappie,00: NONE,No Clip,10.7
+2014,WI,Warm-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,20.2
+2014,WI,Warm-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Warm-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,20.4
+2014,WI,Warm-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,20.3
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,01: AD,Clip,24.8
+2014,WI,Cold-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,16
+2014,WI,Cold-Open,Aug,2014-08-02,903,Chinook,00: NONE,No Clip,19.2
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,26
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,22.6
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,17.9
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,17
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,01: AD,Clip,22.6
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,15
+2014,WI,Warm-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,18.8
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,29.1
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,17.4
+2014,WI,Cold-Open,Aug,2014-08-02,903,Coho,00: NONE,No Clip,13.8
+2014,WI,Warm-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,23.9
+2014,WI,Warm-Open,Aug,2014-08-02,903,Northern Pike,00: NONE,No Clip,19.3
+2014,WI,Cold-Open,Aug,2014-08-02,903,Chinook,00: NONE,No Clip,20.1
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,16.6
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,20.4
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,18.9
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,17.6
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,21.7
+2014,WI,Cold-Open,Aug,2014-08-02,903,Walleye,00: NONE,No Clip,21.4
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,23.1
+2014,WI,Cold-Open,Aug,2014-08-02,903,Lake Trout,00: NONE,No Clip,18.2
+2014,WI,Cold-Open,Aug,2014-08-03,903,Lake Trout,00: NONE,No Clip,22.1
+2014,WI,Cold-Open,Aug,2014-08-03,903,Lake Trout,00: NONE,No Clip,22.4
+2014,WI,Cold-Open,Aug,2014-08-03,903,Walleye,00: NONE,No Clip,21.5
+2014,WI,Warm-Open,Aug,2014-08-03,903,Lake Trout,00: NONE,No Clip,23.2
+2014,WI,Warm-Open,Aug,2014-08-03,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Warm-Open,Aug,2014-08-03,903,Walleye,00: NONE,No Clip,20
+2014,WI,Cold-Open,Aug,2014-08-03,903,Walleye,00: NONE,No Clip,16.8
+2014,WI,Cold-Open,Aug,2014-08-03,903,Walleye,00: NONE,No Clip,18.7
+2014,WI,Cold-Open,Aug,2014-08-03,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Cold-Open,Aug,2014-08-03,903,Lake Trout,00: NONE,No Clip,22.2
+2014,WI,Cold-Open,Aug,2014-08-03,903,Lake Trout,00: NONE,No Clip,24
+2014,WI,Cold-Open,Aug,2014-08-03,903,Lake Trout,00: NONE,No Clip,15.4
+2014,WI,Cold-Open,Aug,2014-08-03,903,Lake Trout,01: AD,Clip,19.6
+2014,WI,Cold-Open,Aug,2014-08-03,903,Brown Trout,00: NONE,No Clip,20.5
+2014,WI,Cold-Open,Aug,2014-08-03,905,Lake Trout,00: NONE,No Clip,20.4
+2014,WI/MN,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,15.5
+2014,WI/MN,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,15.1
+2014,WI/MN,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,16.4
+2014,WI/MN,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,15.6
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,20.6
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,26.5
+2014,WI,Warm-Open,Aug,2014-08-06,903,Brown Trout,00: NONE,No Clip,21.2
+2014,WI,Warm-Open,Aug,2014-08-06,903,Northern Pike,00: NONE,No Clip,30.4
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,15.8
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Aug,2014-08-06,903,Black Crappie,00: NONE,No Clip,9.5
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,22.3
+2014,WI,Warm-Open,Aug,2014-08-06,903,Walleye,00: NONE,No Clip,22.2
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,20.8
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,16.8
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,19.3
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,20.5
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,19.4
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,18.8
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,17.6
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,19.4
+2014,WI,Warm-Open,Aug,2014-08-07,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,20
+2014,WI,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,15.3
+2014,WI,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,18
+2014,WI,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,19.9
+2014,WI/MN,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,19.1
+2014,WI,Cold-Open,Aug,2014-08-08,903,Brown Trout,00: NONE,No Clip,22.1
+2014,WI,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,18.4
+2014,WI,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,19
+2014,WI,Cold-Open,Aug,2014-08-08,903,Lake Trout,00: NONE,No Clip,16.3
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,16.8
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Aug,2014-08-08,903,Black Crappie,00: NONE,No Clip,12
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,16.2
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,21
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Aug,2014-08-08,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Aug,2014-08-09,903,Yellow Perch,00: NONE,No Clip,8.8
+2014,WI,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,18.8
+2014,WI,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,16.2
+2014,WI,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,20
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,20.6
+2014,MN,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,28.6
+2014,MN,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,19.8
+2014,MN,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,18.9
+2014,MN,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,25.4
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.8
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.7
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,21.7
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,24.5
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Aug,2014-08-09,903,Black Crappie,00: NONE,No Clip,11.2
+2014,WI,Warm-Open,Aug,2014-08-09,903,Brown Trout,00: NONE,No Clip,23
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,20.6
+2014,WI,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,24
+2014,WI,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,24
+2014,WI/MN,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,18.5
+2014,WI/MN,Cold-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.8
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,16.7
+2014,WI/MN,Cold-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,19.4
+2014,WI/MN,Cold-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,17.3
+2014,WI/MN,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,16.9
+2014,WI/MN,Cold-Open,Aug,2014-08-09,903,Lake Trout,00: NONE,No Clip,21.6
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,20.6
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Aug,2014-08-09,903,Walleye,00: NONE,No Clip,21.2
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,20.5
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.8
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Warm-Open,Aug,2014-08-10,903,Yellow Perch,00: NONE,No Clip,8.2
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,17
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Aug,2014-08-10,903,Black Crappie,00: NONE,No Clip,10.6
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,27.1
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Warm-Open,Aug,2014-08-10,903,Yellow Perch,00: NONE,No Clip,8.3
+2014,WI,Warm-Open,Aug,2014-08-10,903,Yellow Perch,00: NONE,No Clip,10
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,16.7
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.8
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,20.3
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,16
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,16.2
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Aug,2014-08-10,903,Yellow Perch,00: NONE,No Clip,8.8
+2014,WI,Warm-Open,Aug,2014-08-10,903,Yellow Perch,00: NONE,No Clip,9.5
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,17.7
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,20.3
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,18.6
+2014,WI,Warm-Open,Aug,2014-08-10,903,Yellow Perch,00: NONE,No Clip,8.7
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,18.6
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.8
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.2
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,16.6
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,17.6
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,19.9
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Cold-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,23.4
+2014,WI,Cold-Open,Aug,2014-08-10,903,Lake Trout,00: NONE,No Clip,19.2
+2014,WI,Cold-Open,Aug,2014-08-10,903,Lake Trout,00: NONE,No Clip,28.3
+2014,WI,Cold-Open,Aug,2014-08-10,903,Lake Trout,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Aug,2014-08-10,903,Walleye,00: NONE,No Clip,15.8
+2014,WI,Warm-Open,Aug,2014-08-11,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Cold-Open,Aug,2014-08-11,903,Lake Trout,00: NONE,No Clip,19.8
+2014,WI,Cold-Open,Aug,2014-08-11,903,Lake Trout,00: NONE,No Clip,16.9
+2014,WI,Cold-Open,Aug,2014-08-11,903,Lake Trout,00: NONE,No Clip,22.3
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,15.6
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,19.3
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,18.8
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,18.2
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,18.1
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,20.1
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,23.9
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,15.6
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,16
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,28.2
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,19.3
+2014,WI,Warm-Open,Aug,2014-08-14,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,19.4
+2014,WI,Warm-Open,Aug,2014-08-15,903,Yellow Perch,00: NONE,No Clip,10.9
+2014,WI,Warm-Open,Aug,2014-08-15,903,Yellow Perch,00: NONE,No Clip,9.3
+2014,WI,Warm-Open,Aug,2014-08-15,903,Yellow Perch,00: NONE,No Clip,8.1
+2014,WI,Cold-Open,Aug,2014-08-15,903,Lake Trout,00: NONE,No Clip,18.5
+2014,WI,Cold-Open,Aug,2014-08-15,903,Chinook,00: NONE,No Clip,21.9
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,24.9
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Cold-Open,Aug,2014-08-15,903,Lake Trout,00: NONE,No Clip,17.9
+2014,WI/MN,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.4
+2014,WI/MN,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16
+2014,WI/MN,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,15
+2014,WI/MN,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.7
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,17.1
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.1
+2014,WI,Cold-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,22.7
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,18.9
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Cold-Open,Aug,2014-08-15,903,Lake Trout,00: NONE,No Clip,20.5
+2014,WI,Cold-Open,Aug,2014-08-15,903,Lake Trout,09: RP,Clip,19.9
+2014,WI,Cold-Open,Aug,2014-08-15,903,Lake Trout,00: NONE,No Clip,19.6
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,15.3
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.9
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.6
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Warm-Open,Aug,2014-08-13,903,Walleye,00: NONE,No Clip,19.4
+2014,WI,Warm-Open,Aug,2014-08-13,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Aug,2014-08-13,903,Walleye,00: NONE,No Clip,15
+2014,WI,Warm-Open,Aug,2014-08-13,903,Walleye,00: NONE,No Clip,15.2
+2014,WI,Warm-Open,Aug,2014-08-13,903,Walleye,00: NONE,No Clip,28
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,20.2
+2014,WI,Warm-Open,Aug,2014-08-15,903,Walleye,00: NONE,No Clip,16.5
+2014,WI,Warm-Open,Aug,2014-08-16,903,Black Crappie,00: NONE,No Clip,12.2
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,17.3
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,18
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,16.3
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,17.4
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,17
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,26.2
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,21.6
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,23
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,01: AD,Clip,21
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,20
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,24.6
+2014,WI,Cold-Open,Aug,2014-08-16,903,Chinook,00: NONE,No Clip,23
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,17.9
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,16.4
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,18.7
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,17.5
+2014,WI/MN,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,20.2
+2014,WI/MN,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,25.1
+2014,WI/MN,Cold-Open,Aug,2014-08-16,903,Chinook,00: NONE,No Clip,24.6
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,21.4
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,22.6
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,15.5
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,19.3
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,22.8
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,15.9
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,18.1
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,33.1
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,21.4
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,01: AD,Clip,16.9
+2014,WI,Cold-Open,Aug,2014-08-16,903,Chinook,00: NONE,No Clip,19.2
+2014,WI,Warm-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,20.2
+2014,WI,Cold-Open,Aug,2014-08-16,903,Walleye,00: NONE,No Clip,21.2
+2014,WI,Cold-Open,Aug,2014-08-16,903,Lake Trout,00: NONE,No Clip,19.1
+2014,WI,Warm-Open,Aug,2014-08-17,903,Walleye,00: NONE,No Clip,17.2
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,15.4
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,18.4
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,19.8
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Cold-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,21.5
+2014,WI,Cold-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,18.8
+2014,WI,Cold-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,18.3
+2014,WI,Cold-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,18.5
+2014,WI,Warm-Open,Aug,2014-08-19,903,Lake Trout,09: RP,Clip,15.5
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,20.6
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,26.6
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,19.5
+2014,WI,Warm-Open,Aug,2014-08-19,903,Walleye,00: NONE,No Clip,18.5
+2014,WI/MN,Cold-Open,Aug,2014-08-25,903,Lake Trout,01: AD,Clip,17.9
+2014,WI/MN,Cold-Open,Aug,2014-08-27,903,Lake Trout,08: LP,Clip,22.4
+2014,WI/MN,Cold-Open,Aug,2014-08-27,903,Lake Trout,01: AD,Clip,16.7
+2014,WI/MN,Cold-Open,Aug,2014-08-27,903,Lake Trout,08: LP,Clip,27.5
+2014,WI/MN,Cold-Open,Aug,2014-08-27,903,Lake Trout,00: NONE,No Clip,21.6
+2014,WI/MN,Cold-Open,Aug,2014-08-27,903,Lake Trout,00: NONE,No Clip,17.2
+2014,WI,Cold-Open,Aug,2014-08-30,903,Chinook,00: NONE,No Clip,21.2
+2014,WI/MN,Cold-Open,Aug,2014-08-30,903,Lake Trout,01: AD,Clip,24.9
+2014,WI/MN,Cold-Open,Aug,2014-08-30,903,Walleye,00: NONE,No Clip,18.2
+2014,MN,Warm-Open,Aug,2014-08-30,903,Catfish,00: NONE,No Clip,20.1
+2014,WI,Warm-Open,Aug,2014-08-30,903,Walleye,00: NONE,No Clip,18.7
+2014,WI,Warm-Open,Aug,2014-08-30,903,Northern Pike,00: NONE,No Clip,25.1
+2014,WI,Cold-Open,Aug,2014-08-31,903,Lake Trout,13: D,Clip,25.1
+2014,WI,Cold-Open,Aug,2014-08-31,903,Lake Trout,00: NONE,No Clip,19.3
+2014,WI,Cold-Open,Aug,2014-08-31,903,Siscowet,00: NONE,No Clip,22.3
+2014,WI,Cold-Open,Aug,2014-08-31,903,Lake Trout,00: NONE,No Clip,20.9
+2014,WI,Cold-Open,Aug,2014-08-31,903,Lake Trout,08: LP,Clip,30.3
+2014,WI,Cold-Open,Aug,2014-08-31,903,Lake Trout,07: RV,Clip,28.2
+2014,MN,Cold-Open,Aug,2014-08-31,903,Lake Trout,00: NONE,No Clip,20.5
+2014,MN,Cold-Open,Aug,2014-08-31,903,Siscowet,00: NONE,No Clip,18.3
+2014,WI,Cold-Open,Sep,2014-09-05,903,Lake Trout,08: LP,Clip,28.3
+2014,MN,Cold-Open,Sep,2014-09-06,903,Coho,00: NONE,No Clip,18.3
+2014,MN,Cold-Open,Sep,2014-09-07,903,Lake Trout,00: NONE,No Clip,22.1
+2014,WI,Warm-Open,Sep,2014-09-07,903,Walleye,00: NONE,No Clip,20.6
+2014,WI,Warm-Open,Sep,2014-09-07,903,Walleye,00: NONE,No Clip,15.7
+2014,WI,Cold-Open,Sep,2014-09-13,903,Siscowet,00: NONE,No Clip,23.4
+2014,WI,Cold-Open,Sep,2014-09-13,903,Lake Trout,08: LP,Clip,19.6
+2014,WI/MN,Cold-Open,Sep,2014-09-21,903,Lake Trout,01: AD,Clip,17.4
+2014,MN,Cold-Open,Sep,2014-09-25,903,Lake Trout,00: NONE,No Clip,18.7
+2014,WI,Cold-Open,Sep,2014-09-25,903,Lake Trout,09: RP,Clip,20.2
+2014,WI,Cold-Open,Sep,2014-09-25,903,Lake Trout,00: NONE,No Clip,23.9
+2014,WI,Cold-Open,Sep,2014-09-25,903,Lake Trout,00: NONE,No Clip,19.2
+2014,WI/MN,Cold-Open,Sep,2014-09-26,903,Lake Trout,00: NONE,No Clip,23.4
+2014,WI/MN,Cold-Open,Sep,2014-09-26,903,Lake Trout,09: RP,Clip,19.3
+2014,WI/MN,Cold-Open,Sep,2014-09-26,903,Chinook,00: NONE,No Clip,24.7
+2014,WI,Cold-Open,Sep,2014-09-26,903,Lake Trout,00: NONE,No Clip,23.9
+2014,WI,Cold-Open,Sep,2014-09-26,903,Lake Trout,00: NONE,No Clip,19
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,00: NONE,No Clip,17.7
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,00: NONE,No Clip,16.8
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,08: LP,Clip,20.5
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,06: LV,Clip,23
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,00: NONE,No Clip,24.2
+2014,WI,Cold-Open,Sep,2014-09-27,903,Chinook,00: NONE,No Clip,20
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,08: LP,Clip,18.4
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,00: NONE,No Clip,18.3
+2014,WI,Cold-Open,Sep,2014-09-27,903,Lake Trout,08: LP,Clip,19.1
+2014,WI,Cold-Open,Sep,2014-09-27,903,Coho,00: NONE,No Clip,19.6
+2014,WI,Cold-Open,Sep,2014-09-28,903,Lake Trout,00: NONE,No Clip,16.8
+2014,WI,Cold-Open,Sep,2014-09-28,903,Lake Trout,00: NONE,No Clip,20.1
+2014,WI,Cold-Open,Sep,2014-09-28,903,Walleye,00: NONE,No Clip,17.8
+2014,WI,Cold-Open,Sep,2014-09-28,903,Lake Trout,06: LV,Clip,23.4
+2014,WI,Cold-Open,Sep,2014-09-28,903,Lake Trout,00: NONE,No Clip,22.6
+2014,WI,Cold-Open,Sep,2014-09-28,903,Lake Trout,00: NONE,No Clip,18
+2014,WI,Cold-Open,Sep,2014-09-28,903,Lake Trout,09: RP,Clip,18
