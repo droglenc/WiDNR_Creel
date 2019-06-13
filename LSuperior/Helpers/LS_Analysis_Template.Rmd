@@ -7,8 +7,12 @@ params:
     value: 05/21/2014
   FDATE:
     value: 09/30/2014
-  FTYPE:
-    value: SAS
+  DAY_LENGTH:
+    value: NULL
+  CNTS_FILE:
+    value: NULL
+  INTS_FILE:
+    value: NULL
   TABLES:
     value: !r c(1)
   FIGURES:
@@ -28,7 +32,9 @@ output:
 LOC <- params$LOC
 SDATE <- params$SDATE
 FDATE <- params$FDATE
-FTYPE <- params$FTYPE
+CNTS_FILE <- params$CNTS_FILE
+INTS_FILE <- params$INTS_FILE
+DAY_LENGTH <- params$DAY_LENGTH
 TABLES <- params$TABLES
 FIGURES <- params$FIGURES
 WDIR <- params$WDIR

@@ -12,10 +12,11 @@ for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
 ## Main Helpers ----
 
 ## Read and prepare the interview data file
-readInterviewData <- function(RDIR,LOC,SDATE,FDATE,type,
+readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,
                               dropCLS=TRUE,dropHM=TRUE) {
-  if (type=="CSV") d <- read.csv(paste0(RDIR,"data/",LOC,"ints.csv"))
-  else d <- haven::read_sas(paste0(RDIR,"data/",LOC,"ints.sas7bdat"))
+  
+  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(paste0(RDIR,"data/",FN))
+  else d <- read.csv(paste0(RDIR,"data/",FN))
   d <- d %>%
     ## Add interview ID number
     ## Convert some codes to words
@@ -102,7 +103,7 @@ sumInterviewedEffort <- function(dints) {
 
 
 ## Read and prepare the interview data file
-readPressureCountData <- function(RDIR,LOC,SDATE,FDATE,type,dropHM=TRUE) {
+readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
   ###   Find various varsions of dates (note that DATE had to be handled
   ###     differently than above b/c four rather than two digits used here).
   ###   Convert missing COUNTs to zeroes
@@ -110,8 +111,8 @@ readPressureCountData <- function(RDIR,LOC,SDATE,FDATE,type,dropHM=TRUE) {
   ###   Convert average counts (the original COUNT variable) to "total effort"
   ###     during shift (by muliplying by the WAIT time) so that multiple shifts
   ###     on each day can be combined (from original SAS code).
-  if (type=="CSV") d <- read.csv(paste0(RDIR,"data/",LOC,"cnts.csv"))
-  else d <- haven::read_sas(paste0(RDIR,"data/",LOC,"cnts.sas7bdat"))
+  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(paste0(RDIR,"data/",FN))
+  else d <- read.csv(paste0(RDIR,"data/",FN))
   d <- d %>%
     dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
                   YEAR=lubridate::year(DATE),
@@ -141,8 +142,10 @@ readPressureCountData <- function(RDIR,LOC,SDATE,FDATE,type,dropHM=TRUE) {
 ##
 expandPressureCounts <- function(dcnts,cal) {
   dcnts %<>%
+    ### Adds a temporary day length variable (from cal) to each count
+    right_join(cal[,c("MONTH","DAYLEN")],by="MONTH") %>%
     ### Expands observed pressure counts to represent the entire day 
-    dplyr::mutate(COUNT=COUNT*iMvDaylen(MONTH)/WAIT) %>%
+    dplyr::mutate(COUNT=COUNT*DAYLEN/WAIT) %>%
     ### Computes daily pressure counts (across sites within days)
     dplyr::group_by(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE) %>%
     dplyr::summarize(WAIT=sum(WAIT),
@@ -1314,8 +1317,6 @@ figure5 <- function(fnpre,topN=3) {
 }
 
 figure6 <- function(fnpre,topN=3) {
-  # Turn warnings off (turned back on below)
-  options(warn=-1)
   # Read and prepare lengths data file
   tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
     dplyr::mutate(SPECIES=iMvSpecies(SPECIES),
@@ -1335,7 +1336,7 @@ figure6 <- function(fnpre,topN=3) {
   tmp %<>% filter(SPECIES %in% TOPN$SPECIES)
   # Make the plot
   p <- ggplot(data=tmp,aes(x=LEN,fill=CLIPPED)) +
-    geom_histogram() +
+    geom_histogram(binwidth=1,na.rm=TRUE) +
     xlab("Length (Inches)") +
     ylab("Relative Frequency") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
@@ -1346,7 +1347,6 @@ figure6 <- function(fnpre,topN=3) {
     theme(
       axis.text.y.left = element_blank()
     )
-  options(warn=0)
   p
 }
 
@@ -1365,11 +1365,10 @@ writeDF <- function(x,fnpre) {
 
 
 ## Creates day lengths from month names
-iMvDaylen <- function(x) {
-  mos <- c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
-  lens <- c(0,0,0,0,16,16,16,16,16,0,0,0)
-  x <- FSA::mapvalues(x,from=mos,to=lens,warn=FALSE)
-  FSA::fact2num(x)
+iMvDaylen <- function(x,DAY_LENGTH) {
+  daylens <- DAY_LENGTH[as.character(x)]
+  names(daylens) <- NULL
+  daylens
 }
 
 ## Convert DOW to weekend or weekdays ... with holidays as weekends

@@ -13,6 +13,7 @@
 #
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
+
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 # DO NOT CHANGE ANYTHING BENEATH HERE
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
@@ -34,21 +35,21 @@ source(paste0(WDIR,"Helpers/LS_Analysis_Helpers.R"))
 fnpre <- fnPrefix(RDIR,LOC,SDATE)
 
 ## Create expansion factors ----
-### Make data.frame of dates from starting to ending date (entered above)
-###    include the year, month, and what type of day it is (Weekend or Weekday).
-###    Holidays are coded as weekends. 
-### Counts the number of weekend and weekday days in each month and includes a
-###   variable that is the fishing day length.
-### This is used later to expand sample to population. Also used for Table 1.
+# Make data.frame of dates from starting to ending date (entered above). This is
+# used later to expand sample to population. Also used for Table 1.
 #!!!!!! This matches Iyob's 'calendar1' after his line 97
 calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
+  # Include year, month, and what type of day it is (Weekend or Weekday) ...
+  #   Holidays are coded as weekends. 
   mutate(YEAR=year(DATE),
          MONTH=droplevels(month(DATE,label=TRUE)),
          DAYTYPE=iMvDaytype(wday(DATE,label=TRUE),MONTH,mday(DATE))
   ) %>%
+  # Count number of weekend and weekday days in each month
   group_by(YEAR,MONTH,DAYTYPE) %>%
   summarize(DAYS=n()) %>%
-  mutate(DAYLEN=iMvDaylen(MONTH)) %>%
+  # include a variable that is the fishing day length.
+  mutate(DAYLEN=iMvDaylen(MONTH,DAY_LENGTH)) %>%
   as.data.frame()
 
 
@@ -60,7 +61,7 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
 #!!!!!! YEAR variables; DATE is a different format; and I dropped the
 #!!!!!! CLIPXX, LENXX, and SPECXX variables that had no data.
-ints_ORIG <- readInterviewData(RDIR,LOC,SDATE,FDATE,type=FTYPE,
+ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE,
                                dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
   select(-FISH,-RES,-SUCCESS) %>%
@@ -104,8 +105,7 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 #!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
 #!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
 #!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
-pressureCount <- readPressureCountData(RDIR,LOC,SDATE,FDATE,
-                                       type=FTYPE,dropHM=TRUE)
+pressureCount <- readPressureCountData(CNTS_FILE,RDIR,LOC,SDATE,FDATE,dropHM=TRUE)
 
 ### Expand the daily count pressure data to be a summary for each MONTH and
 ### DAYTYPE with the following variables:
