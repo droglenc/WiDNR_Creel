@@ -12,7 +12,7 @@
 
 ## DIRECTIONS >>> Change these items as needed (make sure to run each line).
 YEAR <- 2019
-CLERK <- "D"       # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
+CLERK <- "A"       # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
 LAKE <- "SUPERIOR"
 SEED <- NULL       # Enter number for repeatability, otherwise NULL
 

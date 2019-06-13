@@ -604,44 +604,24 @@ iMakeBusRoute <- function(info,LAKE,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
   ttlEffort <- iAdjustTimeAtSite(ttlEffort,ttlTime,sites,peffort)
   
   ## Make a route from first site to end
-  ## Adjust (wrap the route) for a random starting time
-  df <- iMakeOrderedRoute(sites,travel,ttlEffort)
-  df <- iAdjustRoute4RandomStart(df,mins)
-  
-  ## Convert mins to actual time-of-day (must convert mins to secs)
-  df$TIME <- format(start+df$TIME*60,format="%H:%M")
+  df <- iMakeOrderedRoute(sites,travel,ttlEffort) %>%
+    ## Adjust (wrap the route) for a random starting time
+    iAdjustRoute4RandomStart(mins) %>%
+    ## Convert mins to actual time-of-day (must convert mins to secs)
+    mutate(TIME=format(start+TIME*60,format="%H:%M")) %>%
+    ## Add data entry locations
+    mutate(ARRIVED=ifelse(grepl("TRAVEL",LOCATION) | grepl("END",LOCATION),
+                          "","_ _ : _ _"),
+           DEPARTED=ARRIVED,
+           COUNT=ifelse(grepl("TRAVEL",LOCATION) | grepl("END",LOCATION),
+                        "","_ _ _"))
   
   ## Return data.frame
   df
 }
 
-iPrintBusRouteHeader <- function(x,lake) {
-  x <- x %>%
-    mutate(LAKE=lake,
-           DATE=format(lubridate::ymd(x$DATE),format="%m/%d/%Y"),
-           DAYTYPE=paste(DAYTYPE,
-                         ifelse(DAYTYPE=="WEEKDAY","(1)","(2)"),sep=" ")) %>%
-    select(LAKE,ROUTE,DATE,DAYTYPE,SHIFT,DAILY_SCHED)
-  x <- t(x)
-  colnames(x) <- c("Information")
-  ## Make Kable
-  kt <- knitr::kable(x,format="latex",booktabs=TRUE,linesep="") %>%
-    kableExtra::kable_styling(full_width=FALSE,
-                              position="left",
-                              latex_options=c("hold_position")) %>%
-    kableExtra::column_spec(1,bold=TRUE) %>%
-    kableExtra::row_spec(0,bold=TRUE)
-  ## Return table
-  kt
-}
-
 iPrintBusRoute <- function(brdf) {
-  ## Add the ARRIVED, DEPARTED, and COUNT columns
   travORendRows <- grepl("TRAVEL",brdf$LOCATION) | grepl("END",brdf$LOCATION)
-  brdf$ARRIVED <- ifelse(travORendRows,"","_ _ : _ _")
-  brdf$DEPARTED <- brdf$ARRIVED
-  brdf$COUNT <- ifelse(travORendRows,"","_ _ _")
-  
   ## Make the kable
   kt <- knitr::kable(brdf,format="latex",booktabs=TRUE,
                      linesep="",align=c("l","l","c","c","c")) %>%

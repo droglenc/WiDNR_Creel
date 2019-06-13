@@ -90,14 +90,20 @@ if (length(sites)>1) {
   for (i in mos) {
     tmp <- dplyr::filter(sched,MONTH==i,CREEL=="YES")
     for (j in seq_len(nrow(tmp))) {
-      br <- iMakeBusRoute(finfo,
-                          ROUTE=as.character(tmp$ROUTE[j]),
-                          SHIFT=as.character(tmp$SHIFT[j]),
-                          MONTH1=as.character(tmp$MONTH[j]))
+      tmp_j <- tmp[j,]
+      br <- iMakeBusRoute(finfo,ROUTE=tmp_j$ROUTE,SHIFT=tmp_j$SHIFT,
+                          MONTH1=tmp_j$MONTH)
       cat("\\newpage\n")
-      print(iPrintBusRouteHeader(tmp[j,],LAKE))
+      cat(paste0("**Lake ",FSA::capFirst(LAKE)," Creel Survey**\n\n"))
+      cat(paste0("**#",tmp_j$DAILY_SCHED,": ",tmp_j$ROUTE," route for ",
+                format(lubridate::ymd(tmp_j$DATE),format="%m/%d/%Y")," -- ",
+                FSA::capFirst(tmp_j$DAYTYPE),
+                ifelse(tmp_j$DAYTYPE=="WEEKDAY"," (1)"," (2)"),
+                ", ",tmp_j$SHIFT," shift**"))
       cat("\\vspace{24pt}\n")
       print(iPrintBusRoute(br))
+      cat("\\vspace{24pt}\n")
+      cat("**NOTES:**")
     }
   }
 }
