@@ -1,8 +1,8 @@
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 #
 #  DIRECTIONS:
-#   * Don't run this file ... use LSCreel_TableMaker.R
-#   * This, along with LSCreel_helpers, contains the "guts" of the program
+#   * Don't run this file ... use LS_Analyzer.R
+#   * This, along with LS_Analysis_Helpers, contains the "guts" of the program
 #
 #  NOTES:
 #   * Counts (for Lake Superior) are average number of parties present during
@@ -22,11 +22,13 @@
 SDATE <- as.Date(SDATE,"%m/%d/%Y")
 FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
-### Prepare working and results directory
-suppressWarnings(dir.create(RDIR))
+### Determine if results directory exists (stop if not)
+if (!dir.exists(RDIR)) stop("The ",RDIR," directory does not exist.\n",
+                            "Please create this directory and populate it ",
+                            "with the 'interview' and 'count' data files.")
 
 ### Load helper files
-source(paste0(WDIR,"helpers/LSCreel_helpers.R"))
+source(paste0(WDIR,"Helpers/LS_Analysis_Helpers.R"))
 
 ### Filename prefix
 fnpre <- fnPrefix(RDIR,LOC,SDATE)
@@ -58,7 +60,7 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 #!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
 #!!!!!! YEAR variables; DATE is a different format; and I dropped the
 #!!!!!! CLIPXX, LENXX, and SPECXX variables that had no data.
-ints_ORIG <- readInterviewData(WDIR,LOC,SDATE,FDATE,type=FTYPE,
+ints_ORIG <- readInterviewData(RDIR,LOC,SDATE,FDATE,type=FTYPE,
                                dropCLS=TRUE,dropHM=TRUE) %>%
   filter(!is.na(HOURS)) %>%
   select(-FISH,-RES,-SUCCESS) %>%
@@ -102,7 +104,7 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 #!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
 #!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
 #!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
-pressureCount <- readPressureCountData(WDIR,LOC,SDATE,FDATE,
+pressureCount <- readPressureCountData(RDIR,LOC,SDATE,FDATE,
                                        type=FTYPE,dropHM=TRUE)
 
 ### Expand the daily count pressure data to be a summary for each MONTH and
@@ -173,4 +175,3 @@ sumLengthSMF <- sumLengths(lengths,CLIPPED)
 #!!!!!! those species that had at least one observed fin-clip).
 specClipped <- unique(filter(lengths,CLIPPED=="FINCLIP")$SPECIES)
 sumLengthSMC <- sumLengths(filter(lengths,SPECIES %in% specClipped),CLIP)
-

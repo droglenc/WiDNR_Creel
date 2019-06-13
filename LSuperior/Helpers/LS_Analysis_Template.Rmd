@@ -10,17 +10,17 @@ params:
   FTYPE:
     value: SAS
   TABLES:
-    value: !r c(1,2,3,4,5,6,7,8,9)
+    value: !r c(1)
   FIGURES:
-    value: !r c(1,2,3,4,5,6,7,8,9)
+    value: !r c(1)
   WDIR:
-    value: "C:/aaaWork/Research/WiDNR_Creel/LSuperior/Analysis/"
+    value: ""
   RDIR:
-    value: "C:/aaaWork/Research/WiDNR_Creel/LSuperior/Analysis/2014_LSUPERIOR"
+    value: ""
 output:
   html_document:
     theme: sandstone
-    css: tables.css
+    css: LS_Analysis_CSS.css
 ---
 
 ```{r input, echo=FALSE}
@@ -40,7 +40,8 @@ RDIR <- params$RDIR
 knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE)
 
 ## Run the analysis
-source(paste0(WDIR,"helpers/LSCreel_DataPrep.R"))
+source(paste0(WDIR,"Helpers/LS_Analysis_DataPrep.R"))
+
 ## Make table and figure captions
 tables <- tableCaptions()
 figures <- figureCaptions()

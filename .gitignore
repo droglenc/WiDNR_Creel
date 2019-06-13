@@ -1,16 +1,11 @@
 zzzAdministrative/
 WiDNR_Creel.Rproj
 
-## Intermediate files not needed in repository
-/LSuperior/Schedule/*files
-/LSuperior/Schedule/*.pdf
-/LSuperior/Schedule/*.log
-/LSuperior/Schedule/*.tex
-/LSuperior/Schedule/*.knit.md
-/LSuperior/Schedule/*.utf8.md
-/LSuperior/Schedule/*schedule.csv
-/LSuperior/Schedule/*\_SUPERIOR
-/LSuperior/Analysis/*\_LSUPERIOR
+## Intermediate or output files not needed in repository
+/LSuperior/LS_Analysis*
+/LSuperior/LS_Schedules*
+/LSuperior/Helpers/LS_Scheduler_Template.knit.md
+/LSuperior/Helpers/LS_Scheduler_Template.utf8.md
 
 # History files
 .Rhistory
@@ -19,33 +14,6 @@ WiDNR_Creel.Rproj
 # Session Data files
 .RData
 
-# Example code in package build process
-*-Ex.R
-
-# Output files from R CMD build
-/*.tar.gz
-
-# Output files from R CMD check
-/*.Rcheck/
-
 # RStudio files
 .Rproj.user/
-
-# produced vignettes
-vignettes/*.html
-vignettes/*.pdf
-
-# OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
-.httr-oauth
-
-# knitr and R markdown default cache directories
-/*_cache/
-/cache/
-
-# Temporary files created by R markdown
-*.utf8.md
-*.knit.md
-
-# Shiny token, see https://shiny.rstudio.com/articles/shinyapps.html
-rsconnect/
 .Rproj.user

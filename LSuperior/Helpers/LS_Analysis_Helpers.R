@@ -12,10 +12,10 @@ for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
 ## Main Helpers ----
 
 ## Read and prepare the interview data file
-readInterviewData <- function(wdir,LOC,SDATE,FDATE,type,
+readInterviewData <- function(RDIR,LOC,SDATE,FDATE,type,
                               dropCLS=TRUE,dropHM=TRUE) {
-  if (type=="CSV") d <- read.csv(paste0(wdir,"data/",LOC,"ints.csv"))
-  else d <- haven::read_sas(paste0(wdir,"data/",LOC,"ints.sas7bdat"))
+  if (type=="CSV") d <- read.csv(paste0(RDIR,"data/",LOC,"ints.csv"))
+  else d <- haven::read_sas(paste0(RDIR,"data/",LOC,"ints.sas7bdat"))
   d <- d %>%
     ## Add interview ID number
     ## Convert some codes to words
@@ -102,7 +102,7 @@ sumInterviewedEffort <- function(dints) {
 
 
 ## Read and prepare the interview data file
-readPressureCountData <- function(wdir,LOC,SDATE,FDATE,type,dropHM=TRUE) {
+readPressureCountData <- function(RDIR,LOC,SDATE,FDATE,type,dropHM=TRUE) {
   ###   Find various varsions of dates (note that DATE had to be handled
   ###     differently than above b/c four rather than two digits used here).
   ###   Convert missing COUNTs to zeroes
@@ -110,8 +110,8 @@ readPressureCountData <- function(wdir,LOC,SDATE,FDATE,type,dropHM=TRUE) {
   ###   Convert average counts (the original COUNT variable) to "total effort"
   ###     during shift (by muliplying by the WAIT time) so that multiple shifts
   ###     on each day can be combined (from original SAS code).
-  if (type=="CSV") d <- read.csv(paste0(wdir,"data/",LOC,"cnts.csv"))
-  else d <- haven::read_sas(paste0(wdir,"data/",LOC,"cnts.sas7bdat"))
+  if (type=="CSV") d <- read.csv(paste0(RDIR,"data/",LOC,"cnts.csv"))
+  else d <- haven::read_sas(paste0(RDIR,"data/",LOC,"cnts.sas7bdat"))
   d <- d %>%
     dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
                   YEAR=lubridate::year(DATE),
@@ -1353,8 +1353,8 @@ figure6 <- function(fnpre,topN=3) {
 
 ## Internals for Mains ----
 ## Make filename prefix
-fnPrefix <- function(rdir,LOC,SDATE) {
-  paste0(rdir,"/",lubridate::year(SDATE),"_",iMvLoc(LOC),"_")
+fnPrefix <- function(RDIR,LOC,SDATE) {
+  paste0(RDIR,"/",iMvLoc(LOC),"_",lubridate::year(SDATE),"_")
 }
 
 ## Convenience function for making a file of the data.frame in x
