@@ -1,23 +1,37 @@
-## User-Specified Information ----
-## Change these as needed (make sure to run each line).
-LAKE <- "SUPERIOR"
+#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
+# PROGRAM TO CREATE "BUS ROUTE" SCHEDULES FOR LAKE SUPERIOR CREEL
+#   SEE LS_SCHEDULER_ASSUMPTINOS.Rmd FOR ASSUMPTIONS SCHEDULER IS BUILT UPON
+#     XXXX, 201X (version 1 - Derek O)
+#
+#  DIRECTIONS:
+#   * Make sure shedule information is up-to-date in LS_Scheuler_info.xlsx in
+#     the Helpers folder.
+#   * Follow directions after DIRECTIONS >>> items below
+#   * See resulting files in LS_Schedules_YEAR folder (replace YEAR with #).
+#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
+
+## DIRECTIONS >>> Change these items as needed (make sure to run each line).
 YEAR <- 2019
-SEED <- NULL     # Enter number for repeatability, otherwise NULL
-CLERK <- "A"     # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
+CLERK <- "D"       # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
+LAKE <- "SUPERIOR"
+SEED <- NULL       # Enter number for repeatability, otherwise NULL
 
-## Get helper files ----
-### Run these but don't change anything
-setwd(paste0(here::here(),"/LSuperior/Schedule/"))
-source("helpers/LS_Scheduler_Helpers.R")
 
-## Make schedule ----
-### Run makeSchedule() to create a preliminary schedule. Examine the summaries
-### and calendars. If manual changes are needed then open the CSV file in Excel,
-### modify the results, and save. Filename is given in SCHED.
-SCHED <- makeSchedule(LAKE,YEAR,CLERK,SEED,show_summary=TRUE,show_calendars=FALSE)
+## DIRECTIONS >>> Run these but don't change anything
+WDIR <- paste0(here::here(),"/LSuperior/")
+RDIR <- paste0(WDIR,"LS_Schedules_",YEAR,"/")
+source(paste0(WDIR,"Helpers/LS_Scheduler_Helpers.R"))
 
-### Optionally run following to examine schedule (before or after manual changes)
-###   readSchedule(SCHED,show_summary=TRUE,show_calendars=TRUE)
 
-### Run this to create a printable PDF of calendar and bus routes
-printForClerk(LAKE,YEAR,CLERK,SEED,SCHED)
+## DIRECTIONS >>> Run makeSchedule() below to create a preliminary schedule.
+## DIRECTIONS >>> Examine the summaries and calendars. If manual changes
+## DIRECTIONS >>> are needed then open the CSV file in the LS_Schedules_YEAR
+## DIRECTIONS >>> folder in Excel, modify the results, and save. Optionally, run
+## DIRECTIONS >>> following to examine schedule (before or after manual changes).
+## DIRECTIONS >>>   readSchedule(SCHED,WDIR,show_summary=TRUE,show_calendars=TRUE)
+SCHED <- makeSchedule(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,
+                      show_summary=TRUE,show_calendars=FALSE)
+
+
+## DIRECTIONS >>> Run below to create printable PDF of calendar and bus routes
+printForClerk(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,SCHED)

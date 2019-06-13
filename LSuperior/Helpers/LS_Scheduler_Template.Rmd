@@ -4,17 +4,19 @@ title: "Lake Superior Creel Scheduler"
 output: 
   pdf_document:
     includes:
-      in_header: helpers/preamble.tex
+      in_header: LS_Scheduler_Preamble.tex
 params:
-  LAKE:
-    value: "Superior"
   YEAR: 
     value: 2019
   CLERK: 
     value: A
+  LAKE:
+    value: "Superior"
   SEED:
     value: NULL
   SCHED:
+    value: ""
+  WDIR:
     value: ""
 ---
 
@@ -29,20 +31,21 @@ YEAR <- params$YEAR
 CLERK <- params$CLERK
 SEED <- params$SEED
 SCHED <- params$SCHED
+WDIR <- params$WDIR
 ```
 
 ```{r setup, include=FALSE, message=FALSE}
 ## Preliminaries
 try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
 suppressPackageStartupMessages(library(kableExtra))
-source("helpers/LS_Scheduler_Helpers.R")
+source(paste0(WDIR,"Helpers/LS_Scheduler_Helpers.R"))
 knitr::opts_chunk$set(echo = FALSE)
 
 ## Set the random number seed
 if (!is.null(SEED)) set.seed(SEED)
 
 ## Read the schedule
-sched <- readSchedule(SCHED,show_summary=FALSE,show_calendars=FALSE)
+sched <- readSchedule(SCHED,WDIR,show_summary=FALSE,show_calendars=FALSE)
 
 ## Get routes for this clerk
 ROUTES <- unique(sched$ROUTE[complete.cases(sched$ROUTE)])
@@ -62,21 +65,24 @@ ROUTES <- unique(sched$ROUTE[complete.cases(sched$ROUTE)])
 
 **Ran:** `r format(lubridate::now(),format="%d-%b-%Y at %H:%M")`
 
-**Seed:** `r formatC(SEED,format="d")`
+**Seed:** `r ifelse(is.null(SEED),"None used",formatC(SEED,format="d"))`
 
-\textbf{Schedule File:} `r gsub("_","\\_",SCHED,fixed=TRUE)`
+\textbf{Schedule File:} `r gsub("_","\\_",basename(SCHED),fixed=TRUE)`
+
+\textbf{Folder} `r RDIR`
 
 ```{r makeCalendars, echo=FALSE, fig.width=7, fig.height=7, fig.show="asis", }
 ## Print monthly calendars
 mos <- as.character(unique(sched$MONTH))
-for (i in mos) makeCalendar(sched,MONTH1=i,header="Lake Superior Creel Schedule")
+for (i in mos) makeCalendar(sched,MONTH1=i,WDIR,
+                            header="Lake Superior Creel Schedule")
 ```
 
 \newpage
 
 ```{r makeBusRoute, results='asis'}
 ## Read in Route and Shift information
-finfo <- readInfo(CLERK)
+finfo <- readInfo(CLERK,WDIR)
 ## Print bus routes if more than one site is visited
 sites <- unique(finfo$routes$site)
 if (length(sites)>1) {
