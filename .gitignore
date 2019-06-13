@@ -2,7 +2,7 @@ zzzAdministrative/
 WiDNR_Creel.Rproj
 
 ## Intermediate or output files not needed in repository
-#/LSuperior/LS_Analysis*
+/LSuperior/LS_Analysis*
 /LSuperior/LS_Schedules*
 /LSuperior/Helpers/LS_Scheduler_Template.knit.md
 /LSuperior/Helpers/LS_Scheduler_Template.utf8.md
