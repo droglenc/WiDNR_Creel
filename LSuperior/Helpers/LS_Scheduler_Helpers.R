@@ -5,7 +5,7 @@ suppressPackageStartupMessages(library(dplyr))
 
 ### Print Calendars and Bus Routes
 printForClerk <- function(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,SCHED) {
-  cat("Writing file, please be patient ...")
+  message("Writing file, please be patient ...",appendLF=FALSE)
   foutpre <- paste0(LAKE,"_",YEAR,"_",CLERK)
   try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
   rmarkdown::render(input=paste0(WDIR,"Helpers/LS_Scheduler_Template.Rmd"),
@@ -20,7 +20,7 @@ printForClerk <- function(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,SCHED) {
   ## Remove an intermediate directory and files
   unlink(paste0(RDIR,foutpre,"_files"),recursive=TRUE)
   unlink(paste0(RDIR,foutpre,".tex"))
-  cat(" See",paste0(foutpre,'.pdf'),"\n   in",RDIR)
+  message("Done. See",paste0(foutpre,'.pdf'),"\n   in",RDIR)
 }
 
 ### Reads all data into one list
