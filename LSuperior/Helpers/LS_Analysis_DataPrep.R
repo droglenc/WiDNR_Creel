@@ -55,24 +55,22 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 
 ## Interviewed fishing effort ----
 ### Read and prepare interviews file
-###   Remove days with no effort between SDATE and FDATE (HOURS will be NA)
-###   Remove unneeded variables
-###   Drop unused levels
-#!!!!!! This largely matches Iyob's 'ints' after his line 129 ... this includes
-#!!!!!! YEAR variables; DATE is a different format; and I dropped the
-#!!!!!! CLIPXX, LENXX, and SPECXX variables that had no data.
+#!!!!!! This largely matches Iyob's 'ints' after his line 129.
 ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE,
                                dropCLS=TRUE,dropHM=TRUE) %>%
+  ###   Remove days with no effort between SDATE and FDATE (HOURS will be NA)
   filter(!is.na(HOURS)) %>%
+  ###   Remove unneeded variables
   select(-FISH,-RES,-SUCCESS) %>%
+  ###   Drop unused levels
   droplevels()
 
 ### A simplified data.frame that does not include any fish data
-###   HOURS: fishing effort by the party.
-###   PERSONS: number of individuals in the party.
+###   HOURS:  observed fishing effort by the party.
+###   PERSONS: observed number of individuals in the party.
 ints_NOFISH <- select(ints_ORIG,INTID:PERSONS)
 
-### Number of interviews (NINTS) and interviewed fishing effort (HOURS)
+### Observed number of interviews (NINTS) and interviewed fishing effort (HOURS)
 ###   across sites within strata (STATE, DAYTYPE, FISHERY, MONTH).
 ### This is used for Table 2.
 intvdEffortStates <- ints_NOFISH %>%

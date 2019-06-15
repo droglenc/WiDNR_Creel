@@ -102,48 +102,53 @@ sumInterviewedEffort <- function(dints) {
 }
 
 
-## Read and prepare the interview data file
+## Read and prepare the pressure counts data file
 readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
-  ###   Find various varsions of dates (note that DATE had to be handled
-  ###     differently than above b/c four rather than two digits used here).
-  ###   Convert missing COUNTs to zeroes
-  ###   Calculate the "WAIT" time (hours at the site)
-  ###   Convert average counts (the original COUNT variable) to "total effort"
-  ###     during shift (by muliplying by the WAIT time) so that multiple shifts
-  ###     on each day can be combined (from original SAS code).
   if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(paste0(RDIR,"data/",FN))
   else d <- read.csv(paste0(RDIR,"data/",FN))
   d <- d %>%
+    # Find various varsions of dates (note that DATE had to be handled
+    #   differently than above b/c four rather than two digits used here).
     dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
                   YEAR=lubridate::year(DATE),
                   MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
                   WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
                   DAYTYPE=iMvDaytype(WDAY,MONTH,DAY),
+                  # Convert missing COUNTs to zeroes
                   COUNT=iConvNA20(COUNT),
+                  # Calculate the "WAIT" time (hours at the site)
                   WAIT=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,
                                   DATE,SDATE,FDATE),
+                  # Convert average counts (the original COUNT variable) to
+                  # "total effort" during shift (by muliplying by the WAIT time)
+                  # so that multiple shifts on each day can be combined (from
+                  # original SAS code).
                   COUNT=COUNT*WAIT
     )
-  ###   Drop hours and minutes variables if asked to do so
+  # Drop hours and minutes variables if asked to do so
   if (dropHM) d <- dplyr::select(d,-(STARTMM:STOPHH))
-  ###   Remove records with "bad" wait times
-  ###   Narrow variable list down
-  ###   Combine observations of WAIT and COUNT from multiple visits to the same
-  ###     SITE within the same day
-  d %<>% dplyr::filter(!is.na(WAIT)) %>%
+  d %<>% 
+    # Remove records with "bad" wait times
+    dplyr::filter(!is.na(WAIT)) %>%
+    # Narrow variable list down
     dplyr::select(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
+    # Combine observations of WAIT and COUNT from multiple visits to the same
+    #   SITE within the same day
     dplyr::group_by(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
     dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT))
-  ### Return data.frame
+  # Return data.frame
   as.data.frame(d)
 }
 
 
-##
+## Expand pressure counts from observed days/times to daylengths & days/month
 expandPressureCounts <- function(dcnts,cal) {
+  ## Isolate daylengths for each month
+  tmp <- cal[,c("MONTH","DAYLEN")]
+  tmp <- tmp[!duplicated(tmp),]
   dcnts %<>%
     ### Adds a temporary day length variable (from cal) to each count
-    right_join(cal[,c("MONTH","DAYLEN")],by="MONTH") %>%
+    right_join(tmp,by="MONTH") %>%
     ### Expands observed pressure counts to represent the entire day 
     dplyr::mutate(COUNT=COUNT*DAYLEN/WAIT) %>%
     ### Computes daily pressure counts (across sites within days)
@@ -194,7 +199,6 @@ expandPressureCounts <- function(dcnts,cal) {
 
 
 ## Summarized total fishing effort by strata
-
 sumEffort <- function(ieff,pct) {
   ## Remove 'All' DAYTYPE and MONTH rows from pressureCount results
   pct %<>% dplyr::filter(DAYTYPE!="All") %>%
@@ -721,7 +725,7 @@ table3 <- function(pressureCount) {
                   Weekday.NCOUNT,Weekday.COUNT,Weekday.SDCOUNT,
                   Weekend.NCOUNT,Weekend.COUNT,Weekend.SDCOUNT,
                   All.NCOUNT,All.COUNT,All.SDCOUNT) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE))
+    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE)) %>%
     dplyr::arrange(MONTH)
 
   ## Make the huxtable
