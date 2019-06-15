@@ -643,14 +643,16 @@ table2 <- function(d) {
     dplyr::select(names(tmp)) %>%
     as.data.frame()
   tmp <- rbind(tmp,tmp1)
-  ## Summarize by state
-  tmp1 <- dplyr::group_by(tmp,DAYTYPE,FISHERY,MONTH) %>%
-    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
-                     HOURS=sum(HOURS,na.rm=TRUE)) %>%
-    dplyr::mutate(STATE="All") %>%
-    dplyr::select(names(tmp)) %>%
-    as.data.frame()
-  tmp <- rbind(tmp,tmp1)
+  ## Summarize by state (make a catch if only one state)
+  if (length(unique(tmp$STATE))>1) {
+    tmp1 <- dplyr::group_by(tmp,DAYTYPE,FISHERY,MONTH) %>%
+      dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                       HOURS=sum(HOURS,na.rm=TRUE)) %>%
+      dplyr::mutate(STATE="All") %>%
+      dplyr::select(names(tmp)) %>%
+      as.data.frame()
+    tmp <- rbind(tmp,tmp1)
+  }
   
   mos <- as.character(unique(tmp$MONTH))
   nms <- paste(rep(mos,each=2),c("NINTS","HOURS"),sep=".")
@@ -719,6 +721,7 @@ table3 <- function(pressureCount) {
                   Weekday.NCOUNT,Weekday.COUNT,Weekday.SDCOUNT,
                   Weekend.NCOUNT,Weekend.COUNT,Weekend.SDCOUNT,
                   All.NCOUNT,All.COUNT,All.SDCOUNT) %>%
+    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE))
     dplyr::arrange(MONTH)
 
   ## Make the huxtable
