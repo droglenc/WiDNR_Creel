@@ -1,22 +1,27 @@
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
+#
 # DO NOT CHANGE ANYTHING BENEATH HERE
+#
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
-## Load Packages ----
+## Load Packages ---------------------------------------------------------------
 rqrd <- c("FSA","lubridate","tidyr","dplyr","magrittr","huxtable",
           "kableExtra","captioner","ggplot2","patchwork","sugrrants","grid",
           "haven","knitr","here","readxl","tibble")
 for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
                                   character.only=TRUE))
 
-## Main Helpers ----
+
+
+## Main Helpers ----------------------------------------------------------------
 
 ## Read and prepare the interview data file
 readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,
                               dropCLS=TRUE,dropHM=TRUE) {
   
-  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(paste0(RDIR,"data/",FN))
-  else d <- read.csv(paste0(RDIR,"data/",FN))
+  FN <- file.path(RDIR,FN)
+  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(FN)
+  else d <- read.csv(FN)
   d <- d %>%
     ## Add interview ID number
     ## Convert some codes to words
@@ -103,9 +108,13 @@ sumInterviewedEffort <- function(dints) {
 
 
 ## Read and prepare the pressure counts data file
+##  Note that counts (for Lake Superior) from the original file are average
+##    number of parties present during the wait time, not total effort seen
+##    during the wait time.
 readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
-  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(paste0(RDIR,"data/",FN))
-  else d <- read.csv(paste0(RDIR,"data/",FN))
+  FN <- file.path(RDIR,FN)
+  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(FN)
+  else d <- read.csv(FN)
   d <- d %>%
     # Find various varsions of dates (note that DATE had to be handled
     #   differently than above b/c four rather than two digits used here).
@@ -131,10 +140,10 @@ readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
     # Remove records with "bad" wait times
     dplyr::filter(!is.na(WAIT)) %>%
     # Narrow variable list down
-    dplyr::select(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
+    dplyr::select(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
     # Combine observations of WAIT and COUNT from multiple visits to the same
     #   SITE within the same day
-    dplyr::group_by(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
+    dplyr::group_by(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
     dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT))
   # Return data.frame
   as.data.frame(d)
@@ -152,7 +161,7 @@ expandPressureCounts <- function(dcnts,cal) {
     ### Expands observed pressure counts to represent the entire day 
     dplyr::mutate(COUNT=COUNT*DAYLEN/WAIT) %>%
     ### Computes daily pressure counts (across sites within days)
-    dplyr::group_by(DATE,YEAR,MONTH,DAY,WDAY,DAYTYPE) %>%
+    dplyr::group_by(YEAR,MONTH,DAY,WDAY,DAYTYPE) %>%
     dplyr::summarize(WAIT=sum(WAIT),
                      COUNT=sum(COUNT)) %>%
     dplyr::ungroup() %>%
@@ -166,7 +175,7 @@ expandPressureCounts <- function(dcnts,cal) {
     merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(COUNT=COUNT*DAYS,
                   VCOUNT=VCOUNT/NCOUNT*(DAYS^2)) %>%
-    dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,COUNT,VCOUNT)
+    dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,VCOUNT)
   ## Find totals across DAYTYPEs
   dcnts1 <- dplyr::group_by(dcnts,YEAR,MONTH) %>%
     dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
@@ -190,7 +199,8 @@ expandPressureCounts <- function(dcnts,cal) {
   ## Convert to SDs and rearrange variables
   dcnts %<>% dplyr::mutate(SDCOUNT=sqrt(VCOUNT)) %>%
     dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,SDCOUNT,VCOUNT) %>%
-    dplyr::mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    dplyr::mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
+                  MONTH=iOrderMonths(MONTH,addAll=TRUE)) %>%
     dplyr::arrange(YEAR,MONTH,DAYTYPE) %>%
     as.data.frame()
   ## Return data.frame
@@ -203,21 +213,14 @@ sumEffort <- function(ieff,pct) {
   ## Remove 'All' DAYTYPE and MONTH rows from pressureCount results
   pct %<>% dplyr::filter(DAYTYPE!="All") %>%
     dplyr::filter(MONTH!="All")
-  ## Combine interview effort and pressure counts with new calculations
-  ##   NINTS= Number of interviews
-  ##   HOURS= Total interviewed effort (hours) of ALL parties
-  ##   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
-  ##   MTRIP= Mean interviewed effort (hours) by COMPLETED parties
-  ##   PROP= Proportion of total interviewed effort for month-daytype that is in
-  ##         a given waters-fishery.
-  ##   PARTY= Party size (person's per party)
-  ##   NCOUNT= Number of days clerk estimated pressure counts
-  ##   DAYS= Number of days in the month
-  ##   COUNT= Total pressure count (number of boats)
-  ##   VCOUNT= Variance of pressure count (SD^2)
-  ##   PHOURS= Party hours (VPHOURS is a start to its variance calculation)
-  ##   TRIPS= Total trips (VTRIPS is a start to its variance calculation)
-  ##   INDHRS= Total individual hours (VINDHRS is a start to its variance calc)
+  # Combine interview effort and pressure counts with new calculations ...
+  #   intermediate (non-returned) calculations are described here
+  #   * NCOUNT: Number of days clerk estimated pressure counts
+  #   * DAYS: Number of days in the month
+  #   * COUNT: Total pressure count (number of boats)
+  #   * VCOUNT: Variance of pressure count (SD^2)
+  #   * PROP: Proportion of total interviewed effort for month-daytype that is in
+  #           a given waters-fishery.
   eff <- merge(ieff,pct,by=c("YEAR","MONTH","DAYTYPE")) %>%
     dplyr::mutate(PHOURS=COUNT*PROP,
                   VPHOURS=VCOUNT*(PROP^2),
@@ -305,6 +308,7 @@ sumEffort <- function(ieff,pct) {
 
 
 ## Rearrange fish information from interviews
+##   Note that FINCLIP=99 means length field has number of fish harvested.
 rearrangeFishInfo <- function(dints) {
   ## Get the main information about the interview
   mainInts <- dplyr::select(dints,INTID:HOURS)
@@ -379,9 +383,6 @@ rearrangeFishInfo <- function(dints) {
 
 
 ## Summarize observed harvest by strata and species
-##   HARVEST= Total _observed_ harvest in interviews
-##   VHARVEST= Square of HARVEST (in SAS this is uncorrected sum-of-squares)
-##   COVAR= Start of a covariance calculation
 sumObsHarvest <- function(d) {
   ## Compute harvest for each interview
   harv <- d %>%
@@ -414,8 +415,6 @@ sumObsHarvest <- function(d) {
 }
 
 ## Summarize Harvest and Effort
-##   Note that:
-##   Reduce variables and sort
 sumHarvestEffort <- function(h,f) {
   ##   Merge harvest and effort data.frames
   hf <- merge(h,f,by=c("YEAR","WATERS","DAYTYPE","FISHERY","MONTH"),all=TRUE) %>%
@@ -532,7 +531,7 @@ sumLengths <- function(d,var) {
 
 
 
-## Tables ----
+## Tables ----------------------------------------------------------------------
 tableCaptions <- function() {
   tables <- captioner::captioner(prefix="Table")
   tables(name="Table1",
@@ -619,10 +618,16 @@ table1 <- function(fnpre,calSum) {
 
 
 table2 <- function(d) {
-  ## Prepare data.frame for huxtable
-  ## Restrict to only those variables needed for this table
-  tmp <- dplyr::select(d,STATE,DAYTYPE,FISHERY,MONTH,NINTS,HOURS)
-  
+  # Prepare data.frame for huxtable
+  ## Summarizes the number of OBSERVED interviews (NINTS) and total reported
+  ## hours of fishing effort (HOURS) by "strata" (!!STATE!!, DAYTYPE, FISHERY,
+  ## MONTH). This is observed data, not yet expanded to all days in month/year.
+  tmp <- d %>%
+    dplyr::group_by(STATE,DAYTYPE,FISHERY,MONTH,.drop=FALSE) %>%
+    dplyr::summarize(NINTS=n(),HOURS=sum(HOURS)) %>%
+    dplyr::select(STATE,DAYTYPE,FISHERY,MONTH,NINTS,HOURS) %>%
+    as.data.frame()
+
   ## Summarize by month
   tmp1 <- dplyr::group_by(tmp,STATE,DAYTYPE,FISHERY) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
@@ -725,7 +730,6 @@ table3 <- function(pressureCount) {
                   Weekday.NCOUNT,Weekday.COUNT,Weekday.SDCOUNT,
                   Weekend.NCOUNT,Weekend.COUNT,Weekend.SDCOUNT,
                   All.NCOUNT,All.COUNT,All.SDCOUNT) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE)) %>%
     dplyr::arrange(MONTH)
 
   ## Make the huxtable
@@ -901,29 +905,20 @@ table5 <- function(fnpre) {
 }
 
 
-table6 <- function(fnpre) {
+table6 <- function(dlen) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Remove fish for which a length was not recorded
-  ##   Summarize lengths by whether clipped or not
-  ##   Set proper order of MONTH, SPECIES, and CLIPPED
-  ##   Arrange for table
-  ##   Remove duplicate SPECIES and MONTH labels
-  ##   Remove the YEAR variable
-  tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
+  tmp <- dlen %>%
+    ##   Remove fish for which a length was not recorded
     dplyr::filter(!is.na(LEN)) %>%
+    ##   Summarize lengths by whether clipped or not
     sumLengths(CLIPPED) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  SPECIES=iMvSpecies(SPECIES),
-                  CLIPPED=factor(CLIPPED,
-                                 levels=c("No Clip","Clip","All"))) %>%
-    dplyr::arrange(SPECIES,MONTH,CLIPPED) %>%
     droplevels() %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
                                 "",as.character(SPECIES)),
                   MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
                                  "",as.character(MONTH))) %>%
+    ##   Remove the YEAR variable
     dplyr::select(-YEAR)
 
   ## Add some more space above where SPECIES & MONTY name is (except for first)
@@ -956,30 +951,22 @@ table6 <- function(fnpre) {
 }
 
 
-table7 <- function(fnpre) {
+table7 <- function(dlen) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  ##   Remove fish for which a length was not recorded
-  tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
+  tmp <- dlen %>%
+    ##   Remove fish for which a length was not recorded
     dplyr::filter(!is.na(LEN))
   ## Find only those species for which a fin-slip was recorded
   specClipped <- as.character(unique(dplyr::filter(lengths,CLIPPED=="Clip")$SPECIES))
   ##   Summarize lengths by whether clipped or not
-  ##   Set proper order of MONTH, SPECIES, and CLIPPED
-  ##   Arrange for table
-  ##   Remove duplicate SPECIES and MONTH labels
-  ##   Remove the YEAR variable
   tmp <- sumLengths(filter(tmp,SPECIES %in% specClipped),CLIP) %>%
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  SPECIES=iMvSpecies(SPECIES),
-                  CLIP=iMvFinclips(CLIP,addAll=TRUE)) %>%
-    dplyr::arrange(SPECIES,MONTH,CLIP) %>%
     droplevels() %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
                                  "",as.character(SPECIES)),
                   MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
                                "",as.character(MONTH))) %>%
+    ##   Remove the YEAR variable
     dplyr::select(-YEAR)
 
   ## Which rows to add some more space above
@@ -1011,18 +998,13 @@ table7 <- function(fnpre) {
   tmpTbl2
 }
 
-
-table8 <- function(fnpre) {
+table8 <- function(dlen) {
   ## Prepare data.frame for huxtable
-  tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
+  tmp <- dlen %>%
     ## Remove fish that were not checked for clips
     dplyr::filter(!is.na(CLIP)) %>%
     ## Reduce to only variables needed for the table
     dplyr::select(MONTH,SPECIES,CLIP) %>%
-    ## Make proper order of MONTHs, SPECIES and CLIPs
-    dplyr::mutate(MONTH=iOrderMonths(MONTH),
-                  SPECIES=iMvSpecies(SPECIES),
-                  CLIP=iMvFinclips(CLIP)) %>%
     ##   drop unused levels
     droplevels() %>%
     group_by(SPECIES,CLIP,MONTH) %>%
@@ -1080,38 +1062,32 @@ table8 <- function(fnpre) {
 }
 
 
-table9 <- function(fnpre) {
+table9 <- function(dlen) {
   ## Prepare data.frame for huxtable
-  ##   Read saved file
-  tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
-    dplyr::mutate(FISHERY=iMvFishery(FISHERY),
-                  SPECIES=iMvSpecies(SPECIES),
-                  CLIP=iMvFinclips(CLIP),
-                  STATE=factor(STATE,levels=c("WI","WI/MN","WI/MI","MN","MI"))) %>%
+  tmp <- dlen %>%
     dplyr::select(SPECIES,STATE,SITE,FISHERY,DATE,LEN,CLIP) %>%
     dplyr::arrange(SPECIES,DATE,LEN) %>%
+    dplyr::rename(`TL (in)`=LEN) %>%
     droplevels() %>%
     dplyr::mutate(SPECIES=ifelse(duplicated(SPECIES),"",levels(SPECIES)[SPECIES]))
   ## Find rows for extra space above
   breakRows <- which(tmp$SPECIES!="")[-1]
   ## Make huxtable
-  tmpTbl2 <- as_hux(tmp) %>%
+  tmpTbl2 <- as_hux(tmp,add_colnames=TRUE) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
     set_top_padding(row=breakRows,col=everywhere,15) %>%
     # Put extra spacing between columns
     set_left_padding(row=everywhere,col=everywhere,15) %>%
     # Round lengths to one decimal (what they were recorded in)
-    set_number_format(row=everywhere,col="LEN",1) %>%
-    # Add column labels
-    rbind(c("SPECIES","STATE","SITE","FISHERY","DATE","LENGTH (in)","Clip"),.) %>%
+    set_number_format(row=everywhere,col="TL (in)",1) %>%
     set_width(0.5) %>%
     iFinishTable(labelsRow=1,labelsCol=1)
   tmpTbl2
 }
 
 
-## Figures ----
+## Figures ---------------------------------------------------------------------
 figureCaptions <- function() {
   figures <- captioner::captioner(prefix="Figure")
   figures(name="Figure1",
@@ -1155,14 +1131,9 @@ theme_creel <- function() {
     )
 }
 
-figure1 <- function(fnpre) {
-  tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
-    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
-    ## Select only variables for the figuree
+figure1 <- function(d) {
+  tmp <- d %>%
+    ## Select only variables for the figure
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or fisheries
     dplyr::filter(WATERS=="WI",MONTH!="All") %>%
@@ -1189,13 +1160,8 @@ figure1 <- function(fnpre) {
 }
   
 
-figure2 <- function(fnpre) {
-  tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
-    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+figure2 <- function(d) {
+  tmp <- d %>%
     ## Select only variables for the figuree
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or Fisheries
@@ -1223,14 +1189,8 @@ figure2 <- function(fnpre) {
   p
 }
 
-figure3 <- function(fnpre) {
-  tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
-    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  SPECIES=iMvSpecies(SPECIES)) %>%
+figure3 <- function(d) {
+  tmp <- d %>%
     ## Just WI waters
     dplyr::filter(WATERS=="WI") %>%
     ## Get the total total total rows (to find topN)
@@ -1251,14 +1211,8 @@ figure3 <- function(fnpre) {
   p
 }
 
-figure4 <- function(fnpre,topN=3) {
-  tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
-    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  SPECIES=iMvSpecies(SPECIES)) %>%
+figure4 <- function(d,topN=3) {
+  tmp <- d %>%
     ## Just WI waters
     dplyr::filter(WATERS=="WI")
   ## Remove MONTH, DAYTYPE, and FISHERY total rows (i.e., == "All)
@@ -1290,14 +1244,8 @@ figure4 <- function(fnpre,topN=3) {
   p
 }
 
-figure5 <- function(fnpre,topN=3) {
-  tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
-    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  SPECIES=iMvSpecies(SPECIES)) %>%
+figure5 <- function(d,topN=3) {
+  tmp <- d %>%
     ## Just WI waters
     dplyr::filter(WATERS=="WI")
   ## Get the DAYTYPE nd FISHERY total rows (for error bars in ggplot)
@@ -1323,14 +1271,10 @@ figure5 <- function(fnpre,topN=3) {
   p
 }
 
-figure6 <- function(fnpre,topN=3) {
-  # Read and prepare lengths data file
-  tmp <- read.csv(paste0(fnpre,"lengths.csv")) %>%
-    dplyr::mutate(SPECIES=iMvSpecies(SPECIES),
-                  MONTH=iOrderMonths(MONTH),
-                  CLIPPED=factor(CLIPPED,levels=c("No Clip","Clip")))
+figure6 <- function(dlen,topN=3) {
   # Sample size by species and month
-  SUM <- dplyr::group_by(tmp,SPECIES,MONTH) %>%
+  SUM <- dlen %>%
+    dplyr::group_by(SPECIES,MONTH) %>%
     dplyr::summarize(n=dplyr::n())
   # Find topN species by sample size
   TOPN <- dplyr::summarize(SUM,n=sum(n)) %>%
@@ -1340,9 +1284,9 @@ figure6 <- function(fnpre,topN=3) {
   SUM %<>% filter(SPECIES %in% TOPN$SPECIES) %>%
     mutate(CLIPPED=NA)
   # Reduce original data.frame to the topN species
-  tmp %<>% filter(SPECIES %in% TOPN$SPECIES)
+  dlen %<>% filter(SPECIES %in% TOPN$SPECIES)
   # Make the plot
-  p <- ggplot(data=tmp,aes(x=LEN,fill=CLIPPED)) +
+  p <- ggplot(data=dlen,aes(x=LEN,fill=CLIPPED)) +
     geom_histogram(binwidth=1,na.rm=TRUE) +
     xlab("Length (Inches)") +
     ylab("Relative Frequency") +
@@ -1389,6 +1333,8 @@ iMvDaytype <- function(wd,mon,md) {
 }
 
 ## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
+##   Note that only official holidays are New Years, Memorial Day, July Fourth,
+##     and Labor Day (Thanksgiving and Christmas are not included).
 iHndlHolidays <- function(mon,md,wd,dt) {
   dplyr::case_when(
     mon=="Jan" & md==1 ~ "Weekend",              # New Years Day

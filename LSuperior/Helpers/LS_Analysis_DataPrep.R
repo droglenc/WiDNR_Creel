@@ -1,175 +1,262 @@
-#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
-#
-#  DIRECTIONS:
-#   * Don't run this file ... use LS_Analyzer.R
-#   * This, along with LS_Analysis_Helpers, contains the "guts" of the program
-#
-#  NOTES:
-#   * Counts (for Lake Superior) are average number of parties present during
-#     the wait time, not total effort seen during the wait time.
-#   * Only official holidays are New Years, Memorial Day, July Fourth, and Labor
-#     Day (Thanksgiving and Christmas are not included).
-#   * FINCLIP=99 means length field has number of fish harvested.
-#
-#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
-
-
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
+#
 # DO NOT CHANGE ANYTHING BENEATH HERE
+#
+# DO NOT RUN THIS FILE AS A STAND-ALONE SCRIPT. THIS IS CALLED WHEN THE
+#   LS_ANALYZER_TEMPLATE.Rmd FILE IS RENDERED FRO LS_ANALYZER.R FILE.
+#
+# THIS CODE, ALONG WITH LS_ANALSYIS_HELPERS.R IS THE "GUTS" OF THE ANALYSIS.
+#
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
-## Setup ----
-### Converts SDATE and FDATE to useful objects
-SDATE <- as.Date(SDATE,"%m/%d/%Y")
-FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
+
+## Setup -----------------------------------------------------------------------
 ### Determine if results directory exists (stop if not)
 if (!dir.exists(RDIR)) stop("The ",RDIR," directory does not exist.\n",
                             "Please create this directory and populate it ",
                             "with the 'interview' and 'count' data files.")
 
 ### Load helper files
-source(paste0(WDIR,"Helpers/LS_Analysis_Helpers.R"))
+source(file.path(WDIR,"Helpers","LS_Analysis_Helpers.R"))
+
+### Converts SDATE and FDATE to useful objects
+SDATE <- as.Date(SDATE,"%m/%d/%Y")
+FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
 ### Filename prefix
 fnpre <- fnPrefix(RDIR,LOC,SDATE)
 
-## Create expansion factors ----
-# Make data.frame of dates from starting to ending date (entered above). This is
-# used later to expand sample to population. Also used for Table 1.
-#!!!!!! This matches Iyob's 'calendar1' after his line 97
+
+
+## Create expansion factors ----------------------------------------------------
+# RESULT: A data.frame with
+#   * YEAR: Analysis year
+#   * MONTH: Month
+#   * DAYTYPE: Type of day (Weekday, Weekend ... Holidays are coded as Weekends)
+#   * DAYS: Possible days of that day type per month
+#   * DAYLEN: Total possible shift length (sampling period) for each month. Note
+#             that these values are from the information file.
+# NOTES:
+#   * None.
+# USE: Used to expand sampling info to population. Also basis for Table 1.
+# EXPORTED: Not exported to a file.
 calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
-  # Include year, month, and what type of day it is (Weekend or Weekday) ...
-  #   Holidays are coded as weekends. 
-  mutate(YEAR=year(DATE),
-         MONTH=droplevels(month(DATE,label=TRUE)),
-         DAYTYPE=iMvDaytype(wday(DATE,label=TRUE),MONTH,mday(DATE))
+  dplyr::mutate(YEAR=year(DATE),
+                MONTH=droplevels(lubridate::month(DATE,label=TRUE)),
+                DAYTYPE=iMvDaytype(lubridate::wday(DATE,label=TRUE),
+                                   MONTH,
+                                   lubridate::mday(DATE))
   ) %>%
-  # Count number of weekend and weekday days in each month
-  group_by(YEAR,MONTH,DAYTYPE) %>%
-  summarize(DAYS=n()) %>%
-  # include a variable that is the fishing day length.
-  mutate(DAYLEN=iMvDaylen(MONTH,DAY_LENGTH)) %>%
+  dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
+  dplyr::summarize(DAYS=n()) %>%
+  dplyr::mutate(DAYLEN=iMvDaylen(MONTH,DAY_LENGTH)) %>%
   as.data.frame()
 
 
-## Interviewed fishing effort ----
-### Read and prepare interviews file
-#!!!!!! This largely matches Iyob's 'ints' after his line 129.
-ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE,
-                               dropCLS=TRUE,dropHM=TRUE) %>%
-  ###   Remove days with no effort between SDATE and FDATE (HOURS will be NA)
-  filter(!is.na(HOURS)) %>%
-  ###   Remove unneeded variables
-  select(-FISH,-RES,-SUCCESS) %>%
-  ###   Drop unused levels
+
+## Interviewed fishing effort --------------------------------------------------
+# RESULT: A data.frame of raw interview data.
+# NOTES:
+#   * CLIP, LEN, and SPECIES variables that did not have any data were removed
+#   * Days that had no effort between SDATE and FDATE were removed (these rows
+#     would have NA for the HOURS variable). This also removes days with bad
+#     SDATE and FDATE values (e.g., SDATE>FDATE)
+#   * The SUCCESS (whether interviewee caught fish), RES (residency), and 
+#     FISH (number of fish caught) variables were removed (not used further)
+# USE: Separated into two smaller data.frames below (more details there)
+# EXPORTED: Not exported to a file.
+ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE) %>%
+  dplyr::filter(!is.na(HOURS)) %>%
+  dplyr::select(-SUCCESS,-FISH,-RES) %>%
   droplevels()
 
-### A simplified data.frame that does not include any fish data
-###   HOURS:  observed fishing effort by the party.
-###   PERSONS: observed number of individuals in the party.
-ints_NOFISH <- select(ints_ORIG,INTID:PERSONS)
+# RESULT: A data.frame from ints_ORIG with only interviee and no fish data:
+#   * YEAR: Year of interview
+#   * MONTH: Month of interview 
+#   * WATERS: Waters where interviewee fished (WI or non-WI)
+#   * STATE: State where inteviewee fished (e.g., WI, WI/MN)
+#   * FISHERY: Type of fishery (e.g., Cold-Open, Warm-Open)
+#   * DAYTPE: Type of day (Weekday or Weekend ... holidays are weekends)
+#   * HOURS: Hours of fishing effort reported by the interviewee
+#   * PERSONS: Number of individuals in the fishing party
+# NOTES:
+#   * This is observed data, not yet expanded to all days in month/year.
+# USE: Ultimately sent to make Table 2 and expanded to entire population below.
+# EXPORTED: Not exported to a file.
+ints_NOFISH <- ints_ORIG %>%
+  dplyr::select(YEAR,MONTH,WATERS,STATE,FISHERY,DAYTYPE,HOURS,PERSONS,STATUS)
 
-### Observed number of interviews (NINTS) and interviewed fishing effort (HOURS)
-###   across sites within strata (STATE, DAYTYPE, FISHERY, MONTH).
-### This is used for Table 2.
-intvdEffortStates <- ints_NOFISH %>%
-  group_by(YEAR,STATE,DAYTYPE,FISHERY,MONTH,.drop=FALSE) %>%
-  summarize(NINTS=n(),HOURS=sum(HOURS)) %>%
-  as.data.frame()
-
-### Summarized interviewed effort by WATERS, DAYTYPE, FISHERY, and MONTH ...
-### similar to above but by WATERS rather than STATE and more summaries ...
-###   NINTS= Number of interviews
-###   HOURS= Total interviewed effort (hours) of ALL parties
-###   VHOURS= Square of HOURS (in SAS this is uncorrected sum-of-squares)
-###   MTRIP= Mean interviewed effort (hours) by COMPLETED parties
-###   PROP= Proportion of total interviewed effort for month-daytype that is in
-###         a given waters-fishery. Should sum to 1 within each month-daytype
-###         Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
-###   PARTY= Party size (person's per party)
-#!!!!!! This matches Iyob's 'effort' after his line 183
+# RESULT: A data.frame that summarizes the number of OBSERVED interviews and
+#         reported hours of fishing effort by "strata" (!!WATERS!!, DAYTYPE,
+#         FISHERY, MONTH).
+#   * YEAR, WATERS, DAYTYPE, FISHERY, MONTH: as defined above
+#   * NINTS: Total number of interviews in the stata
+#   * HOURS: Total interviewed effort (hours) of ALL parties in the strata
+#   * VHOURS: Square of HOURS (in SAS this is uncorrected sum-of-squares ...
+#             ultimately used to calculate the variance)
+#   * MTRIP: Mean interviewed effort (hours) by COMPLETED parties
+#   * PROP: Proportion of total interviewed effort for month-daytype that is in
+#           a given waters-fishery. Should sum to 1 within each month-daytype.
+#           Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
+#   * PARTY: Mean party size (person's per party)
+# NOTES:
+#   * This is still observed results, not yet expanded to the population.
+#   * This is "corrected" for split state fishing (e.g., half of hourly effort
+#     in WI/MI state is apportioned to WI and MI.)
+# USE: Used later for computing total effort (expanded to population)
+# EXPORTED: Not exported to a file
 intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 
-## Pressure counts ----
-### Read count pressure data and compute the following:
-###   WAIT= Total amount of time that clerk was at the SITE during that shift.
-###   COUNT= Total count of boats at the landing during the shift (note that
-###          this has been adjusted for boats that came back during the shift
-###          and boats that left after the shift started. Thus, there are 
-###          fractions in these counts).
-###   ** Both WAIT & COUNT have been combined for multiple visits during shift
-#!!!!!! This largely matches Iyob's 'counts1' after his line 198. However,
-#!!!!!!  this has one fewer records because one of the 27-Sep had a bad STARTHH.
-#!!!!!!  Finally, Iyob's code did not restrict to within the survey period or
-#!!!!!!  convert missing counts to zeroes, but the SAS code did, and I did here.
-pressureCount <- readPressureCountData(CNTS_FILE,RDIR,LOC,SDATE,FDATE,dropHM=TRUE)
 
-### Expand the daily count pressure data to be a summary for each MONTH and
-### DAYTYPE with the following variables:
-###   NCOUNTS= Number of days clerk estimated pressure counts
-###   DAYS= Number of days in the month
-###   COUNT= Total pressure count (number of boats)
-###   VCOUNT= Variance of pressure count (SD^2)
-### This is used for Table 3.
-#!!!!!! This matches Iyob's 'counts' after his line 215 (except no SDCOUNT as
-#!!!!!! this is not used elsewhere and is just sqrt of VCOUNT).
+
+## Pressure counts -------------------------------------------------------------
+# RESULT: data.frame of interviewer's time and observed vehicle count at a site
+#   * YEAR: Year of analysis
+#   * MONTH: Month of observation
+#   * DAY: Day of observation
+#   * DAYTYPE: Type of day (Weekday or Weekend ... holidays are weekends)
+#   * SITE: Specific site code
+#   * WAIT: Total amount of time that clerk was at the site during that shift
+#   * COUNT: Total count of boats at the landing during the shift (note that
+#            this has been adjusted for boats that came back during the shift
+#            and boats that left after the shift started. Thus, there are 
+#            fractions in these counts).
+# NOTES:
+#   * These are observed values
+#   * Both WAIT & COUNT have been combined for multiple visits during shift
+# USE: Expanded to population counts below.
+# EXPORTED: Not exported to a file.
+pressureCount <- readPressureCountData(CNTS_FILE,RDIR,LOC,SDATE,FDATE)
+
+# RESULT: data.frame of pressure count data expanded to represent the entire
+#         population and then summarized by MONTH and DAYTYPE.
+#   * YEAR: Year of analysis
+#   * MONTH: Month of interview (now contains an "All" month)
+#   * DAYTYPE: Type of day (now contains an "All" day type)
+#   * NCOUNTS: Number of days clerk estimated pressure counts
+#   * DAYS: Number of days in the month
+#   * COUNT: Total pressure count (number of boats)
+#   * VCOUNT: Variance of pressure count (SD^2)
+# NOTES: 
+# USE: Used for Table 3. Used below for total effort.
+# EXPORTED: Not exported to a file.
 pressureCount <- expandPressureCounts(pressureCount,calSum)
 
-## Combining Effort and Counts ----
-### This is used for Table 4
-#!!!!!! This largely matches Iyob's 'effort' after his line 247
-#!!!!!! Note that Iyob rounded his numerics to three decimal places
+
+
+## Combining Effort and Counts -------------------------------------------------
+# RESULT: A data.frame that summarizes (see below) total fishing effort expended
+#         by strata (WATERS, FISHERY, MONTH, DAYTYPE)
+#   * PHOURS: Total party hours of fishing
+#   * SDPHOURS: Standard deviation of above
+#   * PARTY: Mean party size (person's per party)
+#   * INDHRS: Total individual/person hours of fishing
+#   * SDINDHRS: Standard deviation of above
+#   * MTRIP: Mean interviewed effort (hours) by COMPLETED parties
+#   * TRIPS: Total number of fishing trips
+#   * SDTRIPS: Standard deviation of above
+#
+# The following are intermediate calculations returned for completeness
+#   * NINTS: Number of actual interviews
+#   * HOURS: Total interviewed effort (hours) of ALL parties
+#   * VHOURS: Variance of above
+#   * VPHOURS: Variance (standard deviation^2) of further above
+#   * VINDHRS: Variance (standard deviation^2) of further above
+#   * VTRIPS: Variance (standard deviation^2) of further above
+# NOTES:
+#   * This is expanded to the entire population (not just observations)
+# USE: 
+#   * Table 4 and Figures 1 & 2.
+#   * To expand catch to harvest further below.
+# EXPORTED: Exported as "LOCATION_YEAR_ttlEffort.csv".
 ttlEffort <- sumEffort(intvdEffortWaters,pressureCount)
 writeDF(ttlEffort,fnpre)
 
 
-## Calculate Harvest ----
-### Isolated and rearranged fish information from interviews
-### Removed non-fishing records
-#!!!!!! This largely matches Iyob's 'ints2' after his line 320, though I have
-#!!!!!!   several additional variables here (select to get closer to Iyob's).
-ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
-  filter(FISHERY!="NON-FISHING") %>%
-  select(INTID,YEAR,WATERS,DAYTYPE,FISHERY,MONTH,DATE,STATE,SITE,HOURS,
-         SPECIES,CLIP,CLIPPED,LEN)
 
-### Summarize harvest by strata and species
-#!!!!!! This largely matches Iyob's 'ints_new' after his line 347
+## Calculate Harvest -----------------------------------------------------------
+# RESULT: data.frame from ints_ORIG of mostly just fish-related data
+#   * INTID: A unique ID for each interview
+#   * DATE: Data of interview ... maintained for Table 9
+#   * YEAR: Year of interview
+#   * WATERS: Waters fished (WI or non-WI)
+#   * STATE: State fished (e.g., WI, WI/MN)
+#   * SITE: Specific site code (of landing) ... maintained for Table 9
+#   * DAYTYPE: Type of day (Weekday or Weekend ... holidays are weekends)
+#   * FISHERY: Type of fishery (e.g., cold-open, warm-open)
+#   * MONTH: Month of interview
+#   * HOURS: Hours that party fished
+#   * SPECIES: Species name of fish harvested
+#   * CLIP: Fin-clip type (code + name)
+#   * CLIPPED: Whether the fish was clipped or not (CLIP or NO CLIP)
+#   * LEN: Measured length of the fish (inches, nearest tenth)
+# NOTES:
+#   * Removed non-fishing records
+#   * At times the clerk only recorded the number of fish. In these cases the
+#     number was expanded to separate rows for each fish but no LEN, CLIP, or
+#     CLIPPED was recorded. These instances were recorded as CLIPCODE1=99 in
+#     the original interviews data file.
+# USE: To compute harvest and summarize length data further below.
+# EXPORTED: Not exported to a file.
+ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
+  dplyr::filter(FISHERY!="NON-FISHING") %>%
+  dplyr::select(INTID,DATE,YEAR,WATERS,STATE,SITE,DAYTYPE,FISHERY,MONTH,HOURS,
+         SPECIES,CLIP,CLIPPED,LEN) %>%
+  droplevels()
+
+# RESULT: data.frame that summarizes (see below) harvest observed from
+#         interviews by strata (WATERS, DAYTYPE, FISHERY, MONTH, SPECIES)
+#   * YEAR, WATERS, DAYTYPE, FISHERY, MONTH: as defined above
+#   * HARVEST: Observed number of fish harvested (by strata)
+#   * VHARVEST: Square of HARVEST (in SAS this is uncorrected sum-of-squares
+#               and will be used to compute the variance later)
+#   * COVAR: Start of a covariance calculation
+# NOTES:
+#   * This is observed data, not yet expanded to all days in month/year.
+#   * This was "corrected" for split state fishing (e.g., half of harvest
+#     in WI/MI state is apportioned to WI and MI.)
+# USE: To compute total harvest below
+# EXPORTED: Not exported to a file.
 intvdHarv <- sumObsHarvest(ints_FISH)
 
-### Combine effort with harvest data (for NON-FISHING records)
-### Remove non-fishing records from effort data, select specific variables
-#!!!!!! This largely matches Iyob's 'ints_effort' after his line 351
-ttlEffort2 <- filter(ttlEffort,FISHERY!="NON-FISHING") %>%
-  select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
-         NINTS,HOURS,VHOURS,INDHRS,PHOURS,VPHOURS)
+# RESULT: data.frame that is a subset of records and variables from ttlEffort
+#   * All variables defined above.
+# NOTES:
+#   * Removed "NON-FISHING" records
+#   * Selected specific variables as needed below
+#   * This is largely an intermediate calculation only for the next step below
+# USE: To compute total harvest below
+# EXPORTED: Not exported to a file.
+ttlEffort2 <- dplyr::filter(ttlEffort,FISHERY!="NON-FISHING") %>%
+  dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
+                NINTS,HOURS,VHOURS,INDHRS,PHOURS,VPHOURS)
 
-### Summarize harvest and effort together
-###   NINTS= Number of interviews
-###   HARVEST= Total estimated harvest
-###   VHARVEST= Variance of total estimated harvest
-###   INDHRS= Hours of fishing effort for all individuals
-### This is used for Table 5.
-#!!!!!! This contains Iyob's 'ints_effort' after his line 375
+# RESULT:
+#   * YEAR, WATERS, DAYTYPE, FISHERY, MONTH: as defined above but may incl. "All"
+#   * SPECIES: Species of fish
+#   * INDHRS: Total number of individual hours of fishing effort
+#   * HARVEST: Total estimated harvest
+#   * SDHARVEST: Standard deviation of total estimated harvest
+#   * VHARVEST: Variance of total estimated harvest (SD^2; for completeness)
+#   * HRATE: Harvest rate per individual
+# NOTES:
+#   * None.
+# USE: For Table 5 and Figure 3-5.
+# EXPORTED: Exported to "LOCATION_YEAR_ttlHarvest.csv"
 ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2)
 writeDF(ttlHarvest,fnpre)
 
 
 
-## Length summaries ----
-## This is used to make Table 9.
-#!!!!!! This matches Iyob's 'lengthall' after his line 420
-lengths <- select(ints_FISH,YEAR,STATE,FISHERY,MONTH,DATE,SITE,
-                  SPECIES,CLIP,CLIPPED,LEN)
+## Length summaries ------------------------------------------------------------
+# RESULT: re-arranged data.frame from ints_FISH for export
+#   * All variables defined previously.
+# NOTES:
+#   * None.
+# USE: For Tables 6-9 and Figure 6.
+# EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
+lengths <- ints_FISH %>%
+  dplyr::select(YEAR,STATE,FISHERY,MONTH,DATE,SITE,SPECIES,CLIP,CLIPPED,LEN)
 writeDF(lengths,fnpre)
 
-### Lengths summarized by species, month, and finclipped (or not)
-#!!!!!! This matches the data needed for TABLE 6
-sumLengthSMF <- sumLengths(lengths,CLIPPED)
-
-### Lengths summarized by species, month, and fin-clip (only for those clipped)
-#!!!!!! This matches the data needed for TABLE 7 (except that I included only
-#!!!!!! those species that had at least one observed fin-clip).
-specClipped <- unique(filter(lengths,CLIPPED=="FINCLIP")$SPECIES)
-sumLengthSMC <- sumLengths(filter(lengths,SPECIES %in% specClipped),CLIP)
