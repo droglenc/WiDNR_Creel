@@ -1122,13 +1122,17 @@ figureCaptions <- function() {
 }
 
 theme_creel <- function() {
-  theme_bw(base_size=14) +
+  thm <- theme_bw(base_size=14) +
     theme(
       legend.position="bottom",
       legend.title=element_blank(),
       legend.text=element_text(size=rel(0.75)),
       legend.spacing.x=unit(3,"mm")
     )
+  thm <- list(thm,
+              scale_color_brewer(palette="Dark2",direction=-1),
+              scale_fill_brewer(palette="Dark2",direction=-1))
+  thm
 }
 
 figure1 <- function(d) {
@@ -1154,7 +1158,6 @@ figure1 <- function(d) {
     xlab("Month") +
     ylab("Total Effort (Angler-Hrs)") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
-    scale_color_discrete(breaks=c("Weekday","Weekend")) +
     theme_creel()
   p
 }
@@ -1184,7 +1187,7 @@ figure2 <- function(d) {
     xlab("Month") +
     ylab("Total Effort (Angler-Hrs)") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
-    scale_color_discrete(breaks=c("Weekday","Weekend")) +
+#    scale_color_discrete(breaks=c("Weekday","Weekend")) +
     theme_creel()
   p
 }
@@ -1198,7 +1201,7 @@ figure3 <- function(d) {
   
   ## Make the plot
   p <- ggplot(data=tmp,aes(x=SPECIES,y=HARVEST)) +
-    geom_bar(stat="identity",fill="gray50") +
+    geom_bar(stat="identity",fill=brewer.pal(3,"Dark2")[1]) +
     geom_errorbar(data=tmp,aes(ymin=HARVEST-SDHARVEST,ymax=HARVEST+SDHARVEST),
                   width=0.2) +
     ylab("Total Harvest") +
@@ -1239,7 +1242,7 @@ figure4 <- function(d,topN=3) {
     xlab("Month") +
     ylab("Total Harvest") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
-    scale_color_discrete(breaks=c("Weekday","Weekend")) +
+#    scale_color_discrete(breaks=c("Weekday","Weekend")) +
     theme_creel()
   p
 }
