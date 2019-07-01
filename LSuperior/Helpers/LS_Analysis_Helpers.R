@@ -534,7 +534,7 @@ sumLengths <- function(d,var) {
   }
   ## Remove rows that are duplicates of a previous row for just the summary vars
   lenSum %<>% filter(FSA::repeatedRows2Keep(.,
-                      cols2use=c("n","mnLen","seLen","varLen","minLen","maxLen")))
+                      cols2use=c("n","mnLen","sdLen","seLen","minLen","maxLen")))
   ## return data.frame
   as.data.frame(lenSum)
 }
@@ -946,10 +946,10 @@ table6 <- function(dlen) {
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
     # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
     set_number_format(row=everywhere,col="n",0) %>%
-    set_number_format(row=everywhere,col=c("mnLen","seLen","varLen"),2) %>%
+    set_number_format(row=everywhere,col=c("mnLen","sdLen","seLen"),2) %>%
     set_number_format(row=everywhere,col=c("minLen","maxLen"),1) %>%
     # Add column labels
-    rbind(c("SPECIES","MONTH","Clipped?","N","Mean","SE","Var","Min","Max"),.) %>%
+    rbind(c("SPECIES","MONTH","Clipped?","N","Mean","SD","SE","Min","Max"),.) %>%
     rbind(c("","","","Length (in.)","","","","",""),.) %>%
     # Top label should extend across 4-9 columns with line underneath
     merge_cells(row=1,col=4:9) %>%
@@ -994,10 +994,10 @@ table7 <- function(dlen) {
     set_na_string(row=everywhere,col=-(1:4),value="--") %>%
     # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
     set_number_format(row=everywhere,col="n",value=0) %>%
-    set_number_format(row=everywhere,col=c("mnLen","seLen","varLen"),value=2) %>%
+    set_number_format(row=everywhere,col=c("mnLen","sdLen","seLen"),value=2) %>%
     set_number_format(row=everywhere,col=c("minLen","maxLen"),1) %>%
     # Add column labels
-    rbind(c("SPECIES","MONTH","Clip","N","Mean","SE","Var","Min","Max"),.) %>%
+    rbind(c("SPECIES","MONTH","Clip","N","Mean","SD","SE","Min","Max"),.) %>%
     rbind(c("","","","Length (in.)","","","","",""),.) %>%
     # Top label should extend across 4-9 columns with line underneath
     merge_cells(row=1,col=4:9) %>%
@@ -1516,10 +1516,12 @@ iOrderMonths <- function(x,addAll=FALSE) {
 
 
 iSumLen <- function(dgb) {
-  dplyr::summarize(dgb,n=dplyr::n(),mnLen=mean(LEN,na.rm=TRUE),
-                   seLen=FSA::se(LEN,na.rm=TRUE),varLen=var(LEN,na.rm=TRUE),
-                   minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
+  tmp <- dplyr::summarize(dgb,n=dplyr::n(),mnLen=mean(LEN,na.rm=TRUE),
+                          sdLen=sd(LEN,na.rm=TRUE),seLen=FSA::se(LEN,na.rm=TRUE),
+                          minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
     as.data.frame()
+  tmp$sdLen[is.nan(tmp$sdLen)] <- NA
+  tmp
 }
 
 
