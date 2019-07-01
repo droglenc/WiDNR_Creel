@@ -539,6 +539,22 @@ sumLengths <- function(d,var) {
   as.data.frame(lenSum)
 }
 
+addWeights <- function(d,RDIR,YEAR) {
+  ## Read in the length-weight regression results
+  lwregs <- readxl::read_excel(file.path(RDIR,
+                               paste0("LWRegressions_",YEAR,".xlsx"))) %>%
+    ## make sure capitalization is the same as in SPECIES
+    mutate(SPECIES2=FSA::capFirst(SPECIES)) %>%
+    select(SPECIES2,a,b)
+  
+  ## Temporarily create SPECIES2 to handle different eqnfor clipped lake trout
+  d %<>% mutate(SPECIES2=as.character(SPECIES))
+  d$SPECIES2[d$SPECIES2=="Lake Trout" & d$CLIPPED=="Clip"] <- "Lake Trout (hatchery)"
+  ## Temporarily append a and b values for each fish according to its species
+  d %<>% left_join(lwregs,by="SPECIES2") %>%
+    mutate(WT=round(exp(a)*(LEN*25.4)^b,0)) %>%
+    select(-SPECIES2,-a,-b)
+}
 
 
 ## Tables ----------------------------------------------------------------------

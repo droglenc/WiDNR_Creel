@@ -252,13 +252,15 @@ writeDF(ttlHarvest,fnpre)
 
 ## Length summaries ------------------------------------------------------------
 # RESULT: re-arranged data.frame from ints_FISH for export
-#   * All variables defined previously.
+#   * All but WT variable defined previously.
+#   * Added weight (WT) variable in grams.
 # NOTES:
 #   * None.
 # USE: For Tables 6-9 and Figure 6.
 # EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
 lengths <- ints_FISH %>%
   dplyr::select(YEAR,WATERS,MUNIT,STATE,FISHERY,MONTH,
-                DATE,SITE,SPECIES,CLIP,CLIPPED,LEN)
+                DATE,SITE,SPECIES,CLIP,CLIPPED,LEN) %>%
+  addWeights(RDIR,YEAR)
 writeDF(lengths,fnpre)
 

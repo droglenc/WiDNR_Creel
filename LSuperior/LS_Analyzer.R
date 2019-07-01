@@ -1,16 +1,17 @@
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 #
 # PROGRAM TO ANALYZE "BUS ROUTE" TYPE LAKE SUPERIOR CREEL
-#   SINGLE ROUTE  -   INTEGRATED EFFORT AT LANDING COUNT
+#   SINGLE ROUTE - INTEGRATED EFFORT AT LANDING COUNT
 #
 # DIRECTIONS:
 #  1. Put interview and count data files in a "data" folder inside a folder
 #     called "LS_Analysis_YEAR" (where YEAR is replaced with the year to be
 #     analyzed ... e.g., LS_ANALYSIS_2019).
-#  2. Complete an information file (see example from a previous year) and save
-#     in same folder as data files in 1.
-#  3. Source this script (and choose the information file(s) in the dialog box).
-#  4. See resulting files in LS_Analysis_YEAR folder ... the html files are the
+#  2. Put length-weight regression Excel file in the same "data" folder from 1.
+#  3. Complete an information file (see example from a previous year) and save
+#     in same "data" folder from 1.
+#  4. Source this script (and choose the information file(s) in the dialog box).
+#  5. See resulting files in LS_Analysis_YEAR folder ... the html files are the
 #     overall report and the CSV files are intermediate data files that may be
 #     loaded into a database for future analyses.
 #
