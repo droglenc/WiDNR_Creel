@@ -85,7 +85,8 @@ ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE) %>%
 # USE: Ultimately sent to make Table 2 and expanded to entire population below.
 # EXPORTED: Not exported to a file.
 ints_NOFISH <- ints_ORIG %>%
-  dplyr::select(YEAR,MONTH,WATERS,STATE,FISHERY,DAYTYPE,HOURS,PERSONS,STATUS)
+  dplyr::select(YEAR,WATERS,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
+                HOURS,PERSONS,STATUS)
 
 # RESULT: A data.frame that summarizes the number of OBSERVED interviews and
 #         reported hours of fishing effort by "strata" (!!WATERS!!, DAYTYPE,
@@ -201,8 +202,8 @@ writeDF(ttlEffort,fnpre)
 # EXPORTED: Not exported to a file.
 ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
   dplyr::filter(FISHERY!="NON-FISHING") %>%
-  dplyr::select(INTID,DATE,YEAR,WATERS,STATE,SITE,DAYTYPE,FISHERY,MONTH,HOURS,
-         SPECIES,CLIP,CLIPPED,LEN) %>%
+  dplyr::select(INTID,DATE,YEAR,WATERS,MUNIT,STATE,SITE,DAYTYPE,FISHERY,MONTH,
+                HOURS,SPECIES,CLIP,CLIPPED,LEN) %>%
   droplevels()
 
 # RESULT: data.frame that summarizes (see below) harvest observed from
@@ -229,11 +230,11 @@ intvdHarv <- sumObsHarvest(ints_FISH)
 # USE: To compute total harvest below
 # EXPORTED: Not exported to a file.
 ttlEffort2 <- dplyr::filter(ttlEffort,FISHERY!="NON-FISHING") %>%
-  dplyr::select(YEAR,WATERS,DAYTYPE,FISHERY,MONTH,
+  dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
                 NINTS,HOURS,VHOURS,INDHRS,PHOURS,VPHOURS)
 
 # RESULT:
-#   * YEAR, WATERS, DAYTYPE, FISHERY, MONTH: as defined above but may incl. "All"
+#   * YEAR, WATERS, MUNIT DAYTYPE, FISHERY, MONTH: as above, may incl. "All"
 #   * SPECIES: Species of fish
 #   * INDHRS: Total number of individual hours of fishing effort
 #   * HARVEST: Total estimated harvest
@@ -257,6 +258,7 @@ writeDF(ttlHarvest,fnpre)
 # USE: For Tables 6-9 and Figure 6.
 # EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
 lengths <- ints_FISH %>%
-  dplyr::select(YEAR,STATE,FISHERY,MONTH,DATE,SITE,SPECIES,CLIP,CLIPPED,LEN)
+  dplyr::select(YEAR,WATERS,MUNIT,STATE,FISHERY,MONTH,
+                DATE,SITE,SPECIES,CLIP,CLIPPED,LEN)
 writeDF(lengths,fnpre)
 

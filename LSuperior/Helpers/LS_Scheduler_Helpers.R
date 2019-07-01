@@ -456,7 +456,7 @@ makeCalendar <- function(d,MONTH1,WDIR,
     geom_text(aes(label=activity,color=color),
               data=filter(mon_cal,!is.na(activity)),
               size=3,fontface="bold") +
-    sugrrants::facet_calendar(~DATE,format="%a-%e") +
+    sugrrants::facet_calendar(~DATE,format="%a-%e",week_start=7) +
     labs(x="",y="",title=paste0(mon_cal$title[[1]],", ",YEAR)) +
     theme_bw() +
     theme(
