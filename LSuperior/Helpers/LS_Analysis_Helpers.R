@@ -1340,7 +1340,8 @@ fnPrefix <- function(RDIR,LOC,SDATE) {
 ## Convenience function for making a file of the data.frame in x
 writeDF <- function(x,fnpre) {
   x1 <- deparse(substitute(x))
-  write.csv(x,file=paste0(fnpre,x1,".csv"),row.names=FALSE,quote=FALSE)
+  write.csv(x,file=paste0(fnpre,x1,".csv"),
+            row.names=FALSE,quote=FALSE,na="")
 }
 
 

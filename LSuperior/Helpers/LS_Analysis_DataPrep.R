@@ -171,7 +171,9 @@ pressureCount <- expandPressureCounts(pressureCount,calSum)
 #   * Table 4 and Figures 1 & 2.
 #   * To expand catch to harvest further below.
 # EXPORTED: Exported as "LOCATION_YEAR_ttlEffort.csv".
-ttlEffort <- sumEffort(intvdEffortWaters,pressureCount)
+ttlEffort <- sumEffort(intvdEffortWaters,pressureCount) %>% 
+  dplyr::mutate(ROUTE=LOC) %>%
+  dplyr::select(YEAR,ROUTE,WATERS:VTRIPS)
 writeDF(ttlEffort,fnpre)
 
 
@@ -235,6 +237,7 @@ ttlEffort2 <- dplyr::filter(ttlEffort,FISHERY!="NON-FISHING") %>%
 
 # RESULT:
 #   * YEAR, WATERS, MUNIT DAYTYPE, FISHERY, MONTH: as above, may incl. "All"
+#   * ROUTE: Route abbreviation
 #   * SPECIES: Species of fish
 #   * INDHRS: Total number of individual hours of fishing effort
 #   * HARVEST: Total estimated harvest
@@ -245,7 +248,9 @@ ttlEffort2 <- dplyr::filter(ttlEffort,FISHERY!="NON-FISHING") %>%
 #   * None.
 # USE: For Table 5 and Figure 3-5.
 # EXPORTED: Exported to "LOCATION_YEAR_ttlHarvest.csv"
-ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2)
+ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2) %>%
+  dplyr::mutate(ROUTE=LOC) %>%
+  dplyr::select(YEAR,ROUTE,WATERS:HRATE)
 writeDF(ttlHarvest,fnpre)
 
 
@@ -259,7 +264,8 @@ writeDF(ttlHarvest,fnpre)
 # USE: For Tables 6-9 and Figure 6.
 # EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
 lengths <- ints_FISH %>%
-  dplyr::select(YEAR,WATERS,MUNIT,STATE,FISHERY,MONTH,
+  dplyr::mutate(ROUTE=LOC) %>%
+  dplyr::select(YEAR,ROUTE,WATERS,MUNIT,STATE,FISHERY,MONTH,
                 DATE,SITE,SPECIES,CLIP,CLIPPED,LEN) %>%
   addWeights(RDIR,YEAR)
 writeDF(lengths,fnpre)
