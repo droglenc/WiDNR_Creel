@@ -12,11 +12,6 @@
 
 
 ## Setup -----------------------------------------------------------------------
-### Determine if results directory exists (stop if not)
-if (!dir.exists(RDIR)) stop("The ",RDIR," directory does not exist.\n",
-                            "Please create this directory and populate it ",
-                            "with the 'interview' and 'count' data files.")
-
 ### Load helper files
 source(file.path(WDIR,"Helpers","LS_Analysis_Helpers.R"))
 

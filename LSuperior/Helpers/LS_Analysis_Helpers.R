@@ -539,6 +539,8 @@ sumLengths <- function(d,var) {
   as.data.frame(lenSum)
 }
 
+## Adds a variable that is a fish's weight predicted from its length using the
+## provided length-weight regressions
 addWeights <- function(d,RDIR,YEAR) {
   ## Read in the length-weight regression results
   lwregs <- readxl::read_excel(file.path(RDIR,
@@ -555,6 +557,24 @@ addWeights <- function(d,RDIR,YEAR) {
     mutate(WT=round(exp(a)*(LEN*25.4)^b,0)) %>%
     select(-SPECIES2,-a,-b)
 }
+
+## Combines the three types of CSV files in the RDIR directory that were 
+## created after sourcing the LS_Analyzer script. Essentially combines summary
+## results across routes within a year.
+combineCSV <- function(RDIR,YEAR) {
+  types <- c("ttlEffort","ttlHarvest","lengths")
+  for (i in types) {
+    tmp <- list.files(RDIR,pattern=paste0(i,".csv"))
+    for (j in seq_along(tmp)) {
+      fn <- file.path(RDIR,tmp[j])
+      if (j==1) d <- read.csv(fn)
+      else d <- rbind(d,read.csv(fn))
+    }
+    fn <- paste0("COMBINED_",YEAR,"_",i,".csv")
+    write.csv(d,file=file.path(RDIR,fn),row.names=FALSE,quote=FALSE,na="")
+  }
+}
+
 
 
 ## Tables ----------------------------------------------------------------------

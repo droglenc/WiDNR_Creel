@@ -14,6 +14,8 @@
 #  5. See resulting files in LS_Analysis_YEAR folder ... the html files are the
 #     overall report and the CSV files are intermediate data files that may be
 #     loaded into a database for future analyses.
+#  5. OPTIONALLY, combine CSV files across routes by running the following code
+#     AFTER this script has been sourced ==>  combineCSV(RDIR,YEAR)
 #
 # R VERSIONS (CONVERTED FROM SAS): 
 #     XXXX, 201X (version 2 - Derek O)
