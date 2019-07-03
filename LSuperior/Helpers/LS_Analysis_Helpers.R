@@ -88,16 +88,18 @@ sumInterviewedEffort <- function(dints) {
   # !! This was how PARTY was calculated in the SAS code ... it is NOT the same
   # !! as calculating the mean of PERSONS ... not clear why it is computed this
   # !! way.
+  # !! Note that USSHours is the uncorrected SS of HOURS ... this is used later
+  # !! to find the variance of the HOURS
   fsum <- f %>%
     dplyr::group_by(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH) %>%
     dplyr::summarize(NINTS=dplyr::n(),
                      MTRIP=mean(CHOURS,na.rm=TRUE),
-                     VHOURS=sum(HOURS^2,na.rm=TRUE),
+                     USSHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
                      PARTY=INDHRS/HOURS) %>%
     dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
-                  NINTS,HOURS,INDHRS,MTRIP,VHOURS,PARTY) %>%
+                  NINTS,HOURS,INDHRS,MTRIP,USSHOURS,PARTY) %>%
     as.data.frame()
   
   # Find total interviewed hours by MONTH and DAYTYPE (nints in SAS code)
@@ -110,7 +112,7 @@ sumInterviewedEffort <- function(dints) {
   f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(PROP=HOURS/THOURS) %>%
     dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
-                  NINTS,HOURS,VHOURS,MTRIP,PROP,PARTY) %>%
+                  NINTS,HOURS,USSHOURS,MTRIP,PROP,PARTY) %>%
     dplyr::arrange(WATERS,MUNIT,DAYTYPE,FISHERY,MONTH)
   ### Return data.frame
   as.data.frame(f)
@@ -241,7 +243,7 @@ sumEffort <- function(ieff,pct) {
     dplyr::group_by(YEAR,WATERS,MUNIT,FISHERY,MONTH,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
-                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     USSHOURS=sum(USSHOURS,na.rm=TRUE),
                      PHOURS=sum(PHOURS,na.rm=TRUE),
                      VPHOURS=sum(VPHOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
@@ -254,7 +256,7 @@ sumEffort <- function(ieff,pct) {
   eff1 <- dplyr::group_by(eff,YEAR,WATERS,MUNIT,FISHERY,MONTH) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
-                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     USSHOURS=sum(USSHOURS,na.rm=TRUE),
                      PHOURS=sum(PHOURS,na.rm=TRUE),
                      VPHOURS=sum(VPHOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
@@ -271,7 +273,7 @@ sumEffort <- function(ieff,pct) {
   eff2 <- dplyr::group_by(eff,YEAR,WATERS,MUNIT,FISHERY,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
-                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     USSHOURS=sum(USSHOURS,na.rm=TRUE),
                      PHOURS=sum(PHOURS,na.rm=TRUE),
                      VPHOURS=sum(VPHOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
@@ -288,7 +290,7 @@ sumEffort <- function(ieff,pct) {
   eff3 <- dplyr::group_by(eff,YEAR,WATERS,MUNIT,MONTH,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
-                     VHOURS=sum(VHOURS,na.rm=TRUE),
+                     USSHOURS=sum(USSHOURS,na.rm=TRUE),
                      PHOURS=sum(PHOURS,na.rm=TRUE),
                      VPHOURS=sum(VPHOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
@@ -309,7 +311,7 @@ sumEffort <- function(ieff,pct) {
     ## Put variables in specific order
     dplyr::select(YEAR,WATERS,MUNIT,FISHERY,MONTH,DAYTYPE,
                   PHOURS,SDPHOURS,PARTY,INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS,
-                  NINTS,HOURS,VHOURS,VPHOURS,VINDHRS,VTRIPS) %>%
+                  NINTS,HOURS,USSHOURS,VPHOURS,VINDHRS,VTRIPS) %>%
     ## Arrange
     dplyr::arrange(YEAR,WATERS,MUNIT,FISHERY,MONTH,DAYTYPE)
   # return final data.frame
@@ -406,22 +408,23 @@ sumObsHarvest <- function(d) {
   ## Harvest for when fishing in more than one state ... harvest cut in half
   h2 <- dplyr::filter(harv,STATE %in% c("WI/MN","WI/MI")) %>%
     dplyr::mutate(HOURS=0.5*HOURS,HARVEST=0.5*HARVEST)
-  ### Duplicated h2 to get other half of HOURS/HARVEST, label as Non-WI
+  ## Duplicated h2 to get other half of HOURS/HARVEST, label as Non-WI
   h3 <- dplyr::mutate(h2,
                       WATERS="Non-WI",
                       MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
-  ### Combine to get all interviews corrected for location
-  ### Add COVAR variable
+  ## Combine to get all interviews corrected for location
+  ## Add UCOVAR variable (intermediate value for computing covariance between
+  ## HARVEST and HOURS later)
   harv <- rbind(h1,h2,h3) %>%
-    dplyr::mutate(COVAR=HARVEST*HOURS)
-  ### Summarize harvest by strata and species
+    dplyr::mutate(UCOVAR=HARVEST*HOURS)
+  ## Summarize harvest by strata and species
   harv %<>% dplyr::group_by(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,SPECIES) %>%
-    dplyr::summarize(VHARVEST=sum(HARVEST^2,na.rm=TRUE),
+    dplyr::summarize(USSHARVEST=sum(HARVEST^2,na.rm=TRUE),
                      HARVEST=sum(HARVEST,na.rm=TRUE),
-                     COVAR=sum(COVAR,na.rm=TRUE)) %>%
+                     UCOVAR=sum(UCOVAR,na.rm=TRUE)) %>%
     as.data.frame() %>%
     dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,SPECIES,
-                  HARVEST,VHARVEST,COVAR)
+                  HARVEST,USSHARVEST,UCOVAR)
   ### Return data.frame
   as.data.frame(harv)
 }
@@ -440,13 +443,13 @@ sumHarvestEffort <- function(h,f) {
     ##   VHARVEST= Variance of total estimated harvest
     ##   INDHRS= Hours of fishing effort for all individuals
     dplyr::mutate(HOURS=ifelse(is.na(NINTS) | NINTS==0,NA,HOURS),
-                  VHOURS=ifelse(is.na(NINTS) | NINTS==0,NA,VHOURS),
-                  VHOURS=(VHOURS-(HOURS^2)/NINTS)/(NINTS-1),
+                  USSHOURS=ifelse(is.na(NINTS) | NINTS==0,NA,USSHOURS),
+                  VHOURS=(USSHOURS-(HOURS^2)/NINTS)/(NINTS-1),
                   HARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,HARVEST),
-                  VHARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,VHARVEST),
-                  VHARVEST=(VHARVEST-(HARVEST^2)/NINTS)/(NINTS-1),
-                  COVAR=ifelse(is.na(NINTS) | NINTS==0,NA,COVAR),
-                  COVAR=(COVAR-HARVEST*HOURS/NINTS)/(NINTS-1),
+                  USSHARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,USSHARVEST),
+                  VHARVEST=(USSHARVEST-(HARVEST^2)/NINTS)/(NINTS-1),
+                  UCOVAR=ifelse(is.na(NINTS) | NINTS==0,NA,UCOVAR),
+                  COVAR=(UCOVAR-HARVEST*HOURS/NINTS)/(NINTS-1),
                   MHOURS=HOURS/NINTS,
                   MHARV=HARVEST/NINTS,
                   HRATE=HARVEST/HOURS,
@@ -493,7 +496,7 @@ sumHarvestEffort <- function(h,f) {
     as.data.frame()
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf3) %>%
-    ## Add on harvest rate and SD of harvees
+    ## Add on harvest rate and SD of harvest
     dplyr::mutate(HRATE=HARVEST/INDHRS,
                   SDHARVEST=sqrt(VHARVEST)) %>%
     ## Rearrange variables and rows

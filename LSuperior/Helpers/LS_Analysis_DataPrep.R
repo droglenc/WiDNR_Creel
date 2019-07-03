@@ -91,8 +91,8 @@ ints_NOFISH <- ints_ORIG %>%
 #   * YEAR, WATERS, MUNIT, DAYTYPE, FISHERY, MONTH: as defined above
 #   * NINTS: Total number of interviews in the stata
 #   * HOURS: Total interviewed effort (hours) of ALL parties in the strata
-#   * VHOURS: Square of HOURS (in SAS this is uncorrected sum-of-squares ...
-#             ultimately used to calculate the variance)
+#   * USSHOURS: Uncorrected sum-of-squares (square of hours) ... this will be
+#               used to calculate the variance in sumHarvestEffort() below
 #   * MTRIP: Mean interviewed effort (hours) by COMPLETED parties
 #   * PROP: Proportion of total interviewed effort for month-daytype that is in
 #           a given waters-fishery. Should sum to 1 within each month-daytype.
@@ -160,7 +160,7 @@ pressureCount <- expandPressureCounts(pressureCount,calSum)
 # The following are intermediate calculations returned for completeness
 #   * NINTS: Number of actual interviews
 #   * HOURS: Total interviewed effort (hours) of ALL parties
-#   * VHOURS: Variance of above
+#   * USSHOURS: Uncorrected SS of HOURS (explained above)
 #   * VPHOURS: Variance (standard deviation^2) of further above
 #   * VINDHRS: Variance (standard deviation^2) of further above
 #   * VTRIPS: Variance (standard deviation^2) of further above
@@ -211,9 +211,10 @@ ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
 #         interviews by strata (WATERS, DAYTYPE, FISHERY, MONTH, SPECIES)
 #   * YEAR, WATERS, DAYTYPE, FISHERY, MONTH: as defined above
 #   * HARVEST: Observed number of fish harvested (by strata)
-#   * VHARVEST: Square of HARVEST (in SAS this is uncorrected sum-of-squares
-#               and will be used to compute the variance later)
-#   * COVAR: Start of a covariance calculation
+#   * USSHARVEST: Uncorrected sum-of-squares of HARVEST (i.e., square of
+#                 HARVEST) ... will be used to compute the variance of HARVEST
+#                 in sumHarvestEffort
+#   * UCOVAR: Start of a covariance calculation
 # NOTES:
 #   * This is observed data, not yet expanded to all days in month/year.
 #   * This was "corrected" for split state fishing (e.g., half of harvest
@@ -230,9 +231,10 @@ intvdHarv <- sumObsHarvest(ints_FISH)
 #   * This is largely an intermediate calculation only for the next step below
 # USE: To compute total harvest below
 # EXPORTED: Not exported to a file.
-ttlEffort2 <- dplyr::filter(ttlEffort,FISHERY!="NON-FISHING") %>%
+ttlEffort2 <- ttlEffort %>%
+  dplyr::filter(FISHERY!="NON-FISHING") %>%
   dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
-                NINTS,HOURS,VHOURS,INDHRS,PHOURS,VPHOURS)
+                NINTS,HOURS,USSHOURS,INDHRS,PHOURS,VPHOURS)
 
 # RESULT:
 #   * YEAR, WATERS, MUNIT DAYTYPE, FISHERY, MONTH: as above, may incl. "All"
