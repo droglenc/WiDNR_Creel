@@ -67,22 +67,27 @@ sumInterviewedEffort <- function(dints) {
   # All records where fishing was in one state
   f1 <- dplyr::filter(dints,!STATE %in% c("WI/MN","WI/MI"))
   # All records where fishing was in two states
-  # Cut the fishing effort (HOURS) in half (apportioned to each state)
   f2 <- dplyr::filter(dints,STATE %in% c("WI/MN","WI/MI")) %>%
+    ## Cut the fishing effort (HOURS) in half (apportioned to each state)
     dplyr::mutate(HOURS=0.5*HOURS)
-  # Duplicate f2 to get other half of HOURS, label as NON-WISCONSIN
-  f3 <- dplyr::mutate(f2,
-                      WATERS="Non-WI",
-                      MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
+  # Duplicate f2 to get other half of HOURS
+  f3 <- f2 %>%
+    ## label WATERS as Non-WI and MUNIT as other state
+    dplyr::mutate(WATERS="Non-WI",MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
   
-  ### Combine to get all interviews corrected for location
-  ### Compute people-hours of fishing effort (in INDHRS)
-  ### Compute hours for only completed trips (in CHOURS)
+  # Combine to get all interviews corrected for location
   f <- rbind(f1,f2,f3) %>%
+    ## Compute people-hours of fishing effort (in INDHRS)
+    ## Compute hours for only completed trips (in CHOURS) ... only used to find
+    ##   mean length of a COMPLETED trip (in MTRIP) below.
     dplyr::mutate(INDHRS=PERSONS*HOURS,
                   CHOURS=ifelse(STATUS=="Complete",HOURS,NA))
   
-  ### Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH  
+  # Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH
+  #   across all interviews, sites, and days
+  # !! This was how PARTY was calculated in the SAS code ... it is NOT the same
+  # !! as calculating the mean of PERSONS ... not clear why it is computed this
+  # !! way.
   fsum <- f %>%
     dplyr::group_by(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH) %>%
     dplyr::summarize(NINTS=dplyr::n(),
@@ -90,22 +95,20 @@ sumInterviewedEffort <- function(dints) {
                      VHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE),
-                     CHOURS=sum(CHOURS,na.rm=TRUE)) %>%
+                     PARTY=INDHRS/HOURS) %>%
     dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
-                  NINTS,HOURS,INDHRS,CHOURS,MTRIP,VHOURS) %>%
+                  NINTS,HOURS,INDHRS,MTRIP,VHOURS,PARTY) %>%
     as.data.frame()
   
-  ### Summarize total interviewed hours by MONTH and DAYTYPE
-  ### *** This is nints in SAS/IYOB code
+  # Find total interviewed hours by MONTH and DAYTYPE (nints in SAS code)
   fsum2 <- dints %>%
     dplyr::group_by(MONTH,DAYTYPE) %>%
     dplyr::summarize(THOURS=sum(HOURS,na.rm=TRUE)) %>%
     as.data.frame()
   
-  ### Combine the summarized effort with fsum2
+  # Combine the summarized effort with fsum2 to compute PROP
   f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
-    dplyr::mutate(PROP=HOURS/THOURS,
-                  PARTY=INDHRS/HOURS) %>%
+    dplyr::mutate(PROP=HOURS/THOURS) %>%
     dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
                   NINTS,HOURS,VHOURS,MTRIP,PROP,PARTY) %>%
     dplyr::arrange(WATERS,MUNIT,DAYTYPE,FISHERY,MONTH)
@@ -159,7 +162,7 @@ readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
 
 ## Expand pressure counts from observed days/times to daylengths & days/month
 expandPressureCounts <- function(dcnts,cal) {
-  ## Isolate daylengths for each month
+  ## Isolate daylengths for each month from the calendar
   tmp <- cal[,c("MONTH","DAYLEN")]
   tmp <- tmp[!duplicated(tmp),]
   dcnts %<>%
@@ -564,12 +567,17 @@ addWeights <- function(d,RDIR,YEAR) {
 combineCSV <- function(RDIR,YEAR) {
   types <- c("ttlEffort","ttlHarvest","lengths")
   for (i in types) {
+    ## Get list of CSV files of that type in RDIR
     tmp <- list.files(RDIR,pattern=paste0(i,".csv"))
+    ## But don't include the COMBINED TYPES
+    tmp <- tmp[!grepl("COMBINED",tmp)]
     for (j in seq_along(tmp)) {
+      ## Read and combine the files
       fn <- file.path(RDIR,tmp[j])
       if (j==1) d <- read.csv(fn)
       else d <- rbind(d,read.csv(fn))
     }
+    ## Write out the combined file
     fn <- paste0("COMBINED_",YEAR,"_",i,".csv")
     write.csv(d,file=file.path(RDIR,fn),row.names=FALSE,quote=FALSE,na="")
   }

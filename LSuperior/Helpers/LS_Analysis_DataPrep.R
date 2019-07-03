@@ -53,7 +53,7 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 ## Interviewed fishing effort --------------------------------------------------
 # RESULT: A data.frame of raw interview data.
 # NOTES:
-#   * CLIP, LEN, and SPECIES variables that did not have any data were removed
+#   * CLIPXX, LENXX, and SPECIESXX variables that did not have data were removed
 #   * Days that had no effort between SDATE and FDATE were removed (these rows
 #     would have NA for the HOURS variable). This also removes days with bad
 #     SDATE and FDATE values (e.g., SDATE>FDATE)
@@ -66,10 +66,12 @@ ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE) %>%
   dplyr::select(-SUCCESS,-FISH,-RES) %>%
   droplevels()
 
-# RESULT: A data.frame from ints_ORIG with only interviee and no fish data:
+# RESULT: A data.frame of individual interview data, from ints_ORIG but with
+#         only interviee and no fish data.
 #   * YEAR: Year of interview
 #   * MONTH: Month of interview 
 #   * WATERS: Waters where interviewee fished (WI or non-WI)
+#   * MUNIT: Management unit where interviewee fished (e.g., WI-1, WI-2)
 #   * STATE: State where inteviewee fished (e.g., WI, WI/MN)
 #   * FISHERY: Type of fishery (e.g., Cold-Open, Warm-Open)
 #   * DAYTPE: Type of day (Weekday or Weekend ... holidays are weekends)
@@ -85,8 +87,8 @@ ints_NOFISH <- ints_ORIG %>%
 
 # RESULT: A data.frame that summarizes the number of OBSERVED interviews and
 #         reported hours of fishing effort by "strata" (!!WATERS!!, DAYTYPE,
-#         FISHERY, MONTH).
-#   * YEAR, WATERS, DAYTYPE, FISHERY, MONTH: as defined above
+#         FISHERY, MONTH) ... across sites and individual interviews.
+#   * YEAR, WATERS, MUNIT, DAYTYPE, FISHERY, MONTH: as defined above
 #   * NINTS: Total number of interviews in the stata
 #   * HOURS: Total interviewed effort (hours) of ALL parties in the strata
 #   * VHOURS: Square of HOURS (in SAS this is uncorrected sum-of-squares ...
@@ -94,7 +96,8 @@ ints_NOFISH <- ints_ORIG %>%
 #   * MTRIP: Mean interviewed effort (hours) by COMPLETED parties
 #   * PROP: Proportion of total interviewed effort for month-daytype that is in
 #           a given waters-fishery. Should sum to 1 within each month-daytype.
-#           Check with: group_by(effort,MONTH,DAYTYPE) %>% summarize(sum(PROP))
+#           Check with: 
+#             group_by(intvdEffortWaters,MONTH,DAYTYPE) %>% summarize(sum(PROP))
 #   * PARTY: Mean party size (person's per party)
 # NOTES:
 #   * This is still observed results, not yet expanded to the population.
@@ -130,9 +133,10 @@ pressureCount <- readPressureCountData(CNTS_FILE,RDIR,LOC,SDATE,FDATE)
 #   * YEAR: Year of analysis
 #   * MONTH: Month of interview (now contains an "All" month)
 #   * DAYTYPE: Type of day (now contains an "All" day type)
-#   * NCOUNTS: Number of days clerk estimated pressure counts
-#   * DAYS: Number of days in the month
-#   * COUNT: Total pressure count (number of boats)
+#   * NCOUNT: Number of days in the month/daytype clerk did pressure count
+#   * DAYS: Number of days in the month/daytype
+#   * COUNT: Total pressure count (number of boats) in the month/daytype
+#   * SDCOUNT: SD of pressure count
 #   * VCOUNT: Variance of pressure count (SD^2)
 # NOTES: 
 # USE: Used for Table 3. Used below for total effort.

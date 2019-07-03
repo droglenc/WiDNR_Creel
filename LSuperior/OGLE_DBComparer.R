@@ -17,7 +17,7 @@ for (i in seq_along(FNs)) {
   Mdf <- read.csv(file.path(MDIR,FNs[i]),stringsAsFactors=FALSE)
   res <- dplyr::all_equal(Rdf,Mdf)
   cat("  Results from dplyr::all_equal():")
-  if (res) cat(" TRUE\n")
+  if (isTRUE(res)) cat(" TRUE\n")
   else {
     cat("\n")
     print(res)
