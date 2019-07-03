@@ -462,14 +462,15 @@ sumHarvestEffort <- function(h,f) {
     ## Note that HRATE, VHRATE, MHOURS, MHARV are intermediate values &
     ##   are not returned:
     dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,SPECIES,
-                  HARVEST,VHARVEST,INDHRS) %>%
+                  NINTS,HARVEST,VHARVEST,INDHRS) %>%
     as.data.frame() %>%
     droplevels()
 
   ## Summarizes across day-types
   hf1 <- dplyr::group_by(hf,YEAR,WATERS,MUNIT,FISHERY,SPECIES,MONTH) %>%
-    dplyr::summarize(HARVEST=sum(HARVEST,na.rm=TRUE),
-                     VHARVEST=sum(VHARVEST,na.rm=TRUE),
+    dplyr::summarize(NINTS=sum(NINTS),
+                     HARVEST=sum(HARVEST,na.rm=TRUE),
+                     VHARVEST=ifelse(NINTS==1,NA,sum(VHARVEST,na.rm=TRUE)),
                      INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
     dplyr::mutate(DAYTYPE="All") %>%
     dplyr::select(names(hf)) %>%
@@ -478,8 +479,9 @@ sumHarvestEffort <- function(h,f) {
   hf <- rbind(hf,hf1)
   ## Summarizes across months
   hf2 <- dplyr::group_by(hf,YEAR,WATERS,MUNIT,FISHERY,SPECIES,DAYTYPE) %>%
-    dplyr::summarize(HARVEST=sum(HARVEST,na.rm=TRUE),
-                     VHARVEST=sum(VHARVEST,na.rm=TRUE),
+    dplyr::summarize(NINTS=sum(NINTS),
+                     HARVEST=sum(HARVEST,na.rm=TRUE),
+                     VHARVEST=ifelse(NINTS==1,NA,sum(VHARVEST,na.rm=TRUE)),
                      INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
     dplyr::mutate(MONTH="All") %>%
     dplyr::select(names(hf)) %>%
@@ -488,8 +490,9 @@ sumHarvestEffort <- function(h,f) {
   hf <- rbind(hf,hf2)
   ## Summarizes across fisheries
   hf3 <- dplyr::group_by(hf,YEAR,WATERS,MUNIT,SPECIES,MONTH,DAYTYPE) %>%
-    dplyr::summarize(HARVEST=sum(HARVEST,na.rm=TRUE),
-                     VHARVEST=sum(VHARVEST,na.rm=TRUE),
+    dplyr::summarize(NINTS=sum(NINTS),
+                     HARVEST=sum(HARVEST,na.rm=TRUE),
+                     VHARVEST=ifelse(NINTS==1,NA,sum(VHARVEST,na.rm=TRUE)),
                      INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
     dplyr::mutate(FISHERY="All") %>%
     dplyr::select(names(hf)) %>%
@@ -567,7 +570,7 @@ addWeights <- function(d,RDIR,YEAR) {
 ## Combines the three types of CSV files in the RDIR directory that were 
 ## created after sourcing the LS_Analyzer script. Essentially combines summary
 ## results across routes within a year.
-combineCSV <- function(RDIR,YEAR) {
+combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
   types <- c("ttlEffort","ttlHarvest","lengths")
   for (i in types) {
     ## Get list of CSV files of that type in RDIR
@@ -583,6 +586,8 @@ combineCSV <- function(RDIR,YEAR) {
     ## Write out the combined file
     fn <- paste0("COMBINED_",YEAR,"_",i,".csv")
     write.csv(d,file=file.path(RDIR,fn),row.names=FALSE,quote=FALSE,na="")
+    ## Remove the original files
+    if (removeOrigs) file.remove(file.path(RDIR,tmp))
   }
 }
 
