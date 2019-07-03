@@ -61,10 +61,7 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 #     FISH (number of fish caught) variables were removed (not used further)
 # USE: Separated into two smaller data.frames below (more details there)
 # EXPORTED: Not exported to a file.
-ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE) %>%
-  dplyr::filter(!is.na(HOURS)) %>%
-  dplyr::select(-SUCCESS,-FISH,-RES) %>%
-  droplevels()
+ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE)
 
 # RESULT: A data.frame of individual interview data, from ints_ORIG but with
 #         only interviee and no fish data.
@@ -82,8 +79,7 @@ ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE) %>%
 # USE: Ultimately sent to make Table 2 and expanded to entire population below.
 # EXPORTED: Not exported to a file.
 ints_NOFISH <- ints_ORIG %>%
-  dplyr::select(YEAR,WATERS,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
-                HOURS,PERSONS,STATUS)
+  dplyr::select(YEAR,WATERS,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,HOURS,PERSONS,STATUS)
 
 # RESULT: A data.frame that summarizes the number of OBSERVED interviews and
 #         reported hours of fishing effort by "strata" (!!WATERS!!, DAYTYPE,

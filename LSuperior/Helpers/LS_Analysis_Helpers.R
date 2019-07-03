@@ -16,9 +16,7 @@ for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
 ## Main Helpers ----------------------------------------------------------------
 
 ## Read and prepare the interview data file
-readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,
-                              dropCLS=TRUE,dropHM=TRUE) {
-  
+readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,dropCLS=TRUE) {
   FN <- file.path(RDIR,FN)
   if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(FN)
   else d <- read.csv(FN)
@@ -51,13 +49,14 @@ readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,
     })
     d <- d[,!allNA]
   }
-  ## Rearrange variables
-  d %<>% dplyr::select(INTID,DATE,YEAR,WATERS,MUNIT,STATE,DAYTYPE,FISHERY,
-                       MONTH,DAY,SITE,STATUS,HOURS,STARTHH,STARTMM,STOPHH,STOPMM,
-                       PERSONS,RES,FISH,SUCCESS,contains("SPEC"),
-                       contains("CLIP"),contains("LEN"))
-  ## Drop hours and minutes variables if asked to
-  if (dropHM)  d %<>% dplyr::select(-STARTHH,-STARTMM,-STOPHH,-STOPMM)
+  ## Rearrange vars (& drop SUCCESS, FISH, RES, STARTHH, STARTMM, STOPHH, STOPMM)
+  d %<>% dplyr::select(INTID,DATE,YEAR,WATERS,MUNIT,STATE,DAYTYPE,FISHERY,MONTH,
+                       DAY,SITE,STATUS,HOURS,PERSONS,
+                       contains("SPEC"),contains("CLIP"),contains("LEN")) %>%
+    ## Drop "bad" HOURS records
+    dplyr::filter(!is.na(HOURS)) %>%
+    ## Drop unused levels for factor variables
+    droplevels()
   ## Return data.frame
   as.data.frame(d)
 }
@@ -180,13 +179,14 @@ expandPressureCounts <- function(dcnts,cal) {
     ### Summarizes daily pressure counts by month and daytype
     dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
     dplyr::summarize(NCOUNT=dplyr::n(),
-                     VCOUNT=var(COUNT),
+                     VCOUNT=var(COUNT,na.rm=TRUE),
                      COUNT=mean(COUNT,na.rm=TRUE)) %>%
+    dplyr::mutate(VCOUNT=VCOUNT/NCOUNT) %>%
     dplyr::ungroup() %>%
     ### Expand by number of days in the month (in cal)
     merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(COUNT=COUNT*DAYS,
-                  VCOUNT=VCOUNT/NCOUNT*(DAYS^2)) %>%
+                  VCOUNT=VCOUNT*(DAYS^2)) %>%
     dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,VCOUNT)
   ## Find totals across DAYTYPEs
   dcnts1 <- dplyr::group_by(dcnts,YEAR,MONTH) %>%
