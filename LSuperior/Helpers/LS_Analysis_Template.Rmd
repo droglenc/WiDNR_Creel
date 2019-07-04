@@ -13,10 +13,6 @@ params:
     value: NULL
   INTS_FILE:
     value: NULL
-  TABLES:
-    value: !r c(1)
-  FIGURES:
-    value: !r c(1)
   WDIR:
     value: ""
   RDIR:
@@ -35,8 +31,6 @@ FDATE <- params$FDATE
 CNTS_FILE <- params$CNTS_FILE
 INTS_FILE <- params$INTS_FILE
 DAY_LENGTH <- params$DAY_LENGTH
-TABLES <- params$TABLES
-FIGURES <- params$FIGURES
 WDIR <- params$WDIR
 RDIR <- params$RDIR
 ```

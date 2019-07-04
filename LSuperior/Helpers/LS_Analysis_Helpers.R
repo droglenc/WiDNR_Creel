@@ -15,6 +15,108 @@ for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
 
 ## Main Helpers ----------------------------------------------------------------
 
+## Read and prepare the pressure counts data file
+##  Note that counts (for Lake Superior) from the original file are average
+##    number of parties present during the wait time, not total effort seen
+##    during the wait time.
+readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
+  FN <- file.path(RDIR,FN)
+  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(FN)
+  else d <- read.csv(FN)
+  d <- d %>%
+    # Find various varsions of dates (note that DATE had to be handled
+    #   differently than above b/c four rather than two digits used here).
+    dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
+                  YEAR=lubridate::year(DATE),
+                  MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
+                  WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
+                  DAYTYPE=iMvDaytype(WDAY,MONTH,DAY),
+                  # Convert missing COUNTs to zeroes
+                  COUNT=iConvNA20(COUNT),
+                  # Calculate the "WAIT" time (hours at the site)
+                  WAIT=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,
+                                  DATE,SDATE,FDATE),
+                  # Convert average counts (the original COUNT variable) to
+                  # "total effort" during shift (by muliplying by the WAIT time)
+                  # so that multiple shifts on each day can be combined (from
+                  # original SAS code).
+                  COUNT=COUNT*WAIT
+    )
+  # Drop hours and minutes variables if asked to do so
+  if (dropHM) d <- dplyr::select(d,-(STARTMM:STOPHH))
+  d %<>% 
+    # Remove records with "bad" wait times
+    dplyr::filter(!is.na(WAIT)) %>%
+    # Narrow variable list down
+    dplyr::select(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
+    # Combine observations of WAIT and COUNT from multiple visits to the same
+    #   SITE within the same day
+    dplyr::group_by(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
+    dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT))
+  # Return data.frame
+  as.data.frame(d)
+}
+
+
+## Expand pressure counts from observed days/times to daylengths & days/month
+expandPressureCounts <- function(dcnts,cal) {
+  ## Isolate daylengths for each month from the calendar
+  tmp <- cal[,c("MONTH","DAYLEN")]
+  tmp <- tmp[!duplicated(tmp),]
+  dcnts %<>%
+    ### Adds a temporary day length variable (from cal) to each count
+    right_join(tmp,by="MONTH") %>%
+    ### Expand observed pressure counts to represent the entire day at each site 
+    dplyr::mutate(COUNT=COUNT*DAYLEN/WAIT) %>%
+    ### Compute daily pressure counts (across sites within days)
+    dplyr::group_by(YEAR,MONTH,DAY,DAYTYPE) %>%
+    dplyr::summarize(WAIT=sum(WAIT),
+                     COUNT=sum(COUNT)) %>%
+    dplyr::ungroup() %>%
+    ### Summarizes daily pressure counts by month and daytype
+    dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
+    dplyr::summarize(NCOUNT=dplyr::n(),
+                     VCOUNT=var(COUNT,na.rm=TRUE),
+                     MCOUNT=mean(COUNT,na.rm=TRUE)) %>%
+    dplyr::mutate(VCOUNT=VCOUNT/NCOUNT) %>%
+    dplyr::ungroup() %>%
+    ### Expand by number of days in the month (in cal)
+    merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
+    dplyr::mutate(TCOUNT=MCOUNT*DAYS,
+                  VCOUNT=VCOUNT*(DAYS^2)) %>%
+    dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,TCOUNT,VCOUNT)
+  ## Find totals across DAYTYPEs
+  dcnts1 <- dplyr::group_by(dcnts,YEAR,MONTH) %>%
+    dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
+                     DAYS=sum(DAYS,na.rm=TRUE),
+                     TCOUNT=sum(TCOUNT,na.rm=TRUE),
+                     VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(dcnts)) %>%
+    as.data.frame()
+  dcnts <- rbind(dcnts,dcnts1)
+  ## Find totals across all MONTHs
+  dcnts2 <- dplyr::group_by(dcnts,YEAR,DAYTYPE) %>%
+    dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
+                     DAYS=sum(DAYS,na.rm=TRUE),
+                     TCOUNT=sum(TCOUNT,na.rm=TRUE),
+                     VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
+    dplyr::mutate(MONTH="All") %>%
+    dplyr::select(names(dcnts)) %>%
+    as.data.frame()
+  dcnts <- rbind(dcnts,dcnts2)
+  ## Convert to SDs and rearrange variables
+  dcnts %<>% dplyr::mutate(SDCOUNT=sqrt(VCOUNT)) %>%
+    dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,TCOUNT,SDCOUNT,VCOUNT) %>%
+    dplyr::mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
+                  MONTH=iOrderMonths(MONTH,addAll=TRUE)) %>%
+    dplyr::arrange(YEAR,MONTH,DAYTYPE) %>%
+    as.data.frame()
+  ## Return data.frame
+  dcnts
+}
+
+
 ## Read and prepare the interview data file
 readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,dropCLS=TRUE) {
   FN <- file.path(RDIR,FN)
@@ -76,7 +178,8 @@ sumInterviewedEffort <- function(dints) {
   
   # Combine to get all interviews corrected for location
   f <- rbind(f1,f2,f3) %>%
-    ## Compute people-hours of fishing effort (in INDHRS)
+    ## Compute people-hours of fishing effort (in INDHRS) ... only used to find
+    ##   mean party size (in PARTY) below
     ## Compute hours for only completed trips (in CHOURS) ... only used to find
     ##   mean length of a COMPLETED trip (in MTRIP) below.
     dplyr::mutate(INDHRS=PERSONS*HOURS,
@@ -85,8 +188,7 @@ sumInterviewedEffort <- function(dints) {
   # Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH
   #   across all interviews, sites, and days
   # !! This was how PARTY was calculated in the SAS code ... it is NOT the same
-  # !! as calculating the mean of PERSONS ... not clear why it is computed this
-  # !! way.
+  # !! as calculating the mean of PERSONS ... not clear why computed this way.
   # !! Note that USSHours is the uncorrected SS of HOURS ... this is used later
   # !! to find the variance of the HOURS
   fsum <- f %>%
@@ -95,10 +197,10 @@ sumInterviewedEffort <- function(dints) {
                      MTRIP=mean(CHOURS,na.rm=TRUE),
                      USSHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
-                     INDHRS=sum(INDHRS,na.rm=TRUE),
-                     PARTY=INDHRS/HOURS) %>%
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    dplyr::mutate(PARTY=INDHRS/HOURS) %>%
     dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
-                  NINTS,HOURS,INDHRS,MTRIP,USSHOURS,PARTY) %>%
+                  NINTS,HOURS,MTRIP,USSHOURS,PARTY) %>%
     as.data.frame()
   
   # Find total interviewed hours by MONTH and DAYTYPE (nints in SAS code)
@@ -118,107 +220,6 @@ sumInterviewedEffort <- function(dints) {
 }
 
 
-## Read and prepare the pressure counts data file
-##  Note that counts (for Lake Superior) from the original file are average
-##    number of parties present during the wait time, not total effort seen
-##    during the wait time.
-readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
-  FN <- file.path(RDIR,FN)
-  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(FN)
-  else d <- read.csv(FN)
-  d <- d %>%
-    # Find various varsions of dates (note that DATE had to be handled
-    #   differently than above b/c four rather than two digits used here).
-    dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
-                  YEAR=lubridate::year(DATE),
-                  MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
-                  WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
-                  DAYTYPE=iMvDaytype(WDAY,MONTH,DAY),
-                  # Convert missing COUNTs to zeroes
-                  COUNT=iConvNA20(COUNT),
-                  # Calculate the "WAIT" time (hours at the site)
-                  WAIT=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,
-                                  DATE,SDATE,FDATE),
-                  # Convert average counts (the original COUNT variable) to
-                  # "total effort" during shift (by muliplying by the WAIT time)
-                  # so that multiple shifts on each day can be combined (from
-                  # original SAS code).
-                  COUNT=COUNT*WAIT
-    )
-  # Drop hours and minutes variables if asked to do so
-  if (dropHM) d <- dplyr::select(d,-(STARTMM:STOPHH))
-  d %<>% 
-    # Remove records with "bad" wait times
-    dplyr::filter(!is.na(WAIT)) %>%
-    # Narrow variable list down
-    dplyr::select(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
-    # Combine observations of WAIT and COUNT from multiple visits to the same
-    #   SITE within the same day
-    dplyr::group_by(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
-    dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT))
-  # Return data.frame
-  as.data.frame(d)
-}
-
-
-## Expand pressure counts from observed days/times to daylengths & days/month
-expandPressureCounts <- function(dcnts,cal) {
-  ## Isolate daylengths for each month from the calendar
-  tmp <- cal[,c("MONTH","DAYLEN")]
-  tmp <- tmp[!duplicated(tmp),]
-  dcnts %<>%
-    ### Adds a temporary day length variable (from cal) to each count
-    right_join(tmp,by="MONTH") %>%
-    ### Expands observed pressure counts to represent the entire day 
-    dplyr::mutate(COUNT=COUNT*DAYLEN/WAIT) %>%
-    ### Computes daily pressure counts (across sites within days)
-    dplyr::group_by(YEAR,MONTH,DAY,WDAY,DAYTYPE) %>%
-    dplyr::summarize(WAIT=sum(WAIT),
-                     COUNT=sum(COUNT)) %>%
-    dplyr::ungroup() %>%
-    ### Summarizes daily pressure counts by month and daytype
-    dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
-    dplyr::summarize(NCOUNT=dplyr::n(),
-                     VCOUNT=var(COUNT,na.rm=TRUE),
-                     COUNT=mean(COUNT,na.rm=TRUE)) %>%
-    dplyr::mutate(VCOUNT=VCOUNT/NCOUNT) %>%
-    dplyr::ungroup() %>%
-    ### Expand by number of days in the month (in cal)
-    merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
-    dplyr::mutate(COUNT=COUNT*DAYS,
-                  VCOUNT=VCOUNT*(DAYS^2)) %>%
-    dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,VCOUNT)
-  ## Find totals across DAYTYPEs
-  dcnts1 <- dplyr::group_by(dcnts,YEAR,MONTH) %>%
-    dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
-                     DAYS=sum(DAYS,na.rm=TRUE),
-                     COUNT=sum(COUNT,na.rm=TRUE),
-                     VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
-    dplyr::mutate(DAYTYPE="All") %>%
-    dplyr::select(names(dcnts)) %>%
-    as.data.frame()
-  dcnts <- rbind(dcnts,dcnts1)
-  ## Find totals across all MONTHs
-  dcnts2 <- dplyr::group_by(dcnts,YEAR,DAYTYPE) %>%
-    dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
-                     DAYS=sum(DAYS,na.rm=TRUE),
-                     COUNT=sum(COUNT,na.rm=TRUE),
-                     VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
-    dplyr::mutate(MONTH="All") %>%
-    dplyr::select(names(dcnts)) %>%
-    as.data.frame()
-  dcnts <- rbind(dcnts,dcnts2)
-  ## Convert to SDs and rearrange variables
-  dcnts %<>% dplyr::mutate(SDCOUNT=sqrt(VCOUNT)) %>%
-    dplyr::select(YEAR,MONTH,DAYTYPE,NCOUNT,DAYS,COUNT,SDCOUNT,VCOUNT) %>%
-    dplyr::mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
-                  MONTH=iOrderMonths(MONTH,addAll=TRUE)) %>%
-    dplyr::arrange(YEAR,MONTH,DAYTYPE) %>%
-    as.data.frame()
-  ## Return data.frame
-  dcnts
-}
-
 
 ## Summarized total fishing effort by strata
 sumEffort <- function(ieff,pct) {
@@ -229,12 +230,12 @@ sumEffort <- function(ieff,pct) {
   #   intermediate (non-returned) calculations are described here
   #   * NCOUNT: Number of days clerk estimated pressure counts
   #   * DAYS: Number of days in the month
-  #   * COUNT: Total pressure count (number of boats)
-  #   * VCOUNT: Variance of pressure count (SD^2)
+  #   * TCOUNT: Total pressure count
+  #   * VCOUNT: Variance of total pressure count (SD^2)
   #   * PROP: Proportion of total interviewed effort for month-daytype that is in
   #           a given waters-fishery.
   eff <- merge(ieff,pct,by=c("YEAR","MONTH","DAYTYPE")) %>%
-    dplyr::mutate(PHOURS=COUNT*PROP,
+    dplyr::mutate(PHOURS=TCOUNT*PROP,
                   VPHOURS=VCOUNT*(PROP^2),
                   TRIPS=PHOURS/MTRIP,
                   VTRIPS=VPHOURS/(MTRIP^2),
@@ -789,9 +790,9 @@ table3 <- function(pressureCount) {
     tidyr::unite(temp1,DAYTYPE,temp,sep=".") %>%
     tidyr::spread(temp1,value) %>%
     dplyr::select(MONTH,
-                  Weekday.NCOUNT,Weekday.COUNT,Weekday.SDCOUNT,
-                  Weekend.NCOUNT,Weekend.COUNT,Weekend.SDCOUNT,
-                  All.NCOUNT,All.COUNT,All.SDCOUNT) %>%
+                  Weekday.NCOUNT,Weekday.TCOUNT,Weekday.SDCOUNT,
+                  Weekend.NCOUNT,Weekend.TCOUNT,Weekend.SDCOUNT,
+                  All.NCOUNT,All.TCOUNT,All.SDCOUNT) %>%
     dplyr::arrange(MONTH)
 
   ## Make the huxtable
@@ -801,9 +802,9 @@ table3 <- function(pressureCount) {
     set_top_padding(row=final(1),col=everywhere,value=10) %>%
     set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     set_left_padding(row=everywhere,col=ends_with(".NCOUNT"),value=15) %>%
-    # No decimals on NCOUNT and COUNT
+    # No decimals on NCOUNT and TCOUNT
     set_number_format(row=everywhere,col=ends_with(".NCOUNT"),value=0) %>%
-    set_number_format(row=everywhere,col=ends_with(".COUNT"),value=0) %>%
+    set_number_format(row=everywhere,col=ends_with(".TCOUNT"),value=0) %>%
     # One decimal on SD
     set_number_format(row=everywhere,col=ends_with(".SDCOUNT"),value=1) %>%
     rbind(c("MONTH",rep(c("Sampled","Total","SD"),3)),.) %>%

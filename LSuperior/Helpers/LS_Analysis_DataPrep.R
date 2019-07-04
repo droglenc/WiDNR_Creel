@@ -24,7 +24,7 @@ fnpre <- fnPrefix(RDIR,LOC,SDATE)
 
 
 
-## Create expansion factors ----------------------------------------------------
+## Pressure counts -------------------------------------------------------------
 # RESULT: A data.frame with
 #   * YEAR: Analysis year
 #   * MONTH: Month
@@ -40,13 +40,49 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
   dplyr::mutate(YEAR=year(DATE),
                 MONTH=droplevels(lubridate::month(DATE,label=TRUE)),
                 DAYTYPE=iMvDaytype(lubridate::wday(DATE,label=TRUE),
-                                   MONTH,
-                                   lubridate::mday(DATE))
+                                   MONTH,lubridate::mday(DATE))
   ) %>%
   dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
   dplyr::summarize(DAYS=n()) %>%
   dplyr::mutate(DAYLEN=iMvDaylen(MONTH,DAY_LENGTH)) %>%
   as.data.frame()
+
+
+# RESULT: data.frame of interviewer's time and observed vehicle count at a site
+#   * YEAR: Year of analysis
+#   * MONTH: Month of observation
+#   * DAY: Day of observation
+#   * DAYTYPE: Type of day (Weekday or Weekend ... holidays are weekends)
+#   * SITE: Specific site code
+#   * WAIT: Total amount of time that clerk was at the site during that shift
+#   * COUNT: Total amount of time that boats present at the landing during the
+#            shift that were fishing. This is the average count of boats at the
+#            landing during each stop (adjusted for boats that came back or left
+#            during the stop; thus, there are fractions in these counts) times
+#            each amount of time the clerk was at the stop summed across 
+#            multiple stops at the site.
+# NOTES:
+#   * These are observed values
+#   * Both WAIT & COUNT have been combined for multiple visits during shift
+# USE: Expanded to population counts below.
+# EXPORTED: Not exported to a file.
+pressureCount <- readPressureCountData(CNTS_FILE,RDIR,LOC,SDATE,FDATE)
+
+# RESULT: data.frame of pressure count data expanded to represent the entire
+#         population and then summarized by MONTH and DAYTYPE.
+#   * YEAR: Year of analysis
+#   * MONTH: Month of interview (now contains an "All" month)
+#   * DAYTYPE: Type of day (now contains an "All" day type)
+#   * NCOUNT: Number of days in the month/daytype clerk did pressure count
+#   * DAYS: Number of days in the month/daytype
+#   * TCOUNT: Total pressure count in the month/daytype
+#   * SDCOUNT: SD of pressure count
+#   * VCOUNT: Variance of pressure count (SD^2)
+# NOTES: 
+# USE: Used for Table 3. Used below for total effort.
+# EXPORTED: Not exported to a file.
+pressureCount <- expandPressureCounts(pressureCount,calSum)
+
 
 
 
@@ -74,6 +110,7 @@ ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE)
 #   * DAYTPE: Type of day (Weekday or Weekend ... holidays are weekends)
 #   * HOURS: Hours of fishing effort reported by the interviewee
 #   * PERSONS: Number of individuals in the fishing party
+#   * STATUS: Whether the interview represents a completed trip or not
 # NOTES:
 #   * This is observed data, not yet expanded to all days in month/year.
 # USE: Ultimately sent to make Table 2 and expanded to entire population below.
@@ -103,41 +140,6 @@ ints_NOFISH <- ints_ORIG %>%
 # EXPORTED: Not exported to a file
 intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 
-
-
-## Pressure counts -------------------------------------------------------------
-# RESULT: data.frame of interviewer's time and observed vehicle count at a site
-#   * YEAR: Year of analysis
-#   * MONTH: Month of observation
-#   * DAY: Day of observation
-#   * DAYTYPE: Type of day (Weekday or Weekend ... holidays are weekends)
-#   * SITE: Specific site code
-#   * WAIT: Total amount of time that clerk was at the site during that shift
-#   * COUNT: Total count of boats at the landing during the shift (note that
-#            this has been adjusted for boats that came back during the shift
-#            and boats that left after the shift started. Thus, there are 
-#            fractions in these counts).
-# NOTES:
-#   * These are observed values
-#   * Both WAIT & COUNT have been combined for multiple visits during shift
-# USE: Expanded to population counts below.
-# EXPORTED: Not exported to a file.
-pressureCount <- readPressureCountData(CNTS_FILE,RDIR,LOC,SDATE,FDATE)
-
-# RESULT: data.frame of pressure count data expanded to represent the entire
-#         population and then summarized by MONTH and DAYTYPE.
-#   * YEAR: Year of analysis
-#   * MONTH: Month of interview (now contains an "All" month)
-#   * DAYTYPE: Type of day (now contains an "All" day type)
-#   * NCOUNT: Number of days in the month/daytype clerk did pressure count
-#   * DAYS: Number of days in the month/daytype
-#   * COUNT: Total pressure count (number of boats) in the month/daytype
-#   * SDCOUNT: SD of pressure count
-#   * VCOUNT: Variance of pressure count (SD^2)
-# NOTES: 
-# USE: Used for Table 3. Used below for total effort.
-# EXPORTED: Not exported to a file.
-pressureCount <- expandPressureCounts(pressureCount,calSum)
 
 
 

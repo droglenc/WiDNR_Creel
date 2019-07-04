@@ -24,7 +24,7 @@ There should be two files inside of the "LSuperior" folder, called "LS_Analyzer.
 The only file that you will interact with directly is "LS_Analyzer.R". Its use will be described further below.
 
 ## RStudio Project
-The creel anaylsis program depends on you make an "RStudio Project" for the specific folder at the root of the data structure created [above](#analysis-program-files) (i.e., the folder in which you created the "LSuperior" folder). RStudio projects can be easily created by opening RStudio, selecting the small down triangle just below the upper-right corner of the RStudio window (likely next to the words "Project: None"), selecting "New Project", selecting "Existing Directory", then browse to the root folder that contains the creel anaylsis and scheduler programs, and select "Create Project". RStudio will then move to the project and you should see the name of root folder where it previously said "Project: None").
+The creel anaylsis program depends on you make an "RStudio Project" for the specific folder at the root of the data structure created [above](#analysis-program-files) (i.e., the folder in which you created the "LSuperior" folder). RStudio projects can be easily created by opening RStudio, selecting the "File" menu item, selecting "New Project ...", selecting "Existing Directory", then browsing to the root folder that contains the creel anaylsis programs, and selecting "Create Project". RStudio will then move to the project and you should see the name of the root folder just below the toolbar in the upper-right corner of the RStudio window.
 
 <SCREEN CAPTURE HERE>
 
@@ -74,3 +74,41 @@ combineCSV(RDIR,YEAR,removeOrig=TRUE)
 
 # Computations
 
+## Pressure Counts
+### `readPressureCounts()` function
+The clerk records the amount of time they are at each stop (called "site" in the data and, thus, hereafter) along the bus-route and the number of boats at each site that are fishing. The pressure count may include decimals because it is adjusted for parties that go out or return during the clerk's time at the site. For example, suppose that the clerk is at the site for 65 minutes and that 8 boats are at the site when the clerk arrived. During the stop at the site, one boat arrives and goes fishing with 55 minutes and another does the same with 42 minutes remaining of the time the clerk will be at the site. Additionally, one boat returns with 5 minutes remaining of the clerk's time at the site. In this scenario, the original count of eight boats is increased by 1.49 boats (a total of 97 mins of remaining time at the site divided by 65 minutes at the site) and decreased by 0.08 boats (5 mins of time at the site divided by 65 minutes at the site) for a final pressure count at the site of 9.41 boats.
+
+The pressure count is multiplied by the time the clerk is at the site to determine a total amount of time fishing during the clerk's time at the site. This measure of pressure and the total time the clerk was at the site is summed for each site and day (to account for multiple visits to a site during a day/shift). The year, month, and daytype (weekday or weekend) are also included in this summary.
+
+Each pressure count is then multiplied by the ratio of the presumed fishing day length divided by the total time the clerk was at a site to estimate the total pressure count for the day at each site. For example, if the clerk observed a pressure count of 9.05 in 2.3 hours at a site and the presumed fishing day length is 16 hours then the total pressure count for that site and day was 9.05*(16/2.3)=62.96. These expanded pressure counts were then summed across sites to get a total estimated pressure count for each day on the route.
+
+### `expandPressureCounts()` function
+The number of days sampled, the mean pressure count ($\bar{f}_{ij}$), and the variance of the mean pressure count ($V(\bar{f}_{ij})$) was then computed across the *observed* days for each month ($i$) and daytype ($j$) combination. The $\bar{f}_{ij}$ were then expanded to be the **total for each month-daytype** by multiplying by the number of available days ($N\_f_{ij}$) of that daytype within that month; i.e., $\tilde{f}_{ij}=\bar{f}_{ij}\times N\_f_{ij}$. The variances of totals for each month-daytype were computed as $V(\tilde{f}_{ij})=V(\bar{f}_{ij})\times (N\_f_{ij})^2$. Finally, the total pressure count was summarized by months across daytypes (i.e., $\tilde{f}_{i\cdot}$ and $V(\tilde{f}_{i\cdot})$), by daytypes across months (i.e., $\tilde{f}_{\cdot j}$ and $V(\tilde{f}_{\cdot j})$), and for the entire year (across month and daytype; i.e., $\tilde{f}_{\cdot \cdot}$ and $V(\tilde{f}_{\cdot \cdot})$).
+
+Note that the "pressure counts" are in party-hours of time spent fishing.
+
+
+## Interviews -- Party Information
+The raw interview file contains information about the pary (e.g., date, hours fished, number in party) and harvested fish (e.g., species, length, fin-clip). The raw data are immediately split into two data.frames specific to these types of information. The party information is discussed here, whereas the fish information is discussed further below. The party information from interviews consists of the following raw data:
+
+* YEAR: Year of interview
+* MONTH: Month of interview 
+* WATERS: Waters where interviewee fished (WI or non-WI)
+* MUNIT: Management unit where interviewee fished (e.g., WI-1, WI-2)
+* STATE: State where inteviewee fished (e.g., WI, WI/MN)
+* FISHERY: Type of fishery (e.g., Cold-Open, Warm-Open)
+* DAYTPE: Type of day (Weekday or Weekend ... holidays are weekends)
+* HOURS: Hours of fishing effort reported by the interviewee
+* PERSONS: Number of individuals in the fishing party
+* STATUS: Whether the interview represents a completed trip or not
+
+### `sumInterviewedEffort()` function
+The first part of this function deals with the issue that anglers on some routes may fish in waters from other states. For example, some anglers leaving Ashland may fish in Michigan waters and some angler leaving Superior may fish in Minnesota waters. In some instances, anglers may fish in both waters on the same trip (and, thus, in the same interview). In these instances, the STATE variable may be recorded as "WI/MI" or "WI/MN". These instances are "split" so half of the recorded fishing effort (HOURS) is put in each state (e.g., in "WI" and in "MN" when the STATE is "WI/MN").
+
+A new variable called INDHRS is created that is the product of PERSONS and HOURS and, thus, represents the number of hours of fishing by individuals (rather than by the party).
+
+These "corrected" raw data are then summarized by month to compute the total number of interviews (NINTS), total interviewed effort (hours) of ALL parties (HOURS), mean interviewed effort (in hours) by COMPLETED parties (MTRIP), mean person's per party (PARTY), and the proportion of total interviewed effort for month-daytype that is in a given waters-fishery (PROP). Additionally, the uncorrected sum-of-squares for the total interviewed effort is computed and is ultimately used later in variance calculations.
+
+
+
+## Interviews -- Fish Information

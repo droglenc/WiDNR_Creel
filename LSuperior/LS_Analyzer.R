@@ -15,7 +15,7 @@
 #     overall report and the CSV files are intermediate data files that may be
 #     loaded into a database for future analyses.
 #  5. OPTIONALLY, combine CSV files across routes by running the following code
-#     AFTER this script has been sourced ==>  combineCSV(RDIR,YEAR,removeOrig=TRUE)
+#     AFTER sourcing this script ==>  combineCSV(RDIR,YEAR,removeOrig=TRUE)
 #
 # R VERSIONS (CONVERTED FROM SAS): 
 #     XXXX, 201X (version 2 - Derek O)
@@ -60,12 +60,11 @@ for (i in seq_along(fns)) {
                                 SDATE=START_DATE,FDATE=END_DATE,
                                 DAY_LENGTH=DAY_LENGTH,
                                 CNTS_FILE=CNTS_FILE,INTS_FILE=INTS_FILE,
-                                TABLES=TABLES,FIGURES=FIGURES,
                                 WDIR=WDIR,RDIR=RDIR),
                     output_dir=RDIR,output_file=OUTFILE,
                     output_format="html_document",
                     clean=TRUE,quiet=TRUE)
-  # Show the file in a browswer if SHOW_FILE=TRUE
-  if (SHOW_FILE) utils::browseURL(file.path(RDIR,OUTFILE))
+  # Show the file in a browswer
+  utils::browseURL(file.path(RDIR,OUTFILE))
   message(" Done")
 }
