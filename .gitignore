@@ -6,6 +6,7 @@ WiDNR_Creel.Rproj
 /LSuperior/LS_Schedules*
 /LSuperior/Helpers/LS_Scheduler_Template.knit.md
 /LSuperior/Helpers/LS_Scheduler_Template.utf8.md
+/LSuperior/Instructions/*.pdf
 
 # History files
 .Rhistory

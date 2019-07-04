@@ -1,0 +1,76 @@
+---
+title: "Untitled"
+author: "Ogle"
+date: "7/3/2019"
+output: 
+  pdf_document: 
+    number_sections: yes
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Anaylsis Introduction
+Blah-blah-blah
+
+# Anaysis Setup
+## Analysis Program Files
+The creel analysis programs must be in a specific directory/folder (hereafter, called "folder") structure. You can create the root of this structure anywhere on your computer, but within that folder there must be a folder called "LSuperior" (for "Lake Superior") with folders inside of that called "Helpers" and "Instructions". You will also create other folders inside of "LSuperior" for year-specific data files as described further below.
+
+There should be two files inside of the "LSuperior" folder, called "LS_Analyzer.R" and "LS_Scheduler.R". There should be twelve files inside the "Helpers" folder -- four related to analyses ("CSS.css", "DataPrep.R", "Helpers.R", "Template.Rmd"), XXX related to the Scheduler (), and "WiDNR_logo.jpg". The "Instructions" folder should contain XXX.
+
+The only file that you will interact with directly is "LS_Analyzer.R". Its use will be described further below.
+
+## RStudio Project
+The creel anaylsis program depends on you make an "RStudio Project" for the specific folder at the root of the data structure created [above](#analysis-program-files) (i.e., the folder in which you created the "LSuperior" folder). RStudio projects can be easily created by opening RStudio, selecting the small down triangle just below the upper-right corner of the RStudio window (likely next to the words "Project: None"), selecting "New Project", selecting "Existing Directory", then browse to the root folder that contains the creel anaylsis and scheduler programs, and select "Create Project". RStudio will then move to the project and you should see the name of root folder where it previously said "Project: None").
+
+<SCREEN CAPTURE HERE>
+
+## Route-Year-Specific Data File(s)
+The creel analysis program is run for each route and, thus, requires data files that contain the interview and pressure count data **specific to the route**. Currently, these files can either be SAS (i.e., has ".sas7bdat" extension) or comma-separated-values (i.e., CSV) files. These files should ideally be saved in a "data" folder inside a folder called something like "LS_Analysis_2014" (i.e., "LS" for "Lake Superior", "Analysis" for creel survey anaylsis, and the year of analysis), inside the folder that contains the analysis program (described [above](#analysis-program-files)).
+
+The creel analysis program requires some information specific to each route. This route-specific information should be entered into an R script file (i.e., .R extension); named by route abbreviation, data collection year, and "info" (e.g., "ash_2014_info.R"); and saved to the same "data" folder with the route-specific data files (described in the previous paragraph). An example file is shown below.
+
+```{r echo=FALSE, comment=""}
+options(width=120)
+source(file.path(here::here(),"LSuperior","LS_Analysis_2014","data",
+                 "ash_2014_info.R"),echo=TRUE,keep.source=TRUE,spaced=FALSE,
+       prompt.echo="  ",continue.echo="  ",max.deparse.length = 200)
+```
+
+## Year-Specific Data File
+In addition to the files described above, the "data" folder should have an Excel file called "LWRegressions_" with the year and ".xlsx" appended (e.g., "LWRegressions_2014.xlsx"). This file contains the parameter values from the (logged) length-weight regressions by species that will be used to predict weights from observed lengths. See the example file to see the required structure.
+
+# Analysis
+## How to Run
+The creel analysis program can be run by opening RStudio and opening the RStudio project created [above](#rstudio-project) (select the small down triangle just below the upper-right corner and select your project from the list or select "Open Project" and browse to your project). You should then open the "LS_Analyzer.R" file in the "LSuperior" folder (either through the "File" menu or the "Files" pane in the lower-right of RStudio).
+
+<SCREEN CAPTURE HERE>
+
+Then press the "Source" button in the toolbar of the script pane to run the Analyzer script.
+
+<SCREEN CAPTURE HERE>
+
+You will then be prompted to select one of the route-year-specific information files that you created above. You will need to browse into the folder that contains these files. You can then select one or more of the information files (more than one can be selected by clicking once on the first file and holding down the SHIFT key and selecting the last file or holding down the CTRL key and selecting each individual file).
+
+<SCREEN CAPTURE HERE>
+
+The analysis program will then (slowly) analyze the creel data for each selected route. A short message will keep you aprised of the progress and a detailed report will appear in a web browser window when the analysis of each route is completed.
+
+<SCREEN CAPTURE HERE>
+
+By default, three types of output files will be created for each route (see inforation below). For convenience, each type of output file can be combined across all the routes (for which output files exist) into one file by running the following code. Note that this code is not automatically run (i.e., the default is to have files separated by routes).
+
+```{r eval=FALSE, prompt=FALSE}
+combineCSV(RDIR,YEAR,removeOrig=TRUE)
+```
+
+
+## Resultant Files
+
+
+
+# Computations
+
