@@ -57,63 +57,63 @@ figures <- figureCaptions()
 #### Run on `r format(lubridate::now(),format="%B %d, %Y at %H:%M")`
 
 
-```{r table1, eval=1 %in% TABLES}
+```{r table1}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table1"))
 table1(fnpre,calSum)
 ```
 
-```{r table2, eval=2 %in% TABLES}
+```{r table2}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table2"))
 table2(ints_NOFISH)
 ```
 
-```{r table3, eval=3 %in% TABLES}
+```{r table3}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table3"))
 table3(pressureCount)
 ```
 
-```{r table4, eval=4 %in% TABLES}
+```{r table4}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table4"))
 table4(fnpre)
 ```
 
-```{r table5, eval=5 %in% TABLES}
+```{r table5}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table5"))
 table5(fnpre)
 ```
 
-```{r table6, eval=6 %in% TABLES}
+```{r table6}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table6"))
 table6(lengths)
 ```
 
-```{r table7, eval=7 %in% TABLES}
+```{r table7}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table7"))
 table7(lengths)
 ```
 
-```{r table8, eval=8 %in% TABLES}
+```{r table8}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table8"))
 table8(lengths)
 ```
 
-```{r eval=1 %in% FIGURES, fig.width=5, fig.height=3.5}
+```{r fig.width=5, fig.height=3.5}
 cat("<br><br>")
 cat("<hr>")
 figure1(ttlEffort)
@@ -121,7 +121,7 @@ cat("<br>")
 cat(figures("Figure1"))
 ```
 
-```{r eval=2 %in% FIGURES, fig.width=5, fig.height=8}
+```{r fig.width=5, fig.height=8}
 cat("<br><br>")
 cat("<hr>")
 figure2(ttlEffort)
@@ -129,7 +129,7 @@ cat("<br>")
 cat(figures("Figure2"))
 ```
 
-```{r eval=3 %in% FIGURES, fig.width=5, fig.height=3.5}
+```{r fig.width=5, fig.height=3.5}
 cat("<br><br>")
 cat("<hr>")
 figure3(ttlHarvest)
@@ -137,7 +137,7 @@ cat("<br>")
 cat(figures("Figure3"))
 ```
 
-```{r eval=4 %in% FIGURES, fig.width=7}
+```{r fig.width=7}
 cat("<br><br>")
 cat("<hr>")
 figure4(ttlHarvest)
@@ -145,7 +145,7 @@ cat("<br>")
 cat(figures("Figure4"))
 ```
 
-```{r eval=5 %in% FIGURES, fig.width=5, fig.height=3.5}
+```{r fig.width=5, fig.height=3.5}
 cat("<br><br>")
 cat("<hr>")
 figure5(ttlHarvest)
@@ -153,7 +153,7 @@ cat("<br>")
 cat(figures("Figure5"))
 ```
 
-```{r eval=6 %in% FIGURES, fig.width=7, fig.height=8}
+```{r fig.width=7, fig.height=8}
 cat("<br><br>")
 cat("<hr>")
 figure6(lengths)
@@ -162,7 +162,7 @@ cat(figures("Figure6"))
 ```
 
 
-```{r table9, eval=9 %in% TABLES}
+```{r table9}
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table9"))
