@@ -143,7 +143,7 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 
 
 
-## Combining Effort and Counts -------------------------------------------------
+## Combining Counts and Effort -------------------------------------------------
 # RESULT: A data.frame that summarizes (see below) total fishing effort expended
 #         by strata (WATERS, FISHERY, MONTH, DAYTYPE)
 #   * PHOURS: Total party hours of fishing
