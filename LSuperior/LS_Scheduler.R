@@ -9,10 +9,11 @@
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
 ## DIRECTIONS >>> Change these items as needed (make sure to run each line).
-YEAR <- 2019
-CLERK <- "B"       # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
+START_DATE <- "05/16/2019" # Starting date for schedule
+END_DATE <- "09/30/2019"   # Ending date for schedule
+CLERK <- "A"               # A (Ash-Wash), B (B/RC/LSB & Corny/PW), C (Saxon), D (Superior)
+SEED <- NULL               # Enter number for repeatability, otherwise NULL
 LAKE <- "SUPERIOR"
-SEED <- NULL       # Enter number for repeatability, otherwise NULL
 
 ## DIRECTIONS >>> Run everything below here but don't change anything
 INFO <- file.choose()   # Choose LS_Scheduler_info.xlsx file to use
@@ -25,8 +26,8 @@ source(file.path(WDIR,"Helpers","LS_Scheduler_Helpers.R"))
 ## DIRECTIONS >>> folder in Excel, modify the results, and save. Optionally, run
 ## DIRECTIONS >>> following to examine schedule (before or after manual changes).
 ## DIRECTIONS >>>   readSchedule(SCHED,WDIR,show_summary=TRUE,show_calendars=TRUE)
-SCHED <- makeSchedule(LAKE,YEAR,CLERK,SEED,INFO,WDIR,
+SCHED <- makeSchedule(LAKE,CLERK,START_DATE,END_DATE,SEED,INFO,WDIR,
                       show_summary=TRUE,show_calendars=FALSE)
 
 ## DIRECTIONS >>> Run below to create printable PDF of calendar and bus routes
-printForClerk(LAKE,YEAR,CLERK,SEED,INFO,WDIR,SCHED)
+printForClerk(LAKE,START_DATE,CLERK,SEED,INFO,WDIR,SCHED)

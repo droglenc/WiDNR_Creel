@@ -4,8 +4,9 @@ suppressPackageStartupMessages(library(dplyr))
 
 
 ### Print Calendars and Bus Routes
-printForClerk <- function(LAKE,YEAR,CLERK,SEED,INFO,WDIR,SCHED) {
+printForClerk <- function(LAKE,START_DATE,CLERK,SEED,INFO,WDIR,SCHED) {
   message("Writing file, please be patient ...",appendLF=FALSE)
+  YEAR <- lubridate::year(as.Date(START_DATE,"%m/%d/%Y"))
   foutpre <- paste0(ifelse(LAKE=="SUPERIOR","LS","LM"),"_",YEAR,"_",CLERK)
   try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
   RDIR <- dirname(INFO)
@@ -98,55 +99,28 @@ is.holiday <- function(x) {
   )
 }
 
-
-### Convert month number to abbreviation
-iCheckMonth <- function(x) {
-  if (is.numeric(x)) {
-    if (x<1 | x>12) 
-      stop("Month number in 'x' must be in 1:12.",call.=FALSE)
-    x <- month.abb[x]
-  }
-  x
-}
-
 ### Check if year is appropriate and within acceptable range
-iCheckYear <- function(x,min.year=2010,max.year=2099) {
-  if (length(x)>1) stop("Only one 'year' is allowed.",call.=FALSE)
-  if (!is.numeric(x)) stop("'year' is not numeric.",call.=FALSE)
-  if (any(length(grep("[^[:digit:]]", format(x[1], scientific = FALSE)))))
-    stop("'year' is not an integer.",call.=FALSE)
-  if (x<min.year) stop(paste("'year' is before",min.year),call.=FALSE)
-  if (x>max.year) stop(paste("'year' is after",max.year),call.=FALSE)
-  x
+iCheckDates <- function(sd,ed,info,min.year=2010,max.year=2099) {
+  ## Check appropriateness of the years
+  ysd <- lubridate::year(sd)
+  yed <- lubridate::year(ed)
+  if (ysd!=yed) stop("Starting and ending dates must be in same year",.call=FALSE)
+  if (yed<ysd) stop("Ending date is before starting date",.call=FALSE)
+  ## Make sure months are not before or after months in scheduler info
+  msd <- lubridate::month(sd,label=TRUE)
+  med <- lubridate::month(ed,label=TRUE)
+  minfo <- as.character(unique(info$routes$month))
+  if (!msd %in% minfo) stop("Month of starting date is before first month",
+                           "in scheduler information file",.call=FALSE)
+  if (!med %in% minfo) stop("Month of ending date is before first month",
+                            "in scheduler information file",.call=FALSE)
+  ## Return the year
+  ysd
 }
 
 
 ##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==##==--==
 ## Scheduling ----
-### Finds first day of the given MONTH in the given YEAR
-iFindStartDate <- function(MONTH,YEAR) {
-  ## Check inputs
-  MONTH <- iCheckMonth(MONTH)
-  YEAR <- iCheckYear(YEAR)
-  ## Make the first of the month a date
-  lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))
-}
-
-### Finds last day of the given MONTH in the given YEAR
-iFindLastDate <- function(MONTH,YEAR) {
-  ## Check inputs
-  MONTH <- iCheckMonth(MONTH)
-  YEAR <- iCheckYear(YEAR)
-  ## Find the first day of following month ...
-  NEXT_MONTH <- lubridate::month(lubridate::dmy(paste(1,MONTH,YEAR,sep="-"))) + 1
-  if (NEXT_MONTH>12) {
-    NEXT_MONTH <- 1
-    YEAR <- YEAR+1
-  }
-  ## ... and subtract one for last day of MONTH
-  lubridate::dmy(paste(1,NEXT_MONTH,YEAR,sep="-")) - 1
-}
-
 ### Days for which a creel survey should be conducted.
 iFindDays2Creel <- function(data) {
   ## Vector of weekday names
@@ -324,35 +298,34 @@ iAssignBusRouteIDs <- function(data) {
   IDs
 }
 
-makeSchedule <- function(LAKE,YEAR,CLERK,SEED,INFO,WDIR,
+makeSchedule <- function(LAKE,CLERK,START_DATE,END_DATE,SEED,INFO,WDIR,
                          show_summary=TRUE,show_calendars=TRUE) {
-  ## Check inputs
-  YEAR <- iCheckYear(YEAR)
   ## Set the random number seed
   if (!is.null(SEED)) set.seed(SEED)
   ## get the required information
   info <- readInfo(INFO,CLERK)
+  ## Handle dates
+  START_DATE <- as.Date(START_DATE,"%m/%d/%Y")
+  END_DATE <- as.Date(END_DATE,"%m/%d/%Y")
+  YEAR <- iCheckDates(START_DATE,END_DATE,info)
   ## Set filename for schedule data
   fout <- file.path(dirname(INFO),paste0(ifelse(LAKE=="SUPERIOR","LS","LM"),
-                                "_",YEAR,"_",CLERK,"_","schedule.csv"))
-  ## Get start and end data from the information in info
-  start_date <- iFindStartDate(info$routes$month[1],YEAR)
-  end_date <- iFindLastDate(info$routes$month[nrow(info$routes)],YEAR)
+                                         "_",YEAR,"_",CLERK,"_","schedule.csv"))
   
   ## Create the schedule
   ### Find all dates between the start and end date
-  sched <- data.frame(DATE=start_date+0:(end_date-start_date)) %>%
+  sched <- data.frame(DATE=START_DATE+0:(END_DATE-START_DATE)) %>%
     ### Find the month
-    ### Find the week since start_date (beginning of the survey)
-    ### Find days of week name
-    ### Identify day types (weekend, holiday, or weekday)
-    dplyr::mutate(MONTH=lubridate::month(DATE,label=TRUE),
-                  WEEK=lubridate::isoweek(DATE)-lubridate::isoweek(DATE[1])+1,
-                  WDAY=lubridate::wday(DATE,week_start=1,label=TRUE),
-                  DAYTYPE=dplyr::case_when(
-                    chron::is.weekend(DATE) ~ "WEEKEND",
-                    is.holiday(DATE) ~ "HOLIDAY",
-                    TRUE ~ "WEEKDAY")) %>%
+     dplyr::mutate(MONTH=lubridate::month(DATE,label=TRUE),
+                   ### Find the week since START_DATE (beginning of the survey)
+                   WEEK=lubridate::isoweek(DATE)-lubridate::isoweek(DATE[1])+1,
+                   ### Find days of week name
+                   WDAY=lubridate::wday(DATE,week_start=1,label=TRUE),
+                   ### Identify day types (weekend, holiday, or weekday)
+                   DAYTYPE=dplyr::case_when(
+                     chron::is.weekend(DATE) ~ "WEEKEND",
+                     is.holiday(DATE) ~ "HOLIDAY",
+                     TRUE ~ "WEEKDAY")) %>%
     ### Determine on which days a creel survey should be conducted
     tibble::add_column(CREEL=iFindDays2Creel(.)) %>%
     ### Add a variable that contains the ROUTE name
