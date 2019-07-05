@@ -11,7 +11,7 @@
 ## DIRECTIONS >>> Change these items as needed (make sure to run each line).
 START_DATE <- "05/16/2019" # Starting date for schedule
 END_DATE <- "09/30/2019"   # Ending date for schedule
-CLERK <- "A"               # A (Ash-Wash), B (B/RC/LSB & Corny/PW), C (Saxon), D (Superior)
+CLERK <- "B"               # A (Ash-Wash), B (B/RC/LSB & Corny/PW), C (Saxon), D (Superior)
 SEED <- NULL               # Enter number for repeatability, otherwise NULL
 LAKE <- "SUPERIOR"
 

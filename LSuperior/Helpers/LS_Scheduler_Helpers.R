@@ -352,7 +352,7 @@ makeSchedule <- function(LAKE,CLERK,START_DATE,END_DATE,SEED,INFO,WDIR,
   fout
 }
 
-readSchedule <- function(fn,WDIR,show_summary=TRUE,
+readSchedule <- function(fn,WDIR,make_factors=FALSE,show_summary=TRUE,
                          show_calendars=FALSE,new_window=TRUE) {
   ## Read schedule file and add a column for daily schedule
   d <- readr::read_csv(fn,col_types="dccccccc") %>%
@@ -360,7 +360,15 @@ readSchedule <- function(fn,WDIR,show_summary=TRUE,
                   DATE=lubridate::ymd(DATE)) %>%
     tibble::add_column(DAILY_SCHED=iAssignBusRouteIDs(.))
   ## Show summaries if asked to
-  if (show_summary) iSchedSummary(d)
+  if (show_summary) {
+    if (make_factors) {
+      d <- d %>%
+        mutate(MONTH=factor(MONTH,levels=month.abb),
+               WDAY=factor(WDAY,levels=c("Mon","Tue","Wed","Thu","Fri",
+                                         "Sat","Sun")))
+    }
+    iSchedSummary(d)
+  }
   ## Show calendars if asked to
   if (show_calendars) {
     win_exists <- ifelse("windows" %in% names(dev.list()),TRUE,FALSE)

@@ -111,3 +111,8 @@ if (length(sites)>1) {
   }
 }
 ```
+
+\newpage
+```{r routeSummary, echo=FALSE, comment=""}
+readSchedule(SCHED,WDIR,show_summary=TRUE,make_factors=TRUE)
+```
