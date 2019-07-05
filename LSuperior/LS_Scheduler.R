@@ -12,15 +12,15 @@
 
 ## DIRECTIONS >>> Change these items as needed (make sure to run each line).
 YEAR <- 2019
-CLERK <- "A"       # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
+CLERK <- "B"       # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superior)
 LAKE <- "SUPERIOR"
 SEED <- NULL       # Enter number for repeatability, otherwise NULL
 
 
-## DIRECTIONS >>> Run these but don't change anything
-WDIR <- paste0(here::here(),"/LSuperior/")
-RDIR <- paste0(WDIR,"LS_Schedules_",YEAR,"/")
-source(paste0(WDIR,"Helpers/LS_Scheduler_Helpers.R"))
+## DIRECTIONS >>> Run everything below here but don't change anything
+INFO <- file.choose()
+WDIR <- file.path(here::here(),"LSuperior")
+source(file.path(WDIR,"Helpers","LS_Scheduler_Helpers.R"))
 
 
 ## DIRECTIONS >>> Run makeSchedule() below to create a preliminary schedule.
@@ -29,9 +29,9 @@ source(paste0(WDIR,"Helpers/LS_Scheduler_Helpers.R"))
 ## DIRECTIONS >>> folder in Excel, modify the results, and save. Optionally, run
 ## DIRECTIONS >>> following to examine schedule (before or after manual changes).
 ## DIRECTIONS >>>   readSchedule(SCHED,WDIR,show_summary=TRUE,show_calendars=TRUE)
-SCHED <- makeSchedule(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,
+SCHED <- makeSchedule(LAKE,YEAR,CLERK,SEED,INFO,WDIR,
                       show_summary=TRUE,show_calendars=FALSE)
 
 
 ## DIRECTIONS >>> Run below to create printable PDF of calendar and bus routes
-printForClerk(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,SCHED)
+printForClerk(LAKE,YEAR,CLERK,SEED,INFO,WDIR,SCHED)

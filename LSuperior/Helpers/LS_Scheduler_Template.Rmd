@@ -18,6 +18,8 @@ params:
     value: ""
   WDIR:
     value: ""
+  INFO:
+    value: ""
 ---
 
 \fontsize{14}{18}
@@ -32,13 +34,14 @@ CLERK <- params$CLERK
 SEED <- params$SEED
 SCHED <- params$SCHED
 WDIR <- params$WDIR
+INFO <- params$INFO
 ```
 
 ```{r setup, include=FALSE, message=FALSE}
 ## Preliminaries
 try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
 suppressPackageStartupMessages(library(kableExtra))
-source(paste0(WDIR,"Helpers/LS_Scheduler_Helpers.R"))
+source(file.path(WDIR,"Helpers","LS_Scheduler_Helpers.R"))
 knitr::opts_chunk$set(echo = FALSE)
 
 ## Set the random number seed
@@ -82,7 +85,7 @@ for (i in mos) makeCalendar(sched,MONTH1=i,WDIR,
 
 ```{r makeBusRoute, results='asis'}
 ## Read in Route and Shift information
-finfo <- readInfo(CLERK,WDIR)
+finfo <- readInfo(INFO,CLERK)
 ## Print bus routes if more than one site is visited
 sites <- unique(finfo$routes$site)
 if (length(sites)>1) {

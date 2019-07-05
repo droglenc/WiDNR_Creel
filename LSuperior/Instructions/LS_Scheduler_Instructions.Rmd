@@ -1,6 +1,6 @@
 ---
-title: "Lake Superior Scheduler Assumptions"
-author: "Derek Ogle"
+title: "Lake Superior Scheduler Instructions"
+author: "Derek H. Ogle"
 date: '`r format(lubridate::now(),format="%d-%b-%Y")`'
 output: pdf_document
 ---
@@ -9,7 +9,32 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Open-Water
+# Scheduler Introduction
+Blah-blah-blah
+
+# Scheduler Setup
+## Scheduler Program Files
+
+## R Packages
+The scheduler (and creel analysis programs require a number of packages that may not be already installed in your R. These packages can be installed by running the following code in RStudio. You should only have to run this code once on each computer.
+
+```{r eval=FALSE,prompt=FALSE}
+rqrd <- c("captioner","devtools","dplyr","FSA","ggplot2","haven","here",
+          "huxtable","kableExtra","knitr","lubridate","tidyr","magrittr",
+          "RColorBrewer","readxl","rlang","rmarkdown","sugrrants","tibble")
+utils::install.packages(rqrd)
+devtools::install_github("thomasp85/patchwork")
+```
+
+## RStudio Project
+The scheduler program depends on you making an "RStudio Project" for the specific folder at the root of the file structure created [above](#analysis-program-files) (i.e., the folder in which you created the "LSuperior" folder). RStudio projects can be easily created by opening RStudio, selecting the "File" menu item, selecting "New Project ...", selecting "Existing Directory", then browsing to the root folder that contains the creel analysis programs, and selecting "Create Project". RStudio will then move to the project and you should see the name of the root folder just below the toolbar in the upper-right corner of the RStudio window.
+
+[SCREEN CAPTURE HERE]
+
+## Route-Year-Specific Data File(s)
+
+
+# Scheduler Assumptions
 The Lake Superior open-water creel clerk scheduler and bus route constructor is built upon the following premises and assumptions.
 
 1. There are four creel clerks:

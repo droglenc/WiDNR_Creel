@@ -4,29 +4,28 @@ suppressPackageStartupMessages(library(dplyr))
 
 
 ### Print Calendars and Bus Routes
-printForClerk <- function(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,SCHED) {
+printForClerk <- function(LAKE,YEAR,CLERK,SEED,INFO,WDIR,SCHED) {
   message("Writing file, please be patient ...",appendLF=FALSE)
-  foutpre <- paste0(LAKE,"_",YEAR,"_",CLERK)
+  foutpre <- paste0(ifelse(LAKE=="SUPERIOR","LS","LM"),"_",YEAR,"_",CLERK)
   try(detach("package:kableExtra",unload=TRUE),silent=TRUE)
-  rmarkdown::render(input=paste0(WDIR,"Helpers/LS_Scheduler_Template.Rmd"),
+  RDIR <- dirname(INFO)
+  rmarkdown::render(input=file.path(WDIR,"Helpers","LS_Scheduler_Template.Rmd"),
                     params=list(LAKE=LAKE,YEAR=YEAR,CLERK=CLERK,
-                                SEED=SEED,SCHED=SCHED,WDIR=WDIR),
+                                SEED=SEED,SCHED=SCHED,WDIR=WDIR,INFO=INFO),
                     output_file=paste0(foutpre,".pdf"),
                     output_dir=RDIR,
                     output_format="pdf_document",
-                    clean=FALSE,quiet=TRUE)
+                    clean=TRUE,quiet=TRUE)
   ## Remove kableExtra package so that the function can be run again w/o error
   detach("package:kableExtra",unload=TRUE)
   ## Remove an intermediate directory and files
-  unlink(paste0(RDIR,foutpre,"_files"),recursive=TRUE)
-  unlink(paste0(RDIR,foutpre,".tex"))
-  message("Done. See",paste0(foutpre,'.pdf'),"\n   in",RDIR)
+  unlink(file.path(RDIR,paste0(foutpre,"_files")),recursive=TRUE)
+  unlink(file.path(RDIR,paste0(foutpre,".tex")))
+  message("Done.\n See ",paste0(foutpre,'.pdf')," in ",RDIR)
 }
 
 ### Reads all data into one list
-readInfo <- function(CLERK,WDIR) {
-  ## Get main filename
-  fn <- paste0(WDIR,"Helpers/LS_Scheduler_Info.xlsx")
+readInfo <- function(fn,CLERK) {
   ## Get indivdidual sheets as data.frames
   clerks <- iReadClerks(fn,CLERK)
   routes <- iReadRoutes(fn,clerks)
@@ -325,17 +324,17 @@ iAssignBusRouteIDs <- function(data) {
   IDs
 }
 
-makeSchedule <- function(LAKE,YEAR,CLERK,SEED,WDIR,RDIR,
+makeSchedule <- function(LAKE,YEAR,CLERK,SEED,INFO,WDIR,
                          show_summary=TRUE,show_calendars=TRUE) {
   ## Check inputs
   YEAR <- iCheckYear(YEAR)
   ## Set the random number seed
   if (!is.null(SEED)) set.seed(SEED)
   ## get the required information
-  info <- readInfo(CLERK,WDIR)
+  info <- readInfo(INFO,CLERK)
   ## Set filename for schedule data
-  if (!dir.exists(RDIR)) dir.create(RDIR)
-  fout <- paste0(RDIR,LAKE,"_",YEAR,"_",CLERK,"_","schedule.csv")
+  fout <- file.path(dirname(INFO),paste0(ifelse(LAKE=="SUPERIOR","LS","LM"),
+                                "_",YEAR,"_",CLERK,"_","schedule.csv"))
   ## Get start and end data from the information in info
   start_date <- iFindStartDate(info$routes$month[1],YEAR)
   end_date <- iFindLastDate(info$routes$month[nrow(info$routes)],YEAR)
@@ -409,7 +408,7 @@ suppressPackageStartupMessages(library(ggplot2))
 
 ### Makes the calendar header
 iMakeCalHeader <- function(header,WDIR) {
-  fn <- paste0(WDIR,"helpers/WiDNR_logo.jpg")
+  fn <- file.path(WDIR,"helpers","WiDNR_logo.jpg")
   g <- grid::rasterGrob(magick::image_read(fn),interpolate=TRUE)
   header <- data.frame(x=1:10,y=1) %>% 
     ggplot(aes(x,y)) +
