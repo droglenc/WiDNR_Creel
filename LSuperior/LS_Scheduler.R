@@ -1,12 +1,10 @@
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 # PROGRAM TO CREATE "BUS ROUTE" SCHEDULES FOR LAKE SUPERIOR CREEL
-#   SEE LS_SCHEDULER_ASSUMPTINOS.Rmd FOR ASSUMPTIONS SCHEDULER IS BUILT UPON
 #     XXXX, 201X (version 1 - Derek O)
 #
 #  DIRECTIONS:
-#   * Make sure shedule information is up-to-date in LS_Scheuler_info.xlsx in
-#     the Helpers folder.
-#   * Follow directions after DIRECTIONS >>> items below
+#   * Put up-to-date LS_Scheuler_info.xlsx file in LS_Schedules_YEAR folder.
+#   * Follow directions after DIRECTIONS >>> items below.
 #   * See resulting files in LS_Schedules_YEAR folder (replace YEAR with #).
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
@@ -16,12 +14,10 @@ CLERK <- "B"       # A (Ash-Wash), B (B/RC/LSB & Corny/PW, C (Saxon), D (Superio
 LAKE <- "SUPERIOR"
 SEED <- NULL       # Enter number for repeatability, otherwise NULL
 
-
 ## DIRECTIONS >>> Run everything below here but don't change anything
-INFO <- file.choose()
+INFO <- file.choose()   # Choose LS_Scheduler_info.xlsx file to use
 WDIR <- file.path(here::here(),"LSuperior")
 source(file.path(WDIR,"Helpers","LS_Scheduler_Helpers.R"))
-
 
 ## DIRECTIONS >>> Run makeSchedule() below to create a preliminary schedule.
 ## DIRECTIONS >>> Examine the summaries and calendars. If manual changes
@@ -31,7 +27,6 @@ source(file.path(WDIR,"Helpers","LS_Scheduler_Helpers.R"))
 ## DIRECTIONS >>>   readSchedule(SCHED,WDIR,show_summary=TRUE,show_calendars=TRUE)
 SCHED <- makeSchedule(LAKE,YEAR,CLERK,SEED,INFO,WDIR,
                       show_summary=TRUE,show_calendars=FALSE)
-
 
 ## DIRECTIONS >>> Run below to create printable PDF of calendar and bus routes
 printForClerk(LAKE,YEAR,CLERK,SEED,INFO,WDIR,SCHED)
