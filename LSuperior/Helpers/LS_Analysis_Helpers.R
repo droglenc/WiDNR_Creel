@@ -400,9 +400,8 @@ sumObsHarvest <- function(d) {
   h2 <- dplyr::filter(harv,STATE %in% c("WI/MN","WI/MI")) %>%
     dplyr::mutate(HOURS=0.5*HOURS,HARVEST=0.5*HARVEST)
   ## Duplicated h2 to get other half of HOURS/HARVEST, label as Non-WI
-  h3 <- dplyr::mutate(h2,
-                      WATERS="Non-WI",
-                      MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
+  h3 <- h2 %>%
+    dplyr::mutate(WATERS="Non-WI",MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
   ## Combine to get all interviews corrected for location
   harv <- rbind(h1,h2,h3)
   ## Summarize harvest by strata and species
@@ -412,6 +411,8 @@ sumObsHarvest <- function(d) {
     dplyr::summarize(USSHARVEST=sum(HARVEST^2,na.rm=TRUE),
                      UCOVAR=sum(HARVEST*HOURS,na.rm=TRUE),
                      HARVEST=sum(HARVEST,na.rm=TRUE)) %>%
+    ## Note that HOURS is not returned but it is merged from the summarized
+    ## effort data (by waters, fishery, daytype, and month) in the next function
     dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES,
                   HARVEST,USSHARVEST,UCOVAR)
   ### Return data.frame
@@ -437,19 +438,20 @@ sumHarvestEffort <- function(h,f) {
                   HARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,HARVEST),
                   USSHARVEST=ifelse(is.na(NINTS) | NINTS==0,NA,USSHARVEST),
                   VHARVEST=(USSHARVEST-(HARVEST^2)/NINTS)/(NINTS-1),
+                  ## Mean harvest rate by a party
+                  PHRATE=HARVEST/HOURS,
                   UCOVAR=ifelse(is.na(NINTS) | NINTS==0,NA,UCOVAR),
                   COVAR=(UCOVAR-HARVEST*HOURS/NINTS)/(NINTS-1),
                   MHOURS=HOURS/NINTS,
                   MHARV=HARVEST/NINTS,
-                  HRATE=HARVEST/HOURS,
-                  VHRATE=ifelse(MHARV==0 & NINTS>1,0,
-                                (VHARVEST/(MHARV^2))+(VHOURS/(MHOURS^2))-
-                                  2*COVAR/MHARV/MHOURS),
-                  VHRATE=(HRATE^2)*VHRATE/NINTS,
-                  HARVEST=PHOURS*HRATE,
-                  VHARVEST=(PHOURS^2)*VHRATE+(HRATE^2)*VPHOURS+VHRATE*VPHOURS) %>%
-    ## Note that HRATE, VHRATE, MHOURS, MHARV are intermediate values &
-    ##   are not returned:
+                  VPHRATE=ifelse(MHARV==0 & NINTS>1,0,
+                                 (VHARVEST/(MHARV^2))+(VHOURS/(MHOURS^2))-
+                                  2*COVAR/(MHARV*MHOURS)),
+                  VPHRATE=(PHRATE^2)*VPHRATE/NINTS,
+                  ## Total harvest
+                  HARVEST=PHOURS*PHRATE,
+                  VHARVEST=(PHOURS^2)*VPHRATE+(PHRATE^2)*VPHOURS+VPHRATE*VPHOURS) %>%
+    ## Note HRATE, VHRATE, MHOURS, MHARV are intermediates & are not returned
     dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES,
                   NINTS,HARVEST,VHARVEST,INDHRS) %>%
     as.data.frame() %>%

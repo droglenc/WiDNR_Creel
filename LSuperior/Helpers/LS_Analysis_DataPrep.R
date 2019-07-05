@@ -145,7 +145,7 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 
 ## Combining Counts and Effort -------------------------------------------------
 # RESULT: A data.frame that summarizes (see below) total fishing effort expended
-#         by strata (WATERS, FISHERY, MONTH, DAYTYPE)
+#         by strata (WATERS, MUNIT, ROUTE, FISHERY, DAYTYPE, MONTH)
 #   * PHOURS: Total party hours of fishing
 #   * SDPHOURS: Standard deviation of above
 #   * PARTY: Mean party size (person's per party)
@@ -155,13 +155,14 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 #   * TRIPS: Total number of fishing trips
 #   * SDTRIPS: Standard deviation of above
 #
-# The following are intermediate calculations returned for completeness
+# The following are intermediate calculations returned for completeness and use
+#  in sumHarvestEffort() below.
 #   * NINTS: Number of actual interviews
 #   * HOURS: Total interviewed effort (hours) of ALL parties
 #   * USSHOURS: Uncorrected SS of HOURS (explained above)
-#   * VPHOURS: Variance (standard deviation^2) of further above
-#   * VINDHRS: Variance (standard deviation^2) of further above
-#   * VTRIPS: Variance (standard deviation^2) of further above
+#   * VPHOURS: Variance of PHOURS
+#   * VINDHRS: Variance of INDHRS
+#   * VTRIPS: Variance of TRIPS
 # NOTES:
 #   * This is expanded to the entire population (not just observations)
 # USE: 
