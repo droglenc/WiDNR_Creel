@@ -23,6 +23,17 @@ There should be two files inside of the "LSuperior" folder, called "LS_Analyzer.
 
 The only file that you will interact with directly is "LS_Analyzer.R". Its use will be described further below.
 
+## R Packages
+The creel analysis (and scheduler) programs require a number of packages that may not be already installed in your R. These packages can be installed by running the following code in RStudio. You should only have to run this code once on each computer.
+
+```{r eval=FALSE,prompt=FALSE}
+rqrd <- c("captioner","devtools","dplyr","FSA","ggplot2","haven","here",
+          "huxtable","kableExtra","knitr","lubridate","tidyr","magrittr",
+          "RColorBrewer","readxl","rlang","rmarkdown","sugrrants","tibble")
+utils::install.packages(rqrd)
+devtools::install_github("thomasp85/patchwork")
+```
+
 ## RStudio Project
 The creel analysis program depends on you make an "RStudio Project" for the specific folder at the root of the data structure created [above](#analysis-program-files) (i.e., the folder in which you created the "LSuperior" folder). RStudio projects can be easily created by opening RStudio, selecting the "File" menu item, selecting "New Project ...", selecting "Existing Directory", then browsing to the root folder that contains the creel analysis programs, and selecting "Create Project". RStudio will then move to the project and you should see the name of the root folder just below the toolbar in the upper-right corner of the RStudio window.
 
