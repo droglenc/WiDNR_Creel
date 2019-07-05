@@ -70,8 +70,7 @@ expandPressureCounts <- function(dcnts,cal) {
     dplyr::mutate(COUNT=COUNT*DAYLEN/WAIT) %>%
     ### Compute daily pressure counts (across sites within days)
     dplyr::group_by(YEAR,MONTH,DAY,DAYTYPE) %>%
-    dplyr::summarize(WAIT=sum(WAIT),
-                     COUNT=sum(COUNT)) %>%
+    dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT)) %>%
     dplyr::ungroup() %>%
     ### Summarizes daily pressure counts by daytype and month
     dplyr::group_by(YEAR,DAYTYPE,MONTH) %>%
@@ -82,8 +81,7 @@ expandPressureCounts <- function(dcnts,cal) {
     dplyr::ungroup() %>%
     ### Expand by number of days in the month (in cal)
     merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
-    dplyr::mutate(TCOUNT=MCOUNT*DAYS,
-                  VCOUNT=VCOUNT*(DAYS^2)) %>%
+    dplyr::mutate(TCOUNT=MCOUNT*DAYS,VCOUNT=VCOUNT*(DAYS^2)) %>%
     dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,TCOUNT,VCOUNT)
   ## Find totals across DAYTYPEs
   dcnts1 <- dplyr::group_by(dcnts,YEAR,MONTH) %>%
@@ -127,7 +125,6 @@ readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,dropCLS=TRUE) {
     dplyr::mutate(INTID=1:dplyr::n(),
                   ## Convert some codes to words
                   STATE=iMvStates(STATE),
-                  WATERS=iMvWaters(STATE),
                   FISHERY=iMvFishery(FISHERY),
                   STATUS=iMvStatus(STATUS),
                   RES=iMvResidency(RES),
@@ -152,7 +149,7 @@ readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,dropCLS=TRUE) {
     d <- d[,!allNA]
   }
   ## Rearrange vars (& drop SUCCESS, FISH, RES, STARTHH, STARTMM, STOPHH, STOPMM)
-  d %<>% dplyr::select(INTID,DATE,YEAR,WATERS,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
+  d %<>% dplyr::select(INTID,DATE,YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
                        DAY,SITE,STATUS,HOURS,PERSONS,
                        contains("SPEC"),contains("CLIP"),contains("LEN")) %>%
     ## Drop "bad" HOURS records
@@ -173,8 +170,8 @@ sumInterviewedEffort <- function(dints) {
     dplyr::mutate(HOURS=0.5*HOURS)
   # Duplicate f2 to get other half of HOURS
   f3 <- f2 %>%
-    ## label WATERS as Non-WI and MUNIT as other state
-    dplyr::mutate(WATERS="Non-WI",MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
+    ## label MUNIT as other state
+    dplyr::mutate(MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
   
   # Combine to get all interviews corrected for location
   f <- rbind(f1,f2,f3) %>%
@@ -185,21 +182,21 @@ sumInterviewedEffort <- function(dints) {
     dplyr::mutate(INDHRS=PERSONS*HOURS,
                   CHOURS=ifelse(STATUS=="Complete",HOURS,NA))
   
-  # Summarize interviewed effort data by WATERS, DAYTPE, FISHERY, MONTH
+  # Summarize interviewed effort data by MUNIT, DAYTPE, FISHERY, MONTH
   #   across all interviews, sites, and days
   # !! This was how PARTY was calculated in the SAS code ... it is NOT the same
   # !! as calculating the mean of PERSONS ... not clear why computed this way.
   # !! Note that USSHours is the uncorrected SS of HOURS ... this is used later
   # !! to find the variance of the HOURS
   fsum <- f %>%
-    dplyr::group_by(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH) %>%
+    dplyr::group_by(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH) %>%
     dplyr::summarize(NINTS=dplyr::n(),
                      MTRIP=mean(CHOURS,na.rm=TRUE),
                      USSHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
     dplyr::mutate(PARTY=INDHRS/HOURS) %>%
-    dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,
+    dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,
                   NINTS,HOURS,MTRIP,USSHOURS,PARTY) %>%
     as.data.frame()
   
@@ -212,9 +209,9 @@ sumInterviewedEffort <- function(dints) {
   # Combine the summarized effort with fsum2 to compute PROP
   f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(PROP=HOURS/THOURS_MD) %>%
-    dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,
+    dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,
                   NINTS,HOURS,USSHOURS,MTRIP,PROP,PARTY) %>%
-    dplyr::arrange(WATERS,MUNIT,FISHERY,DAYTYPE,MONTH)
+    dplyr::arrange(MUNIT,FISHERY,DAYTYPE,MONTH)
   ### Return data.frame
   as.data.frame(f)
 }
@@ -234,7 +231,7 @@ sumEffort <- function(ieff,pct) {
                   VTRIPS=VPHOURS/(MTRIP^2),
                   INDHRS=PHOURS*PARTY,
                   VINDHRS=VPHOURS*(PARTY^2)) %>%
-    dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,
+    dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,
                   NINTS,HOURS,USSHOURS,PHOURS,VPHOURS,
                   INDHRS,VINDHRS,TRIPS,VTRIPS) %>%
     ## Convert NAs to zeroes in the variance variables
@@ -244,7 +241,7 @@ sumEffort <- function(ieff,pct) {
     as.data.frame()
   
   ## Summarize across Daytypes
-  eff1 <- dplyr::group_by(eff,YEAR,WATERS,MUNIT,FISHERY,MONTH) %>%
+  eff1 <- dplyr::group_by(eff,YEAR,MUNIT,FISHERY,MONTH) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      USSHOURS=sum(USSHOURS,na.rm=TRUE),
@@ -261,7 +258,7 @@ sumEffort <- function(ieff,pct) {
   eff <- rbind(eff,eff1)
   
   ## Summarize across Months
-  eff2 <- dplyr::group_by(eff,YEAR,WATERS,MUNIT,FISHERY,DAYTYPE) %>%
+  eff2 <- dplyr::group_by(eff,YEAR,MUNIT,FISHERY,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      USSHOURS=sum(USSHOURS,na.rm=TRUE),
@@ -278,7 +275,7 @@ sumEffort <- function(ieff,pct) {
   eff <- rbind(eff,eff2)
   
   ## Summarize across Fisheries
-  eff3 <- dplyr::group_by(eff,YEAR,WATERS,MUNIT,MONTH,DAYTYPE) %>%
+  eff3 <- dplyr::group_by(eff,YEAR,MUNIT,MONTH,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      USSHOURS=sum(USSHOURS,na.rm=TRUE),
@@ -300,11 +297,11 @@ sumEffort <- function(ieff,pct) {
                   SDINDHRS=sqrt(VINDHRS),
                   SDTRIPS=sqrt(VTRIPS)) %>%
     ## Put variables in specific order
-    dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,
+    dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,
                   PHOURS,SDPHOURS,PARTY,INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS,
                   NINTS,HOURS,USSHOURS,VPHOURS,VINDHRS,VTRIPS) %>%
     ## Arrange
-    dplyr::arrange(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH)
+    dplyr::arrange(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH)
   # return final data.frame
   eff
 }
@@ -389,7 +386,7 @@ rearrangeFishInfo <- function(dints) {
 sumObsHarvest <- function(d) {
   ## Compute harvest for each interview
   harv <- d %>%
-    dplyr::group_by(INTID,YEAR,WATERS,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
+    dplyr::group_by(INTID,YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
                     DATE,HOURS,SPECIES) %>%
     dplyr::summarize(HARVEST=dplyr::n()) %>%
     dplyr::ungroup()
@@ -399,21 +396,21 @@ sumObsHarvest <- function(d) {
   ## Harvest for when fishing in more than one state ... harvest cut in half
   h2 <- dplyr::filter(harv,STATE %in% c("WI/MN","WI/MI")) %>%
     dplyr::mutate(HOURS=0.5*HOURS,HARVEST=0.5*HARVEST)
-  ## Duplicated h2 to get other half of HOURS/HARVEST, label as Non-WI
+  ## Duplicated h2 to get other half of HOURS/HARVEST, label MUNITS
   h3 <- h2 %>%
-    dplyr::mutate(WATERS="Non-WI",MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
+    dplyr::mutate(MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
   ## Combine to get all interviews corrected for location
   harv <- rbind(h1,h2,h3)
   ## Summarize harvest by strata and species
   ##   USSHARVEST is uncorrected SS for computer variance of HARVEST later
   ##   UCOVAR is intermediate value to compute HARVEST HOURS covariance later
-  harv %<>% dplyr::group_by(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES) %>%
+  harv %<>% dplyr::group_by(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES) %>%
     dplyr::summarize(USSHARVEST=sum(HARVEST^2,na.rm=TRUE),
                      UCOVAR=sum(HARVEST*HOURS,na.rm=TRUE),
                      HARVEST=sum(HARVEST,na.rm=TRUE)) %>%
     ## Note that HOURS is not returned but it is merged from the summarized
     ## effort data (by waters, fishery, daytype, and month) in the next function
-    dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES,
+    dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES,
                   HARVEST,USSHARVEST,UCOVAR)
   ### Return data.frame
   as.data.frame(harv)
@@ -422,7 +419,7 @@ sumObsHarvest <- function(d) {
 ## Summarize Harvest and Effort
 sumHarvestEffort <- function(h,f) {
   ##   Merge harvest and effort data.frames
-  hf <- merge(h,f,by=c("YEAR","WATERS","MUNIT","FISHERY","DAYTYPE","MONTH"),
+  hf <- merge(h,f,by=c("YEAR","MUNIT","FISHERY","DAYTYPE","MONTH"),
               all=TRUE) %>%
     ## Remove for SPECIES that do not exist
     dplyr::filter(!is.na(SPECIES)) %>%
@@ -452,13 +449,13 @@ sumHarvestEffort <- function(h,f) {
                   HARVEST=PHOURS*PHRATE,
                   VHARVEST=(PHOURS^2)*VPHRATE+(PHRATE^2)*VPHOURS+VPHRATE*VPHOURS) %>%
     ## Note HRATE, VHRATE, MHOURS, MHARV are intermediates & are not returned
-    dplyr::select(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES,
+    dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES,
                   NINTS,HARVEST,VHARVEST,INDHRS) %>%
     as.data.frame() %>%
     droplevels()
 
   ## Summarizes across day-types
-  hf1 <- dplyr::group_by(hf,YEAR,WATERS,MUNIT,FISHERY,SPECIES,MONTH) %>%
+  hf1 <- dplyr::group_by(hf,YEAR,MUNIT,FISHERY,SPECIES,MONTH) %>%
     dplyr::summarize(NINTS=sum(NINTS),
                      HARVEST=sum(HARVEST,na.rm=TRUE),
                      VHARVEST=ifelse(NINTS==1,NA,sum(VHARVEST,na.rm=TRUE)),
@@ -469,7 +466,7 @@ sumHarvestEffort <- function(h,f) {
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf1)
   ## Summarizes across months
-  hf2 <- dplyr::group_by(hf,YEAR,WATERS,MUNIT,FISHERY,SPECIES,DAYTYPE) %>%
+  hf2 <- dplyr::group_by(hf,YEAR,MUNIT,FISHERY,SPECIES,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS),
                      HARVEST=sum(HARVEST,na.rm=TRUE),
                      VHARVEST=ifelse(NINTS==1,NA,sum(VHARVEST,na.rm=TRUE)),
@@ -480,7 +477,7 @@ sumHarvestEffort <- function(h,f) {
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf2)
   ## Summarizes across fisheries
-  hf3 <- dplyr::group_by(hf,YEAR,WATERS,MUNIT,SPECIES,DAYTYPE,MONTH) %>%
+  hf3 <- dplyr::group_by(hf,YEAR,MUNIT,SPECIES,DAYTYPE,MONTH) %>%
     dplyr::summarize(NINTS=sum(NINTS),
                      HARVEST=sum(HARVEST,na.rm=TRUE),
                      VHARVEST=ifelse(NINTS==1,NA,sum(VHARVEST,na.rm=TRUE)),
@@ -495,7 +492,7 @@ sumHarvestEffort <- function(h,f) {
                   SDHARVEST=sqrt(VHARVEST)) %>%
     ## Rearrange variables and rows
     dplyr::select(YEAR:SPECIES,INDHRS,HARVEST,SDHARVEST,VHARVEST,HRATE) %>%
-    dplyr::arrange(YEAR,WATERS,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES)
+    dplyr::arrange(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES)
   ## Return data.frame
   hf
 }

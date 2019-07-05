@@ -116,7 +116,7 @@ ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE)
 # USE: Ultimately sent to make Table 2 and expanded to entire population below.
 # EXPORTED: Not exported to a file.
 ints_NOFISH <- ints_ORIG %>%
-  dplyr::select(YEAR,WATERS,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,HOURS,PERSONS,STATUS)
+  dplyr::select(YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,HOURS,PERSONS,STATUS)
 
 # RESULT: A data.frame that summarizes the number of OBSERVED interviews and
 #         reported hours of fishing effort by "strata" (!!WATERS!!, DAYTYPE,
@@ -145,7 +145,8 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 
 ## Combining Counts and Effort -------------------------------------------------
 # RESULT: A data.frame that summarizes (see below) total fishing effort expended
-#         by strata (WATERS, MUNIT, ROUTE, FISHERY, DAYTYPE, MONTH)
+#         by strata (MUNIT, ROUTE, FISHERY, DAYTYPE, MONTH)
+#   * WATERS: Wisconsin or not Wisconsin waters
 #   * PHOURS: Total party hours of fishing
 #   * SDPHOURS: Standard deviation of above
 #   * PARTY: Mean party size (person's per party)
@@ -170,8 +171,8 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 #   * To expand catch to harvest further below.
 # EXPORTED: Exported as "LOCATION_YEAR_ttlEffort.csv".
 ttlEffort <- sumEffort(intvdEffortWaters,pressureCount) %>% 
-  dplyr::mutate(ROUTE=LOC) %>%
-  dplyr::select(YEAR,ROUTE,WATERS:VTRIPS)
+  dplyr::mutate(ROUTE=LOC,WATERS=iMvWaters(MUNIT)) %>%
+  dplyr::select(YEAR,ROUTE,WATERS,MUNIT:VTRIPS)
 writeDF(ttlEffort,fnpre)
 
 
@@ -181,7 +182,6 @@ writeDF(ttlEffort,fnpre)
 #   * INTID: A unique ID for each interview
 #   * DATE: Data of interview ... maintained for Table 9
 #   * YEAR: Year of interview
-#   * WATERS: Waters fished (WI or non-WI)
 #   * STATE: State fished (e.g., WI, WI/MN)
 #   * SITE: Specific site code (of landing) ... maintained for Table 9
 #   * DAYTYPE: Type of day (Weekday or Weekend ... holidays are weekends)
@@ -202,7 +202,7 @@ writeDF(ttlEffort,fnpre)
 # EXPORTED: Not exported to a file.
 ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
   dplyr::filter(FISHERY!="NON-FISHING") %>%
-  dplyr::select(INTID,DATE,YEAR,WATERS,MUNIT,STATE,SITE,DAYTYPE,FISHERY,MONTH,
+  dplyr::select(INTID,DATE,YEAR,MUNIT,STATE,SITE,DAYTYPE,FISHERY,MONTH,
                 HOURS,SPECIES,CLIP,CLIPPED,LEN) %>%
   droplevels()
 
@@ -232,7 +232,7 @@ intvdHarv <- sumObsHarvest(ints_FISH)
 # EXPORTED: Not exported to a file.
 ttlEffort2 <- ttlEffort %>%
   dplyr::filter(FISHERY!="NON-FISHING") %>%
-  dplyr::select(YEAR,WATERS,MUNIT,DAYTYPE,FISHERY,MONTH,
+  dplyr::select(YEAR,MUNIT,DAYTYPE,FISHERY,MONTH,
                 NINTS,HOURS,USSHOURS,INDHRS,PHOURS,VPHOURS)
 
 # RESULT:
@@ -249,8 +249,8 @@ ttlEffort2 <- ttlEffort %>%
 # USE: For Table 5 and Figure 3-5.
 # EXPORTED: Exported to "LOCATION_YEAR_ttlHarvest.csv"
 ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2) %>%
-  dplyr::mutate(ROUTE=LOC) %>%
-  dplyr::select(YEAR,ROUTE,WATERS:HRATE)
+  dplyr::mutate(ROUTE=LOC,WATERS=iMvWaters(MUNIT)) %>%
+  dplyr::select(YEAR,ROUTE,WATERS,MUNIT:HRATE)
 writeDF(ttlHarvest,fnpre)
 
 
@@ -264,7 +264,7 @@ writeDF(ttlHarvest,fnpre)
 # USE: For Tables 6-9 and Figure 6.
 # EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
 lengths <- ints_FISH %>%
-  dplyr::mutate(ROUTE=LOC) %>%
+  dplyr::mutate(ROUTE=LOC,WATERS=iMvWaters(MUNIT)) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT,STATE,FISHERY,MONTH,
                 DATE,SITE,SPECIES,CLIP,CLIPPED,LEN) %>%
   addWeights(RDIR,YEAR)
