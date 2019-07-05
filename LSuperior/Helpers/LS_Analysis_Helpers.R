@@ -1115,7 +1115,7 @@ table8 <- function(dlen) {
 table9 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
-    dplyr::select(SPECIES,STATE,SITE,FISHERY,DATE,LEN,CLIP) %>%
+    dplyr::select(SPECIES,MUNIT,SITE,FISHERY,DATE,LEN,CLIP) %>%
     dplyr::arrange(SPECIES,DATE,LEN) %>%
     dplyr::rename(`TL (in)`=LEN) %>%
     droplevels() %>%

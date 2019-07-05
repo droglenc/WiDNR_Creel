@@ -265,7 +265,7 @@ writeDF(ttlHarvest,fnpre)
 # EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
 lengths <- ints_FISH %>%
   dplyr::mutate(ROUTE=LOC,WATERS=iMvWaters(MUNIT)) %>%
-  dplyr::select(YEAR,ROUTE,WATERS,MUNIT,STATE,FISHERY,MONTH,
+  dplyr::select(YEAR,ROUTE,WATERS,MUNIT,FISHERY,MONTH,
                 DATE,SITE,SPECIES,CLIP,CLIPPED,LEN) %>%
   addWeights(RDIR,YEAR)
 writeDF(lengths,fnpre)
