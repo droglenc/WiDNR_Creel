@@ -1,7 +1,7 @@
 ---
-title: "Untitled"
-author: "Ogle"
-date: "7/3/2019"
+title: "Lake Superior Creel Analysis Instructions"
+author: "Derek H. Ogle"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
 output: 
   pdf_document: 
     number_sections: yes
@@ -37,15 +37,14 @@ devtools::install_github("thomasp85/patchwork")
 ## RStudio Project
 The creel analysis program depends on you make an "RStudio Project" for the specific folder at the root of the data structure created [above](#analysis-program-files) (i.e., the folder in which you created the "LSuperior" folder). RStudio projects can be easily created by opening RStudio, selecting the "File" menu item, selecting "New Project ...", selecting "Existing Directory", then browsing to the root folder that contains the creel analysis programs, and selecting "Create Project". RStudio will then move to the project and you should see the name of the root folder just below the toolbar in the upper-right corner of the RStudio window.
 
-<SCREEN CAPTURE HERE>
+[SCREEN CAPTURE HERE]
 
 ## Route-Year-Specific Data File(s)
 The creel analysis program is run for each route and, thus, requires data files that contain the interview and pressure count data **specific to the route**. Currently, these files can either be SAS (i.e., has ".sas7bdat" extension) or comma-separated-values (i.e., CSV) files. These files should ideally be saved in a "data" folder inside a folder called something like "LS_Analysis_2014" (i.e., "LS" for "Lake Superior", "Analysis" for creel survey analysis, and the year of analysis), inside the folder that contains the analysis program (described [above](#analysis-program-files)).
 
 The creel analysis program requires some information specific to each route. This route-specific information should be entered into an R script file (i.e., .R extension); named by route abbreviation, data collection year, and "info" (e.g., "ash_2014_info.R"); and saved to the same "data" folder with the route-specific data files (described in the previous paragraph). An example file is shown below.
 
-```{r echo=FALSE, comment=""}
-options(width=120)
+```{r echo=FALSE, comment="", R.options=list(width=120)}
 source(file.path(here::here(),"LSuperior","LS_Analysis_2014","data",
                  "ash_2014_info.R"),echo=TRUE,keep.source=TRUE,spaced=FALSE,
        prompt.echo="  ",continue.echo="  ",max.deparse.length = 200)
@@ -58,19 +57,19 @@ In addition to the files described above, the "data" folder should have an Excel
 ## How to Run
 The creel analysis program can be run by opening RStudio and opening the RStudio project created [above](#rstudio-project) (select the small down triangle just below the upper-right corner and select your project from the list or select "Open Project" and browse to your project). You should then open the "LS_Analyzer.R" file in the "LSuperior" folder (either through the "File" menu or the "Files" pane in the lower-right of RStudio).
 
-<SCREEN CAPTURE HERE>
+[SCREEN CAPTURE HERE]
 
 Then press the "Source" button in the toolbar of the script pane to run the Analyzer script.
 
-<SCREEN CAPTURE HERE>
+[SCREEN CAPTURE HERE]
 
 You will then be prompted to select one of the route-year-specific information files that you created above. You will need to browse into the folder that contains these files. You can then select one or more of the information files (more than one can be selected by clicking once on the first file and holding down the SHIFT key and selecting the last file or holding down the CTRL key and selecting each individual file).
 
-<SCREEN CAPTURE HERE>
+[SCREEN CAPTURE HERE]
 
 The analysis program will then (slowly) analyze the creel data for each selected route. A short message will keep you apprised of the progress and a detailed report will appear in a web browser window when the analysis of each route is completed.
 
-<SCREEN CAPTURE HERE>
+[SCREEN CAPTURE HERE]
 
 By default, three types of output files will be created for each route (see information below). For convenience, each type of output file can be combined across all the routes (for which output files exist) into one file by running the following code. Note that this code is not automatically run (i.e., the default is to have files separated by routes).
 
@@ -80,7 +79,94 @@ combineCSV(RDIR,YEAR,removeOrig=TRUE)
 
 
 ## Resultant Files
+### HTML Summary Tables and Figures
+Blah-blah-blah
 
+### Total Effort "Raw Summary"
+The pressure counts and interview information recorded by the clerk for a particular route is expanded to represent total fishing effort by fishers on that route as described in the Computations sections below. These expanded data are output to a CSV file with a name that will have "ttlEffort" appended to it. Below is an example of the results in this file.
+
+```{r echo=FALSE, comment="", R.options=list(width=90)}
+tmp <- read.csv(file.path(here::here(),"LSuperior","LS_Analysis_2014","data",
+                          "COMBINED_2014_ttlEffort.csv"))
+print(FSA::headtail(tmp),digits=2,row.names=FALSE)
+```
+
+The fields in these data are described below (items in square brackets are the corresponding symbols used in the Computations section).
+
+* YEAR: Year of data collection
+* ROUTE: Route abbreviation of data collection
+* WATERS: Waters where interviewee fished (WI or non-WI)
+* MUNIT: Management unit where interviewee fished (e.g., WI-1, WI-2)  [$u$]
+* FISHERY: Type of fishery (e.g., Cold-Open, Warm-Open)  [$k$]
+* DAYTPE: Type of day (Weekday or Weekend ... holidays are weekends)  [$i$]
+* MONTH: Month of data collection  [$j$]
+* PHOURS: Total party hours of fishing  [$\tilde{F}_{ukij}$]
+* SDPHOURS: Standard deviation of PHOURS
+* PARTY: Mean party size (person's per party)  [$\bar{I}_{ukij}$]
+* INDHRS: Total individual/person hours of fishing  [$\tilde{G}_{ukij}$]
+* SDINDHRS: Standard deviation of INDHRS
+* MTRIP: Mean interviewed effort (hours) by COMPLETED parties  [$\bar{f}_{ukij}$]
+* TRIPS: Total number of fishing trips  [$\tilde{T}_{ukij}$]
+* SDTRIPS: Standard deviation of TRIPS
+
+The following items are also included to allow further calculations as described in Computations sections:
+
+* NINTS: Number of interviews  [$n_{ukij}$]
+* HOURS: Total interviewed effort (hours) of ALL parties  [$\tilde{f}_{ukij}$]
+* USSHOURS: Uncorrected SS of HOURS (explained in Computations section)  [$USS(\tilde{f}_{ukij})$]
+* VPHOURS: Variance of PHOURS  [$V(\tilde{F}_{ukij})$]
+* VINDHRS: Variance of INDHRS  [$V(\tilde{G}_{ukij})$]
+* VTRIPS: Variance of TRIPS  [$V(\tilde{T}_{ukij})$]
+
+### Total Harvest "Raw Summary"
+The total effort summary data and interview information recorded by the clerk for a particular route is expanded to represent total harvest by fishers on that route as described in the Computations sections below. These expanded data are output to a CSV file with a name that will have "ttlHarvest" appended to it. Below is an example of the results in this file.
+
+```{r echo=FALSE, comment="", R.options=list(width=90)}
+tmp <- read.csv(file.path(here::here(),"LSuperior","LS_Analysis_2014","data",
+                          "COMBINED_2014_ttlHarvest.csv"))
+print(FSA::headtail(tmp),digits=2,row.names=FALSE)
+```
+
+The fields in these data are described below (items in square brackets are the corresponding symbols used in the Computations section).
+
+* YEAR: Year of data collection
+* ROUTE: Route abbreviation of data collection
+* WATERS: Waters where interviewee fished (WI or non-WI)
+* MUNIT: Management unit where interviewee fished (e.g., WI-1, WI-2)  [$u$]
+* FISHERY: Type of fishery (e.g., Cold-Open, Warm-Open)  [$k$]
+* DAYTPE: Type of day (Weekday or Weekend ... holidays are weekends)  [$i$]
+* MONTH: Month of data collection  [$j$]
+* SPECIES: Species of fish harvested  [$s$]
+* INDHRS: Total individual/person hours of fishing  [$\tilde{G}_{ukij}$]
+* HARVEST: Total harvest  [$H_{ukijs}$]
+* SDHARVEST: Standard deviation of HARVEST.
+* VHARVEST: Variance of HARVEST (SDHARVEST^2; for possible further summaries)  [$V(H_{ukijs})$]
+* HRATE: Harvest rate (harvest per individual)
+
+### Individual Fish Infomation "Raw Summary"
+Information about specific fish recorded by the clerk is output to a CSV file with a name that will have "Lengths" appended to it. Below is an example of the results in this file.
+
+```{r echo=FALSE, comment="", R.options=list(width=90)}
+tmp <- read.csv(file.path(here::here(),"LSuperior","LS_Analysis_2014","data",
+                          "COMBINED_2014_Lengths.csv"))
+print(FSA::headtail(tmp),digits=3,row.names=FALSE)
+```
+
+The fields in these data are described below.
+
+* YEAR: Year of data collection
+* ROUTE: Route abbreviation of data collection
+* WATERS: Waters where interviewee fished (WI or non-WI)
+* MUNIT: Management unit where interviewee fished (e.g., WI-1, WI-2)
+* FISHERY: Type of fishery (e.g., Cold-Open, Warm-Open)
+* MONTH: Month of data collection
+* DATE: Date of harvest
+* SITE: Specific site code where interview took place
+* SPECIES: Species of fish harvested
+* CLIP: Clip code
+* CLIPPED: Whether clipped or not
+* LEN: Total length (in inches)
+* WT: Estimated weight from LEN and weight-length regression (in grams)
 
 
 # Computations
@@ -117,18 +203,18 @@ The raw interview file contains information about the party (e.g., date, hours f
 #### `sumInterviewedEffort()` function
 The first part of this function deals with the issue that anglers on some routes may fish in waters from other states. For example, some anglers leaving Ashland may fish in Michigan waters and some angler leaving Superior may fish in Minnesota waters. In some instances, anglers may fish in both waters on the same trip (and, thus, in the same interview). In these instances, the STATE variable may be recorded as "WI/MI" or "WI/MN". These instances are "split" so half of the recorded fishing effort (HOURS) is put in each state (e.g., in "WI" and in "MN" when the STATE is "WI/MN").
 
-These "corrected" raw data are then summarized by waters ($w$), fishery ($k$), daytype ($i$), and month ($j$) to compute the total number of interviews, total interviewed fishing effort (in hours) of ALL parties ($\tilde{f}_{wkij}$), mean interviewed fishing effort (in hours) by COMPLETED parties  ($\bar{f}_{wkij}$), mean person's per party ($\bar{I}_{wkij}$), and the proportion of total interviewed effort for month-daytype that is in a given waters-fishery ($p_{wkij}$). Additionally, the uncorrected sum-of-squares for the total interviewed effort is computed with $USS(\tilde{f}_{wkij})=\tilde{f}_{wkij}^{2}$ and is ultimately used later in variance calculations.
+These "corrected" raw data are then summarized by management unit ($u$), fishery ($k$), daytype ($i$), and month ($j$) to compute the total number of interviews, total interviewed fishing effort (in hours) of ALL parties ($\tilde{f}_{ukij}$), mean interviewed fishing effort (in hours) by COMPLETED parties  ($\bar{f}_{ukij}$), mean person's per party ($\bar{I}_{ukij}$), and the proportion of total interviewed effort for month-daytype that is in a given management unit-fishery ($p_{ukij}$). Additionally, the uncorrected sum-of-squares for the total interviewed effort is computed with $USS(\tilde{f}_{ukij})=\tilde{f}_{ukij}^{2}$ and is ultimately used later in variance calculations.
 
 ### Expanding to Total Fishing Effort
 #### `sumEffort()` function
-The summaries of pressure counts and interviewed fishing effort can be merged to compute the following values for reach waters ($w$), fishery ($k$), daytype ($i$), and month ($j$) combination.
+The summaries of pressure counts and interviewed fishing effort can be merged to compute the following values for reach management unit ($u$), fishery ($k$), daytype ($i$), and month ($j$) combination.
 
-* The total number of interviews ($n_{wkij}$).
-* The total party-hours of fishing effort is the total pressure count per daytype and month by the proportion of interviewed fishing effort in each daytype-month -- i.e., $\tilde{F}_{wkij}=\tilde{g}_{ij} \times \tilde{f}_{wkij}$. The associated variance is $V(\tilde{F}_{wkij})=V(\tilde{g}_{ij}) \times (\tilde{f}_{wkij})^{2}$.
-* The total number of trips is the total party-hours divided by the mean trip length -- i.e., $\tilde{T_{wkij}}=\frac{\tilde{F}_{wkij}}{\bar{f}_{wkij}}$. The associated variance is $V(\tilde{T_{wkij}})=\frac{V(\tilde{F}_{wkij})}{(\bar{f}_{wkij})^{2}}$.
-* The total number of hours fished by individuals (rather than by parties) is the total party-hours times the mean party size -- i.e., $\tilde{G}_{wkij}=\tilde{F}_{wkij} \times \bar{I}_{wkij}$. The associated variance is $V(\tilde{G}_{wkij})=V(\tilde{F}_{wkij}) \times (\bar{I}_{wkij})^{2}$.
+* The total number of interviews ($n_{ukij}$).
+* The total party-hours of fishing effort is the total pressure count per daytype and month by the proportion of interviewed fishing effort in each daytype-month -- i.e., $\tilde{F}_{ukij}=\tilde{g}_{ij} \times \tilde{f}_{ukij}$. The associated variance is $V(\tilde{F}_{ukij})=V(\tilde{g}_{ij}) \times (\tilde{f}_{ukij})^{2}$.
+* The total number of trips is the total party-hours divided by the mean trip length -- i.e., $\tilde{T}_{ukij}=\frac{\tilde{F}_{ukij}}{\bar{f}_{ukij}}$. The associated variance is $V(\tilde{T}_{ukij})=\frac{V(\tilde{F}_{ukij})}{(\bar{f}_{ukij})^{2}}$.
+* The total number of hours fished by individuals (rather than by parties) is the total party-hours times the mean party size -- i.e., $\tilde{G}_{ukij}=\tilde{F}_{ukij} \times \bar{I}_{ukij}$. The associated variance is $V(\tilde{G}_{ukij})=V(\tilde{F}_{ukij}) \times (\bar{I}_{ukij})^{2}$.
 
-These results were then summarized (i.e., summing totals and their variances) across months, daytypes, and fisheries (e.g., $\tilde{F}_{wki \cdot}$, $\tilde{T_{wki \cdot}}$, $\tilde{G}_{wki \cdot}$); across each combination of these (e.g., $\tilde{F}_{wk \cdot \cdot}$ and $\tilde{F}_{\cdot k \cdot j}$); and across all of these (e.g., $\tilde{F}_{\cdot \cdot \cdot \cdot}$ and $\tilde{T}_{\cdot \cdot \cdot \cdot}$).
+These results were then summarized (i.e., summing totals and their variances) across months, daytypes, and fisheries (e.g., $\tilde{F}_{uki \cdot}$, $\tilde{T_{uki \cdot}}$, $\tilde{G}_{uki \cdot}$); across each combination of these (e.g., $\tilde{F}_{uk \cdot \cdot}$ and $\tilde{F}_{\cdot k \cdot j}$); and across all of these (e.g., $\tilde{F}_{\cdot \cdot \cdot \cdot}$ and $\tilde{T}_{\cdot \cdot \cdot \cdot}$).
 
 Finally, the mean party size is computed from each summarized total individual hours divided by the total party hours (i.e., $\frac{\tilde{G}}{\tilde{F}}$) and the mean trip length is computed from each summarized total party hours by number of trips (i.e., $\frac{\tilde{F}}{\tilde{T}}$). **I think that this computes some sort of weighted mean, but am not sure.** Variances cannot be computed from these values as there is no equation to compute the variance of a ratio of random variables.
 
@@ -141,23 +227,23 @@ The `rearrangeFishInfo()` function has two main purposes. First, it converts the
 #### `sumObsHarvest()` function
 This functions begins by computing the harvest per species by individual interview (i.e., counting each harvested fish per species per party). These results are also affected by the fact that anglers may fish in waters of multiple states (as described previously). Thus, in these instances, the harvest and number of hours spent fishing (effort) are split equally between the two states.
 
-Harvest is then summed across all interviews by waters ($w$), fishery ($k$), daytype ($i$), month ($j$), and species ($s$) -- i.e., $h_{wkijs}$. Additionally, two other calculations are made at this stage to facilitate the later computation of variance of total harvest. First, the uncorrected sum-of-squares of observed harvest is $USS(h_{wkijs})=h_{wkijs}^{2}$. Second, the product of observed harvest and hours spent fishing -- i.e., $UCV(h_{wkijs},\tilde{f}_{wkij})=h_{wkijs} \times \tilde{f}_{wkij}$ -- will be part of the covariance between these two variables.
+Harvest is then summed across all interviews by management unit ($u$), fishery ($k$), daytype ($i$), month ($j$), and species ($s$) -- i.e., $h_{ukijs}$. Additionally, two other calculations are made at this stage to facilitate the later computation of variance of total harvest. First, the uncorrected sum-of-squares of observed harvest is $USS(h_{ukijs})=h_{ukijs}^{2}$. Second, the product of observed harvest and hours spent fishing -- i.e., $UCV(h_{ukijs},\tilde{f}_{ukij})=h_{ukijs} \times \tilde{f}_{ukij}$ -- will be part of the covariance between these two variables.
 
 ### Expanding to Total Harvest 
-The summarized total effort data (without "non-fishing" effort) and the summarized observed harvest data are merged to calculate the following items per waters, fishery, daytype, month, and species.
+The summarized total effort data (without "non-fishing" effort) and the summarized observed harvest data are merged to calculate the following items per management unit, fishery, daytype, month, and species.
 
-* Variance of interviewed hours of fishing effort -- $V(\tilde{f}_{wkijs}) = \frac{USS(\tilde{f}_{wkij})-\frac{\tilde{f}_{wkij}^{2}}{n_{wkij}}}{n_{wkij}-1}$. Note that this would be repeated for each species within a waters, fishery, daytype, and month combination.
-* Variance of interviewed harvest -- $V(h_{wkijs}) = \frac{USS(h_{wkijs})-\frac{h_{wkijs}^{2}}{n_{wkij}}}{n_{wkij}-1}$.
-* Covariance of interviewed harvest and hours of fishing effort -- $COV(h_{wkijs},\tilde{f}_{wkij}) = \frac{UCV(h_{wkijs},\tilde{f}_{wkij})-\frac{h_{wkijs} \times \tilde{f}_{wkij}}{n_{wkij}}}{n_{wkij}-1}$.
-* Mean harvest rate for a party is the interviewed harvest for a party divided by the interviewed hours of fishing by the party -- $\bar{r}_{wkijs}=\frac{h_{wkijs}}{\tilde{f}_{wkij}}$. The associated variance is a complicated calculation that requires the mean interviewed hours per interview (i.e., $\bar{\tilde{f}}_{wkij}=\frac{\tilde{f}_{wkij}}{\tilde{n}_{wkij}}$) and mean interviewed harvest per interview (i.e., $\bar{h}_{wkijs}=\frac{h_{wkijs}}{n_{wkij}}$). With this, the variance of $\bar{r}_{wkijs}$ is
+* Variance of interviewed hours of fishing effort -- $V(\tilde{f}_{ukijs}) = \frac{USS(\tilde{f}_{ukij})-\frac{\tilde{f}_{ukij}^{2}}{n_{ukij}}}{n_{ukij}-1}$. Note that this would be repeated for each species within a management unit, fishery, daytype, and month combination.
+* Variance of interviewed harvest -- $V(h_{ukijs}) = \frac{USS(h_{ukijs})-\frac{h_{ukijs}^{2}}{n_{ukij}}}{n_{ukij}-1}$.
+* Covariance of interviewed harvest and hours of fishing effort -- $COV(h_{ukijs},\tilde{f}_{ukij}) = \frac{UCV(h_{ukijs},\tilde{f}_{ukij})-\frac{h_{ukijs} \times \tilde{f}_{ukij}}{n_{ukij}}}{n_{ukij}-1}$.
+* Mean harvest rate for a party is the interviewed harvest for a party divided by the interviewed hours of fishing by the party -- $\bar{r}_{ukijs}=\frac{h_{ukijs}}{\tilde{f}_{ukij}}$. The associated variance is a complicated calculation that requires the mean interviewed hours per interview (i.e., $\bar{\tilde{f}}_{ukij}=\frac{\tilde{f}_{ukij}}{\tilde{n}_{ukij}}$) and mean interviewed harvest per interview (i.e., $\bar{h}_{ukijs}=\frac{h_{ukijs}}{n_{ukij}}$). With this, the variance of $\bar{r}_{ukijs}$ is
 
-$$ V(\bar{r}_{wkijs}) = \frac{\bar{r}_{wkijs}^{2} \times \frac{V(h_{wkijs})}{\bar{h}_{wkijs}^{2}} + \frac{V(\tilde{f}_{wkijs})}{\bar{\tilde{f}}_{wkij}^{2}} - 2 \frac{COV(h_{wkijs},\tilde{f}_{wkij})}{\bar{h}_{wkijs} \times \bar{\tilde{f}}_{wkij}}}{n_{wkij}} $$
+$$ V(\bar{r}_{ukijs}) = \frac{\bar{r}_{ukijs}^{2} \times \frac{V(h_{ukijs})}{\bar{h}_{ukijs}^{2}} + \frac{V(\tilde{f}_{ukijs})}{\bar{\tilde{f}}_{ukij}^{2}} - 2 \frac{COV(h_{ukijs},\tilde{f}_{ukij})}{\bar{h}_{ukijs} \times \bar{\tilde{f}}_{ukij}}}{n_{ukij}} $$
 
-* Total harvest is calculated as the total party hours times harvest rate per party -- $H_{wkijs}=\tilde{F}_{wkij} \times \bar{r}_{wkijs}$ -- with an associated variance of 
+* Total harvest is calculated as the total party hours times harvest rate per party -- $H_{ukijs}=\tilde{F}_{ukij} \times \bar{r}_{ukijs}$ -- with an associated variance of 
 
-$$V(H_{wkijs})=(\tilde{F}_{wkij})^{2}\times V(\bar{r}_{wkijs}) + (\bar{r}_{wkijs})^{2}\times V(\tilde{F}_{wkij}) + V(\bar{r}_{wkijs}) \times V(\tilde{F}_{wkij})$$
+$$V(H_{ukijs})=(\tilde{F}_{ukij})^{2}\times V(\bar{r}_{ukijs}) + (\bar{r}_{ukijs})^{2}\times V(\tilde{F}_{ukij}) + V(\bar{r}_{ukijs}) \times V(\tilde{F}_{ukij})$$
 
-Total harvests, variance of total harvest, and total individual fishing hours are then summed across fisheries, daytypes, months, and all combinations of those variables (but not across waters or species). Finally, harvest rates are computed by dividing total harvest by total individual fishing hours for each level of summary.
+Total harvests, variance of total harvest, and total individual fishing hours are then summed across fisheries, daytypes, months, and all combinations of those variables (but not across management unit or species). Finally, harvest rates are computed by dividing total harvest by total individual fishing hours for each level of summary.
 
 
 ## Interviews -- Fish Information
