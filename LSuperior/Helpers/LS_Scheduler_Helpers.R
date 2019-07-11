@@ -53,7 +53,7 @@ iReadRoutes <- function(fn,clerks) {
     iExpandMonthsList() %>%
     ## Add a site variable that is combo of site number & description
     ## Make months an ordered factor variable
-    dplyr::mutate(site=paste0(site_descrip," (#",site_no,")"),
+    dplyr::mutate(site=paste0(site_no,"-",site_descrip),
                   month=factor(month,levels=month.abb)) %>%
     ## Restrict to only the routes found in clerks
     FSA::filterD(route %in% clerks$route) %>%
@@ -516,15 +516,15 @@ iAdjustTimeAtSite <- function(ttlEffort,ttlTime,sites,peffort) {
 iMakeOrderedRoute <- function(sites,travel,ttlEffort) {
   ### Create "locations"
   #### Interleave sites with inter-site travel time notes
+  locs <- ggplot2:::interleave(sites,"TRAVEL")
   ### And add first site onto end (like traveling back to beginning)
-  locs <- ggplot2:::interleave(sites,paste0("TRAVEL (",travel," mins)"))
   locs <- c(locs,sites[1])
   
   ### Create times at each "location"
   #### Interleave times at site with travel times
+  times <- ggplot2:::interleave(ttlEffort,travel)
   #### Put 0 at beginning (for beginning of route)
   #### Then find cumulative sum of times to show day progression
-  times <- ggplot2:::interleave(ttlEffort,travel)
   times <- cumsum(c(0,times))
   
   ### Put together as a data.frame to return
@@ -587,14 +587,18 @@ iMakeBusRoute <- function(info,LAKE,ROUTE,SHIFT,MONTH1,allow_reverse=TRUE) {
   df <- iMakeOrderedRoute(sites,travel,ttlEffort) %>%
     ## Adjust (wrap the route) for a random starting time
     iAdjustRoute4RandomStart(mins) %>%
+    ## Add mins for each item onto location title
+    mutate(LOCATION=paste0(LOCATION," (",c(diff(TIME),"")," min)"),
     ## Convert mins to actual time-of-day (must convert mins to secs)
-    mutate(TIME=format(start+TIME*60,format="%H:%M")) %>%
-    ## Add data entry locations
-    mutate(ARRIVED=ifelse(grepl("TRAVEL",LOCATION) | grepl("END",LOCATION),
+           TIME=format(start+TIME*60,format="%H:%M"),
+    ## Add data entry fields
+           ARRIVED=ifelse(grepl("TRAVEL",LOCATION) | grepl("END",LOCATION),
                           "","_ _ : _ _"),
            DEPARTED=ARRIVED,
            COUNT=ifelse(grepl("TRAVEL",LOCATION) | grepl("END",LOCATION),
                         "","_ _ _"))
+  ## Adjust "END OF SHIFT" label (has "( mins)", which are not needed)
+  df$LOCATION[nrow(df)] <- "END OF SHIFT"
   
   ## Return data.frame
   df
