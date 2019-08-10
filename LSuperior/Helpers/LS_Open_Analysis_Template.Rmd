@@ -1,5 +1,5 @@
 ---
-title: "LAKE SUPERIOR CREEL SURVEY"
+title: "LAKE SUPERIOR OPEN-WATER CREEL SURVEY"
 params:
   LOC:
     value: sup
@@ -20,7 +20,7 @@ params:
 output:
   html_document:
     theme: sandstone
-    css: LS_Analysis_CSS.css
+    css: LS_Open_Analysis.css
 ---
 
 ```{r input, echo=FALSE}
@@ -40,7 +40,7 @@ RDIR <- params$RDIR
 knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE)
 
 ## Run the analysis
-source(file.path(WDIR,"Helpers","LS_Analysis_DataPrep.R"))
+source(file.path(WDIR,"Helpers","LS_Open_Analysis_DataPrep.R"))
 
 ## Make table and figure captions
 tables <- tableCaptions()
@@ -169,4 +169,3 @@ cat("<br><br>")
 cat("<hr>")
 FSA::reproInfo(out="markdown",rqrdPkgs=rqrd,addTOC=FALSE)
 ```
-

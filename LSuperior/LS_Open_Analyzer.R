@@ -55,7 +55,7 @@ for (i in seq_along(fns)) {
   # Create a name for the report output file ("Analysis_" + location + year).
   OUTFILE <- paste0("Analysis_",LOCATION2,"_",YEAR,".html")
   # Render the markdown report file with the information from above
-  rmarkdown::render(input=file.path(WDIR,"Helpers","LS_Analysis_Template.Rmd"),
+  rmarkdown::render(input=file.path(WDIR,"Helpers","LS_Open_Analysis_Template.Rmd"),
                     params=list(LOC=LOCATION,
                                 SDATE=START_DATE,FDATE=END_DATE,
                                 DAY_LENGTH=DAY_LENGTH,

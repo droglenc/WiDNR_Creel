@@ -1,0 +1,66 @@
+---
+title: "LAKE SUPERIOR ICE CREEL SURVEY"
+params:
+  LOC:
+    value: Ashland
+  WDIR:
+    value: ""
+  RDIR:
+    value: ""
+output:
+  html_document:
+    theme: sandstone
+    css: LS_Open_Analysis.css
+---
+
+```{r input, echo=FALSE}
+## Grab User's Inputs from parameters
+LOC <- params$LOC
+WDIR <- params$WDIR
+RDIR <- params$RDIR
+```
+
+```{r setup, include=FALSE, message=FALSE}
+## Preliminaries
+knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE)
+
+## Run the analysis
+source(file.path(WDIR,"Helpers","LS_ICE_Analysis_DataPrep.R"))
+
+## Make table and figure captions
+tables <- tableCaptions()
+#figures <- figureCaptions()
+```
+
+## `r paste("Report for",LOC,"from",YEAR)`
+#### Run on `r format(lubridate::now(),format="%B %d, %Y at %H:%M")`
+
+
+```{r table1}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table1"))
+table1(pressureCount)
+```
+
+```{r table2}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table2"))
+table2(pcSite)
+```
+
+```{r table3}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table3"))
+table3(hSum)
+```
+
+
+
+```{r}
+cat("<br><br>")
+cat("<hr>")
+FSA::reproInfo(out="markdown",rqrdPkgs=rqrd,addTOC=FALSE)
+```

@@ -13,7 +13,7 @@
 
 ## Setup -----------------------------------------------------------------------
 ### Load helper files
-source(file.path(WDIR,"Helpers","LS_Analysis_Helpers.R"))
+source(file.path(WDIR,"Helpers","LS_Open_Analysis_Helpers.R"))
 
 ### Converts SDATE and FDATE to useful objects
 SDATE <- as.Date(SDATE,"%m/%d/%Y")
