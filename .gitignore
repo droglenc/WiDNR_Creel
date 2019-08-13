@@ -1,6 +1,8 @@
 zzzAdministrative/
 WiDNR_Creel.Rproj
 
+## Ignored Access databases
+/LSuperior/LS_Creel*
 ## Intermediate or output files not needed in repository
 /LSuperior/LS_Analysis*
 /LSuperior/LS_Schedules*
