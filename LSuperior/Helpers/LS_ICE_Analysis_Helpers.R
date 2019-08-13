@@ -56,20 +56,13 @@ readPressureCountData_ICE <- function(RDIR,LOC,FD) {
   as.data.frame(PC)
 }
 
-#
+# Summarize pressure counts by MONTH, FISHERY, and DAYTYPE, across SITEs
 sumPressureCount <- function(d) {
-  tmp1 <- d %>%
+  d %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
-                     ttlVehFshry=sum(ttlVehSiteFshry,na.rm=TRUE))
-  tmp2 <- tmp1 %>%
-    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
-                     ttlVehFshry=sum(ttlVehFshry,na.rm=TRUE)) %>%
-    dplyr::mutate(DAYTYPE="All") %>%
-    dplyr::select(names(tmp1))
-  as.data.frame(rbind(tmp1,tmp2)) %>%
-    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
-    arrange(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE)
+                     ttlVehFshry=sum(ttlVehSiteFshry,na.rm=TRUE)) %>%
+    as.data.frame()
 }
 
 #
@@ -86,56 +79,29 @@ readInterviewData_ICE <- function(RDIR,LOC) {
 }
 
 #
-sumObsEffortSuccess <- function(nofish) {
+expandHarvest <- function(ints,nofish,pc) {
   # Summarized observations about angling effort and success by MONTH, FISHERY,
-  # and DAYTYPE.
-  obsEff1 <- nofish %>%
+  # and DAYTYPE and also across DAYTYPES.
+  f <- nofish %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
     dplyr::summarize(nInts=dplyr::n(),
                      obsAnglers=sum(PERSONS),
                      obsHours=sum(HOURS),
                      obsAnglerHours=sum(PERSONS*HOURS),
-                     obsSuccAnglers=sum(SUCCESS))
-  # Summarized observations about angling effort and success by MONTH and FISHERY,
-  # across DAYTYPEs.
-  obsEff2 <- obsEff1 %>%
-    dplyr::summarize(nInts=sum(nInts),
-                     obsAnglers=sum(obsAnglers),
-                     obsSuccAnglers=sum(obsSuccAnglers),
-                     obsHours=sum(obsHours),
-                     obsAnglerHours=sum(obsAnglerHours)) %>%
-    dplyr::mutate(DAYTYPE="All") %>%
-    select(names(obsEff1))
-  # Combine and return
-  rbind(obsEff1,obsEff2) %>%
-    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
-    arrange(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
+                     obsSuccAnglers=sum(SUCCESS)) %>%
     as.data.frame()
-}
 
-#
-sumObsHarvest <- function(ints) {
-  # Summarize harvest of each speices by MONTH, FISHERY, and DAYTYPE
-  obsHarv1 <- ints %>%
-    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,SPP,DAYTYPE) %>%
-    dplyr::summarize(obsHarvest=sum(NUM))
-  # Summarize harvest of each speices by MONTH and FISHERY, across DAYTYPEs
-  obsHarv2 <- obsHarv1 %>%
-    dplyr::summarize(obsHarvest=sum(obsHarvest)) %>%
-    dplyr::mutate(DAYTYPE="All") %>%
-    dplyr::select(names(obsHarv1))
-  # Combine and return
-  rbind(obsHarv1,obsHarv2) %>%
-    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
-    arrange(SURVEY,ROUTE,UNIT,MONTH,FISHERY,SPP,DAYTYPE) %>%
+  # Summarized observed harvest of each SPP (including "All Fish") by MONTH,
+  # FISHERY, and DAYTYPE and also across DAYTYPES.
+  h <- ints %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,DAYTYPE) %>%
+    dplyr::summarize(obsHarvest=sum(NUM)) %>%
     as.data.frame()
-}
 
-#
-expandHarvest <- function(h,f,pc) {
-  dplyr::full_join(h,f,
-                   by=c("SURVEY","ROUTE","UNIT","MONTH","FISHERY","DAYTYPE")) %>%
-    dplyr::mutate(obsSuccAnglers=ifelse(SPP=="ALL FISH",obsSuccAnglers,NA),
+  # Combine observed harvest and individual effort summaries
+  join_bys <- c("SURVEY","ROUTE","UNIT","MONTH","FISHERY","DAYTYPE")
+  dplyr::full_join(h,f,by=join_bys) %>%
+    dplyr::mutate(obsSuccAnglers=ifelse(SPP=="All Fish",obsSuccAnglers,NA),
                   obsHrate=obsHarvest/obsAnglerHours,
                   obsHrsperfish=ifelse(obsHrate>0,1/obsHrate,NA),
                   obsAvgTrip=obsHours/nInts,
@@ -145,15 +111,251 @@ expandHarvest <- function(h,f,pc) {
     dplyr::select(-nInts) %>%
     as.data.frame() %>%
     ## Join on effort (total vehicles)
-    dplyr::full_join(pc,by=c("SURVEY","ROUTE","UNIT","MONTH","FISHERY","DAYTYPE")) %>%
+    dplyr::full_join(pc,by=join_bys) %>%
     dplyr::select(-NINTS) %>%
     dplyr::mutate(ttlAnglers=ttlVehFshry*obsAnglersPerInt,
                   ttlAnglerHours=ttlAnglers*obsAvgAnglerHours,
                   ttlSuccAnglers=ttlAnglers*obsPercSucc,
-                  ttlHarvest=ttlAnglerHours*obsHrate,
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
-    dplyr::arrange(SURVEY,ROUTE,UNIT,MONTH,SPP,FISHERY,DAYTYPE) %>%
+                  ttlHarvest=ttlAnglerHours*obsHrate) %>%
+    dplyr::arrange(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,DAYTYPE) %>%
     as.data.frame()
+}
+
+#
+sumExpHarvest_AllFish <- function(eh) {
+  ## Make a helper function
+  iSumHarv <- function(d) {
+      summarize(d,
+                ttlVehFshry=sum(ttlVehFshry),
+                ttlAnglers=sum(ttlAnglers),
+                ttlAnglerHours=sum(ttlAnglerHours),
+                ttlSuccAnglers=sum(ttlSuccAnglers),
+                ttlHarvest=sum(ttlHarvest))
+  }
+
+  # Isolate all fish and the total variables
+  eh <- eh %>%
+    filter(SPP=="All Fish") %>%
+    select(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,DAYTYPE,
+           ttlVehFshry,ttlAnglers,ttlAnglerHours,ttlSuccAnglers,ttlHarvest) %>%
+    mutate(MONTH=as.character(MONTH))
+  # Find levels of MONTHs, FISHERYs, and DAYTYPEs
+  mlvls <- unique(eh$MONTH)
+  flvls <- unique(eh$FISHERY)
+  dlvls <- unique(eh$DAYTYPE)
+  ## Find all possible "All"s (for FISHERY, MONTH, and DAYTYPE)
+  # Sum total variables across FISHERYs
+  tmp1 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,DAYTYPE,MONTH) %>%
+    iSumHarv() %>%
+    mutate(FISHERY="All") %>%
+    select(names(eh))
+  # Sum total variables across MONTHs
+  tmp2 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,FISHERY,DAYTYPE) %>%
+    iSumHarv() %>%
+    mutate(MONTH="All") %>%
+    select(names(eh))
+  # Sum total variables across DAYTYPEs
+  tmp3 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY) %>%
+    iSumHarv() %>%
+    mutate(DAYTYPE="All") %>%
+    select(names(eh))
+  # ... and across FISHERYs and MONTHs
+  tmp4 <- tmp1 %>%
+    iSumHarv() %>%
+    mutate(FISHERY="All",MONTH="All") %>%
+    select(names(eh))
+  # Sum total variables across FISHERYs and DAYTYPEs
+  tmp5 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,MONTH) %>%
+    iSumHarv() %>%
+    mutate(FISHERY="All",DAYTYPE="All") %>%
+    select(names(eh))
+  # Sum total variables across MONTHs and DAYTYPEs
+  tmp6 <- tmp2 %>%
+    iSumHarv() %>%
+    mutate(MONTH="All",DAYTYPE="All") %>%
+    select(names(eh))
+  # ... and across MONTHs, DAYTYPES, and FISHERYs
+  tmp7 <- tmp6 %>%
+    iSumHarv() %>%
+    mutate(MONTH="All",FISHERY="All",DAYTYPE="All") %>%
+    select(names(eh))
+  # Combine, calculate the "rates" from the totals, rearrange, and return
+  rbind(eh,as.data.frame(tmp1),as.data.frame(tmp2),
+        as.data.frame(tmp3),as.data.frame(tmp4),as.data.frame(tmp5),
+        as.data.frame(tmp6),as.data.frame(tmp7)) %>%
+    mutate(MONTH=factor(MONTH,levels=c(mlvls,"All")),
+           FISHERY=factor(FISHERY,levels=c(flvls,"All")),
+           DAYTYPE=factor(DAYTYPE,levels=c(dlvls,"All")),
+           anglersPerInt=ttlAnglers/ttlVehFshry,
+           avgAnglerHours=ttlAnglerHours/ttlAnglers,
+           percSucc=ttlSuccAnglers/ttlAnglers*100,
+           harvestRate=ttlHarvest/ttlAnglerHours) %>%
+    arrange(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE,SPP) %>%
+    select(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE,SPP,
+           ttlVehFshry,anglersPerInt,ttlAnglers,avgAnglerHours,
+           ttlAnglerHours,percSucc,ttlSuccAnglers,harvestRate,ttlHarvest)
+}
+
+sumExpHarvest_eachSpp <- function(eh,sehALL) {
+  # Isolate just the ttlAnglerHours in sehALL
+  sehALL <- select(sehALL,SURVEY:DAYTYPE,ttlAnglerHours)
+  
+  # Isolate all fish and the total variables in eh
+  eh <- eh %>%
+    filter(SPP!="All Fish") %>%
+    select(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,DAYTYPE,ttlHarvest) %>%
+    mutate(MONTH=as.character(MONTH))
+
+  # Find levels of MONTHs, FISHERYs, and DAYTYPEs
+  mlvls <- unique(eh$MONTH)
+  flvls <- unique(eh$FISHERY)
+
+  ## Find all possible "All"s (for FISHERY, MONTH, and DAYTYPE)
+  # Sum total variables across FISHERYs
+  tmp1 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,DAYTYPE,MONTH) %>%
+    summarize(ttlHarvest=sum(ttlHarvest)) %>%
+    mutate(FISHERY="All") %>%
+    select(names(eh))
+  # Sum total variables across MONTHs
+  tmp2 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,FISHERY,DAYTYPE) %>%
+    summarize(ttlHarvest=sum(ttlHarvest)) %>%
+    mutate(MONTH="All") %>%
+    select(names(eh))
+  # Sum total variables across DAYTYPEs
+  tmp3 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY) %>%
+    summarize(ttlHarvest=sum(ttlHarvest)) %>%
+    mutate(DAYTYPE="All") %>%
+    select(names(eh))
+  # ... and across FISHERYs and MONTHs
+  tmp4 <- tmp1 %>%
+    summarize(ttlHarvest=sum(ttlHarvest)) %>%
+    mutate(FISHERY="All",MONTH="All") %>%
+    select(names(eh))
+  # Sum total variables across FISHERYs and DAYTYPEs
+  tmp5 <- eh %>%
+    group_by(SURVEY,ROUTE,UNIT,SPP,MONTH) %>%
+    summarize(ttlHarvest=sum(ttlHarvest)) %>%
+    mutate(FISHERY="All",DAYTYPE="All") %>%
+    select(names(eh))
+  # Sum total variables across MONTHs and DAYTYPEs
+  tmp6 <- tmp2 %>%
+    summarize(ttlHarvest=sum(ttlHarvest)) %>%
+    mutate(MONTH="All",DAYTYPE="All") %>%
+    select(names(eh))
+  # ... and across MONTHs, DAYTYPES, and FISHERYs
+  tmp7 <- tmp6 %>%
+    summarize(ttlHarvest=sum(ttlHarvest)) %>%
+    mutate(MONTH="All",FISHERY="All",DAYTYPE="All") %>%
+    select(names(eh))
+  # Combine, calculate the "rates" from the totals, rearrange, and return
+  rbind(eh,as.data.frame(tmp1),as.data.frame(tmp2),
+        as.data.frame(tmp3),as.data.frame(tmp4),as.data.frame(tmp5),
+        as.data.frame(tmp6),as.data.frame(tmp7)) %>%
+    dplyr::full_join(sehALL,by=c("SURVEY","ROUTE","UNIT","MONTH",
+                                 "FISHERY","DAYTYPE")) %>%
+    dplyr::mutate(MONTH=factor(MONTH,levels=c(mlvls,"All")),
+           FISHERY=factor(FISHERY,levels=c(flvls,"All")),
+           DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
+           harvestRate=ttlHarvest/ttlAnglerHours) %>%
+    arrange(SURVEY,ROUTE,UNIT,SPP,FISHERY,MONTH,DAYTYPE) %>%
+    select(SURVEY,ROUTE,UNIT,SPP,FISHERY,MONTH,DAYTYPE,harvestRate,ttlHarvest)
+}
+
+readFish_ICE <- function(RDIR,LOC,nofish) {
+  readxl::read_excel(file.path(RDIR,"qry_ice_fish_4R.xlsx")) %>%
+    dplyr::filter(ROUTE==LOC) %>%
+    dplyr::rename_all(.funs=toupper) %>%
+    dplyr::mutate(SPP=FSA::capFirst(SPP),
+                  ORIGIN=ifelse(is.na(CLIP)|CLIP=="Native","Native","Hatchery")) %>%
+    dplyr::left_join(dplyr::select(nofish,INTERVIEW,UNIT,MONTH,FISHERY),
+                     by="INTERVIEW")  %>%
+    dplyr::select(SURVEY,ROUTE,UNIT,SPP,FISHERY,MONTH,LENGTH,CLIP,ORIGIN)
+}
+
+sumLengths_ICE <- function(fish) {
+  ## Create a helper file for repeated summaries
+  iSumLengths <- function(d) {
+    tmp <- dplyr::summarize(d,
+                            n=dplyr::n(),
+                            mnLen=mean(LENGTH,na.rm=TRUE),
+                            sdLen=sd(LENGTH,na.rm=TRUE),
+                            minLen=min(LENGTH,na.rm=TRUE),
+                            maxLen=max(LENGTH,na.rm=TRUE)) %>%
+      as.data.frame()
+    # Convert NaNs to NAs (helps in huxtable)
+    tmp$sdLen[is.nan(tmp$sdLen)] <- NA
+    tmp
+  }
+  
+  tmp1 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,ORIGIN) %>%
+    iSumLengths() %>%
+    arrange(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,ORIGIN) %>%
+    as.data.frame()
+  
+  tmp2 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY) %>%
+    iSumLengths() %>%
+    dplyr::mutate(ORIGIN="All") %>%
+    dplyr::select(names(tmp1)) %>%
+    as.data.frame()
+  
+  tmp3 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,MONTH,ORIGIN) %>%
+    iSumLengths() %>%
+    dplyr::mutate(FISHERY="All") %>%
+    dplyr::select(names(tmp1)) %>%
+    as.data.frame()
+  
+  tmp4 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,MONTH) %>%
+    iSumLengths() %>%
+    dplyr::mutate(FISHERY="All",ORIGIN="All") %>%
+    dplyr::select(names(tmp1)) %>%
+    as.data.frame()
+  
+  tmp5 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,FISHERY,ORIGIN) %>%
+    iSumLengths() %>%
+    dplyr::mutate(MONTH="All") %>%
+    dplyr::select(names(tmp1)) %>%
+    as.data.frame()
+  
+  tmp6 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,FISHERY) %>%
+    iSumLengths() %>%
+    dplyr::mutate(MONTH="All",ORIGIN="All") %>%
+    dplyr::select(names(tmp1)) %>%
+    as.data.frame()
+  
+  tmp7 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,ORIGIN) %>%
+    iSumLengths() %>%
+    dplyr::mutate(MONTH="All",FISHERY="All") %>%
+    dplyr::select(names(tmp1)) %>%
+    as.data.frame()
+  
+  tmp8 <- fish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP) %>%
+    iSumLengths() %>%
+    dplyr::mutate(MONTH="All",FISHERY="All",ORIGIN="All") %>%
+    dplyr::select(names(tmp1)) %>%
+    as.data.frame()
+  
+  flvls <- unique(fish$FISHERY)
+  lenSum <- rbind(tmp1,tmp2,tmp3,tmp4,tmp5,tmp6,tmp7,tmp8) %>%
+    as.data.frame() %>%
+    mutate(ORIGIN=factor(ORIGIN,levels=c("Native","Hatchery","All")),
+           FISHERY=factor(FISHERY,levels=c(flvls,"All"))) %>%
+    dplyr::arrange(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,ORIGIN)
+  
 }
 
 
@@ -169,20 +371,6 @@ iHndlSiteDesc <- function(s,d) paste0(s,"-",FSA::capFirst(d))
 
 # Convert NAs to zeroes
 iNA2zero <- function(x) ifelse(is.na(x),0,x)
-
-# Currently the harvest of all fish is stored as the variable NUM. This function
-# moves this value to FISH variable and adds a corresponding "ALL FISH" to the
-# SPP variable. Thus, "ALL FISH" is effectively treated as another species,
-# which makes it easier to summarize with SPP further below.
-iHndlHarvestAllFish <- function(orig,nofish) {
-  tmp <- dplyr::mutate(nofish,SPP="ALL FISH") %>%
-    dplyr::rename(NUM=FISH)  ## mod
-  orig <- dplyr::select(orig,-FISH) #orig1
-  tmp <- select(tmp,names(orig)) %>%
-    rbind(orig) %>%
-    filter(!is.na(SPP))
-  tmp
-}
 
 ## Find the proportio of iterviews at a SITE that are in each FISHERY type.
 iFindPropIntsInFishery <- function(nofish) {
@@ -225,6 +413,20 @@ iHndlNoIntsButPressure <- function(d) {
   d
 }
 
+iOrderSpecies <- function(spp) {
+  lvls <- c("Lake Trout","Siscowet","Brook Trout","Splake",
+            "Coho Salmon","Chinook Salmon","Rainbow Trout","Pink Salmon",
+            "Brown Trout","Atlantic Salmon","Lake Whitefish","Round Whitefish",
+            "Lake Herring","Rainbow Smelt","Burbot","Lake Sturgeon","Walleye",
+            "Yellow Perch","Ruffe","Northern Pike",
+            "Smallmouth Bass","Largemouth Bass",
+            "Bluegill","Pumpkinseed","Sunfish spp","Black Crappie",
+            "Crappie spp.","Rock Bass","White Perch","Catfish","Carp")
+  if (any(!unique(spp) %in% lvls)) stop("A species not listed!!")
+  factor(spp,levels=lvls)
+}
+
+
 ## Add final characteristics to all tables
 iFinishTable <- function(h,labelsRow,labelsCol) {
   h <- h %>%
@@ -246,17 +448,29 @@ tableCaptions <- function() {
          caption=paste("Number of pressure counts and number of observed",
                        "(i.e., counted) vehicles in those counts and total",
                        "fishable days and estimated total (i.e., expanded)",
-                       "number of vehicles at each site by month and day type."))
+                       "number of vehicles at each site by month and day type.",
+                       "Compare this to 'ICE CREEL MONTHLY PRESSURE' Excel file."))
   tables(name="Table2",
          caption=paste("Number of interviews, proportion of interviews at that",
                        "a site in each fishery type, and estimated total",
                        "(i.e., expanded) number of vehicles in each fishery",
                        "and across all fishery types at each site by month",
-                       "and day type."))
+                       "and day type. Compare this to 'ICE CREEL EXPANDED",
+                       "PRESSURE' Excel file."))
   tables(name="Table3",
-         caption=paste("Total effort and harvest summary for ALL FISH combined."))
+         caption=paste("Total effort and harvest summary for All Fish combined",
+                       "by fishery type, month, and day type. Compare this to",
+                       "columns A-K of 'ICE CREEL HARVEST' Excel file."))
+   tables(name="Table4",
+         caption=paste("Harvest rate and total harvest by species, fishery,",
+                       "month, and daytype. Note that 'All' is shown for the",
+                       "fishery only for species caught in more than one",
+                       "fishery. Compare this to columns L-AD of 'ICE CREEL",
+                       "HARVEST' Excel file."))
+ 
   
-  ## Not needed as the main info is in the now Table 1.
+  
+  ## Not needed as the main info is in the new Table 1.
   tables(name="TableX",
          caption=paste("Number of fishable days (i.e., 'good ice') at each site",
                        "by month and day type. These values are used to expand",
@@ -395,20 +609,24 @@ table2 <- function(PC) {
 
 
 table3 <- function(H) {
-  ## Prepare data.frame for huxtable
+  # Prepare data.frame for huxtable
   tbl1 <- H %>%
-    dplyr::filter(SPP=="ALL FISH") %>%
     dplyr::select(FISHERY,MONTH,DAYTYPE,
-                  ttlVehFshry,obsAnglersPerInt,ttlAnglers,
-                  obsAvgAnglerHours,ttlAnglerHours,obsPercSucc,ttlSuccAnglers,
-                  obsHrate,ttlHarvest) %>%
-    dplyr::mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+                  ttlVehFshry,anglersPerInt,ttlAnglers,
+                  avgAnglerHours,ttlAnglerHours,percSucc,ttlSuccAnglers,
+                  harvestRate,ttlHarvest) %>%
     dplyr::arrange(FISHERY,MONTH,DAYTYPE) %>%
     dplyr::mutate(# Remove repeated rows in MONTH and FISHERY variables
       MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
                    "",as.character(MONTH)),
       FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use="FISHERY"),
-                   "",as.character(FISHERY)))
+                   "",as.character(FISHERY))) %>%
+    ## Remove rows that are repeats (for the numerics) of the row above it and
+    ## if DAYTYPE=="All" (i.e., "All" is just for one daytype).
+    dplyr::filter(!(!FSA::repeatedRows2Keep(.,
+                              cols2ignore=c("FISHERY","MONTH","DAYTYPE")) &
+                  DAYTYPE=="All"))
+
       
   ## Rows with a FISHERY names (except first) will get extra space above
   spaceAbove <- which(tbl1$FISHERY!="")[-1]
@@ -446,8 +664,153 @@ table3 <- function(H) {
   tbl2
 }
 
+table4 <- function(H) {
+  # Prepare data.frame for huxtable
+  ## Move DAYTYPEs into columns
+  H <- select(H,-SURVEY,-ROUTE,-UNIT)
+  tmp1 <- dplyr::filter(H,DAYTYPE=="Weekday") %>%
+    dplyr::select(-DAYTYPE)
+  tmp2 <- dplyr::filter(H,DAYTYPE=="Weekend") %>%
+    dplyr::select(-DAYTYPE)
+  tmp3 <- dplyr::filter(H,DAYTYPE=="All") %>%
+    dplyr::select(-DAYTYPE)
+  tbl1 <- dplyr::full_join(tmp1,tmp2,by=c("SPP","FISHERY","MONTH")) %>%
+    dplyr::full_join(tmp3,by=c("SPP","FISHERY","MONTH")) %>%
+    dplyr::filter(!is.na(SPP)) %>%
+    dplyr::mutate(SPP=iOrderSpecies(SPP)) %>%
+    dplyr::arrange(SPP,FISHERY,MONTH) %>%
+    ## Add aesthetic spacing columns (for huxtable)
+    tibble::add_column(.,spc1="",.after="ttlHarvest.x") %>%
+    tibble::add_column(.,spc2="",.after="ttlHarvest.y")
+  ## Drop the "All" FISHERYs for species captured in only one fishery
+  ## (note the use of 2 in the filter because of an "All" fishery)
+  SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+    dplyr::summarize(numFshrys=length(unique(FISHERY))) %>%
+    dplyr::filter(numFshrys==2)
+  tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & FISHERY=="All"))
+  ## Remove repeated rows in SPP, FISHERY, MONTH variables (aesthetics in huxt)
+  tbl1 <- tbl1 %>%
+          dplyr::mutate(SPP=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPP"),
+                                    "",as.character(SPP)),
+              ## Use of both SPP and FISHERY (rather than just FISHERY) guards
+              ## against cutting a FISHERY across species
+              FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPP","FISHERY")),
+                             "",as.character(FISHERY)),
+              MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                           "",as.character(MONTH)))
+  ## Rows with a MONTH names (except first) will get extra space above
+  spaceAbove <- which(tbl1$SPP!="")[-1]
 
+  ## Make the huxtable
+  tbl2 <- as_hux(tbl1) %>%
+    # Set all cell paddings
+    set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
+    # Convert NAs to dashes
+    set_na_string(row=everywhere,col=-(1:3),value="--") %>%
+    # right align all but leftmost two columns
+    set_align(row=everywhere,col=-(1:3),value="right") %>%
+    # No decimals for harvest rates, four for harvest rate
+    set_number_format(row=everywhere,col=contains("Harvest"),value=0) %>%
+    set_number_format(row=everywhere,col=contains("Rate"),value=4) %>%
+    # Color total harvest for all months and fisherys by species
+    set_background_color(row=c(spaceAbove-1,nrow(.)),col=ncol(.),
+                         value="gray95") %>%
+    # Extra label at the top
+    rbind(c("SPP","FISHERY","MONTH",rep(c("Rate","Harvest",""),2),
+            "Rate","Harvest"),.) %>%
+    rbind(c("","","",rep(c("Harvest","Total",""),2),"Harvest","Total"),.) %>%
+    rbind(c("","","","Weekdays","","","Weekends","","","All",""),.) %>%
+    # Adjust headers
+    merge_cells(row=1,col=4:5) %>%
+    set_bottom_border(row=1,col=4,value=1) %>%
+    merge_cells(row=1,col=7:8) %>%
+    set_bottom_border(row=1,col=7,value=1) %>%
+    merge_cells(row=1,col=10:11) %>%
+    set_bottom_border(row=1,col=10,value=1) %>%
+    set_align(row=1,col=everywhere,value="center") %>%
+    # Sets table & column widths
+    set_width(0.99) %>%
+    set_col_width(col=c(.2,.3,.1,.15,.1,.025,.15,.1,.025,.15,.1)) %>%
+    iFinishTable(labelsRow=3,labelsCol=3)
+  tbl2
+}
 
+table5 <- function(f) {
+  ## Prepare data.frame for huxtable
+  fshrys <- unique(f$FISHERY)
+  numf <- length(fshrys)
+  bys <- c("SURVEY","ROUTE","UNIT","SPP","MONTH","ORIGIN")
+  tmp1 <- split(f,f$FISHERY)
+  tmp2 <- dplyr::full_join(tmp1[[1]],tmp1[[2]],by=bys)
+  for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
+  
+  tbl1 <- tmp2 %>%
+    dplyr::select(-dplyr::contains("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
+    dplyr::filter(!duplicated(.)) %>%
+    dplyr::arrange(SPP,MONTH,ORIGIN)
+  
+  ## Drop the "All" ORIGINs for species have only one ORIGIN
+  ## (note the use of 2 in the filter because of an "All" ORIGIN)
+  SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+    dplyr::summarize(numOrigins=length(unique(ORIGIN))) %>%
+    dplyr::filter(numOrigins==2)
+  tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & ORIGIN=="All"))
+
+  ## Remove repeated rows in SPP, MONTH and ORIGIN variables
+  tbl1 <- tbl1 %>%
+    dplyr::mutate(SPP=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPP"),
+                             "",as.character(SPP)),
+                  MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                               "",as.character(MONTH)))
+  
+  ## Add extra columns for aesthetics in huxtable
+  acs <- which(grepl("maxLen",names(tbl1)))
+  for (i in rev(acs[-length(acs)])) {
+    tbl1 <- tibble::add_column(tbl1,"",.after=i)
+    names(tbl1)[i+1] <- paste0("spc",i)
+  }
+  
+  spaceAbove <- which(tbl1$SPP!="")[-1]
+  
+  toplbl <- c("","","")
+  for (i in fshrys) toplbl <- c(toplbl,i,"","","","","")
+  toplbl <- toplbl[-length(toplbl)]
+  
+  tbl2 <- as_hux(tbl1) %>%
+    # Set all cell paddings
+    set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
+    # Convert NAs to dashes
+    set_na_string(row=everywhere,col=-(1:3),value="--") %>%
+    # right align all but leftmost three columns
+    set_align(row=everywhere,col=-(1:3),value="right") %>%
+    # Set decimals
+    set_number_format(row=everywhere,col=starts_with("n"),value=0) %>%
+    set_number_format(row=everywhere,col=contains("Len"),value=1) %>%
+    # Extra label at the top
+    rbind(c("SPP","MONTH","ORIGIN",
+            rep(c("n","Mean","SD","Min","Max",""),numf-1),
+            "n","Mean","SD","Min","Max"),.) %>%
+    rbind(toplbl,.)
+  # Adjust headers
+  for (i in 1:numf) {
+    cols <- (4:8)+(i-1)*6
+    tbl2 <- merge_cells(tbl2,row=1,col=cols) %>%
+      set_bottom_border(row=1,col=cols[1],value=1)
+  }
+  tbl2 <- tbl2 %>%
+    set_align(row=1,col=everywhere,value="center") %>%
+    # Sets table & column widths
+    set_width(0.99) %>%
+    set_col_width(col=c(.2,.1,.1,
+                        rep(c(0.1,0.1,0.1,0.1,0.1,0.025),numf-1),
+                        0.1,0.1,0.1,0.1,0.1)) %>%
+    iFinishTable(labelsRow=2,labelsCol=3)
+  tbl2
+}
 
 
 
@@ -485,4 +848,154 @@ tableX <- function(FD) {
     set_col_width(col=c(.15,.4,.15,.15,.15)) %>%
     iFinishTable(labelsRow=2,labelsCol=2)
   tbl2
+}
+
+## Old Helpers ----
+#
+sumPressureCount2 <- function(d) {
+  # Change MONTHs to a character
+  d <- mutate(d,MONTH=as.character(MONTH))
+  # Get levels of MONTH and FISHERY
+  mlvls <- unique(d$MONTH)
+  flvls <- unique(d$FISHERY)
+  # Summarize pressure counts by MONTH, FISHERY, and DAYTYPE
+  tmp1 <- d %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     ttlVehFshry=sum(ttlVehSiteFshry,na.rm=TRUE))
+  # Summarize pressure counts by MONTH and FISHERY, across DAYTYPEs
+  tmp2 <- tmp1 %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     ttlVehFshry=sum(ttlVehFshry,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(tmp1))
+  # Summarize pressure counts by MONTH, across DAYTYPEs and FISHERYs
+  tmp3 <- tmp2 %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     ttlVehFshry=sum(ttlVehFshry,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All",FISHERY="All") %>%
+    dplyr::select(names(tmp1))
+  # Summarize pressure counts across DAYTYPEs, FISHERYs, and MONTHs
+  tmp4 <- tmp3 %>%
+    dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
+                     ttlVehFshry=sum(ttlVehFshry,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All",FISHERY="All",MONTH="All") %>%
+    dplyr::select(names(tmp1))
+  # Combine, rearrange, and return
+  as.data.frame(rbind(tmp1,tmp2,tmp3,tmp4)) %>%
+    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
+           FISHERY=factor(FISHERY,levels=c(flvls,"All")),
+           MONTH=factor(MONTH,levels=c(mlvls,"All"))) %>%
+    arrange(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE)
+}
+
+#
+sumObsEffortSuccess2 <- function(nofish) {
+  # Change MONTHs to a character
+  nofish <- mutate(nofish,MONTH=as.character(MONTH))
+  # Get levels of MONTH and FISHERY
+  mlvls <- unique(nofish$MONTH)
+  flvls <- unique(nofish$FISHERY)
+  # Summarized angling effort & success obs by MONTH, FISHERY, and DAYTYPE
+  obsEff1 <- nofish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
+    dplyr::summarize(nInts=dplyr::n(),
+                     obsAnglers=sum(PERSONS),
+                     obsHours=sum(HOURS),
+                     obsAnglerHours=sum(PERSONS*HOURS),
+                     obsSuccAnglers=sum(SUCCESS))
+  # Summarized angling effort & success obs by MONTH and FISHERY, across DAYTYPEs.
+  obsEff2 <- obsEff1 %>%
+    dplyr::summarize(nInts=sum(nInts),
+                     obsAnglers=sum(obsAnglers),
+                     obsSuccAnglers=sum(obsSuccAnglers),
+                     obsHours=sum(obsHours),
+                     obsAnglerHours=sum(obsAnglerHours)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    select(names(obsEff1))
+  # Summarized angling effort & success obs by MONTH, across DAYTYPEs and FISHERYs
+  obsEff3 <- obsEff2 %>%
+    dplyr::summarize(nInts=sum(nInts),
+                     obsAnglers=sum(obsAnglers),
+                     obsSuccAnglers=sum(obsSuccAnglers),
+                     obsHours=sum(obsHours),
+                     obsAnglerHours=sum(obsAnglerHours)) %>%
+    dplyr::mutate(DAYTYPE="All",FISHERY="All") %>%
+    select(names(obsEff1))
+  # Summarized angling effort & success obs across DAYTYPEs, FISHERYs, & MONTHs
+  obsEff4 <- obsEff3 %>%
+    dplyr::summarize(nInts=sum(nInts),
+                     obsAnglers=sum(obsAnglers),
+                     obsSuccAnglers=sum(obsSuccAnglers),
+                     obsHours=sum(obsHours),
+                     obsAnglerHours=sum(obsAnglerHours)) %>%
+    dplyr::mutate(DAYTYPE="All",FISHERY="All",MONTH="All") %>%
+    select(names(obsEff1))
+  # Combine, rearrange, and return
+  as.data.frame(rbind(obsEff1,obsEff2,obsEff3,obsEff4)) %>%
+    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
+           FISHERY=factor(FISHERY,levels=c(flvls,"All")),
+           MONTH=factor(MONTH,levels=c(mlvls,"All"))) %>%
+    arrange(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE)
+}
+
+#
+sumObsHarvest2 <- function(ints) {
+  # Change MONTHs to a character
+  ints <- mutate(ints,MONTH=as.character(MONTH))
+  # Get levels of MONTH and FISHERY
+  mlvls <- unique(ints$MONTH)
+  flvls <- unique(ints$FISHERY)
+  # Summarize harvest of each speices by MONTH, FISHERY, and DAYTYPE
+  obsHarv1 <- ints %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,DAYTYPE) %>%
+    dplyr::summarize(obsHarvest=sum(NUM))
+  # Summarize harvest of each speices by MONTH and FISHERY, across DAYTYPEs
+  obsHarv2 <- obsHarv1 %>%
+    dplyr::summarize(obsHarvest=sum(obsHarvest)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(obsHarv1))
+  # Summarize harvest of each speices by MONTH, across DAYTYPEs & FISHERYs
+  obsHarv3 <- obsHarv2 %>%
+    dplyr::summarize(obsHarvest=sum(obsHarvest)) %>%
+    dplyr::mutate(DAYTYPE="All",FISHERY="All") %>%
+    dplyr::select(names(obsHarv1))
+  # Summarize harvest of each speices across DAYTYPEs, FISHERYs, and MONTHs
+  obsHarv4 <- obsHarv3 %>%
+    dplyr::summarize(obsHarvest=sum(obsHarvest)) %>%
+    dplyr::mutate(DAYTYPE="All",FISHERY="All",MONTH="All") %>%
+    dplyr::select(names(obsHarv1))
+  # Combine, rearrange, and return
+  as.data.frame(rbind(obsHarv1,obsHarv2,obsHarv3,obsHarv4)) %>%
+    mutate(DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
+           FISHERY=factor(FISHERY,levels=c(flvls,"All")),
+           MONTH=factor(MONTH,levels=c(mlvls,"All"))) %>%
+    select(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,DAYTYPE,obsHarvest) %>%
+    arrange(SURVEY,ROUTE,UNIT,SPP,MONTH,FISHERY,DAYTYPE)
+}
+
+
+# Currently the harvest of all fish is stored as the variable NUM. This function
+# moves this value to the FISH variable and adds a corresponding "All Fish" to
+# the SPP variable. Thus, "All Fish" is effectively treated as another species,
+# which makes it easier to summarize with SPP further below. Note that orig is
+# the original interviews data.frame and nofish is the same except that NUM and
+# SPP have been removed.
+iHndlHarvestAllFish <- function(orig,nofish) {
+  # Take data.frame that has no fish info (no SPP and FISH variables) and add
+  # SPP with "All Fish" in it and rename the FISH (number of all fish harvested)
+  # as NUM (which is the number of harvested fish of that species)
+  tmp <- dplyr::mutate(nofish,SPP="All Fish") %>%
+    dplyr::rename(NUM=FISH)
+  # Remove the FISH variable (all fish harvested regardless of species) from the
+  # original data.frame that has the harvest information for all species
+  orig <- dplyr::select(orig,-FISH)
+  # Row-bind the two data.frames together to create a new data.frame that has
+  # "All Fish" in the SPP varible. However, first make sure that the variables
+  # in both data.frames are in the same order. Finally, remeove all records for
+  # which no SPP was recorded (i.e., this data.frame is used to estimate
+  # harvest, so this is not needed).
+  dplyr::select(tmp,names(orig)) %>%
+    rbind(orig) %>%
+    dplyr::filter(!is.na(SPP))
 }

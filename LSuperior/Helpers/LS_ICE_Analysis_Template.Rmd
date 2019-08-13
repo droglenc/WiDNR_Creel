@@ -54,7 +54,21 @@ table2(pcSite)
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table3"))
-table3(hSum)
+table3(sumExpHarvAll)
+```
+
+```{r table4}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table4"))
+table4(sumExpHarvSPP)
+```
+
+```{r table5}
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table5"))
+table5(sumLen)
 ```
 
 
