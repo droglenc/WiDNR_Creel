@@ -451,9 +451,9 @@ tableCaptions <- function() {
                        "number of vehicles at each site by month and day type.",
                        "Compare this to 'ICE CREEL MONTHLY PRESSURE' Excel file."))
   tables(name="Table2",
-         caption=paste("Number of interviews, proportion of interviews at that",
-                       "a site in each fishery type, and estimated total",
-                       "(i.e., expanded) number of vehicles in each fishery",
+         caption=paste("Number of interviews (N), percent of interviews (P) at",
+                       "that site in each fishery type, and estimated total",
+                       "(i.e., expanded) number of vehicles (Veh) in each fishery",
                        "and across all fishery types at each site by month",
                        "and day type. Compare this to 'ICE CREEL EXPANDED",
                        "PRESSURE' Excel file."))
@@ -461,13 +461,21 @@ tableCaptions <- function() {
          caption=paste("Total effort and harvest summary for All Fish combined",
                        "by fishery type, month, and day type. Compare this to",
                        "columns A-K of 'ICE CREEL HARVEST' Excel file."))
-   tables(name="Table4",
+  tables(name="Table4",
          caption=paste("Harvest rate and total harvest by species, fishery,",
                        "month, and daytype. Note that 'All' is shown for the",
                        "fishery only for species caught in more than one",
                        "fishery. Compare this to columns L-AD of 'ICE CREEL",
                        "HARVEST' Excel file."))
- 
+  tables(name="Table5",
+         caption=paste("Number of fish measured for length and mean, standard",
+                       "deviation (SD), minimum, and maximum total length",
+                       "(in.) by species, month, origin (native or hatchery)",
+                       "and fishery type. Note that 'All' is shown only for",
+                       "months and origins where more than one month or origin",
+                       "was observed. Compare this to 'ICE CREEL CATCH AVE'",
+                       "Excel file."))
+  
   
   
   ## Not needed as the main info is in the new Table 1.
@@ -541,6 +549,7 @@ table2 <- function(PC) {
   fshrys <- unique(PC$FISHERY)
   numf <- length(fshrys)
   bys <- c("SURVEY","ROUTE","UNIT","MONTH","DAYTYPE","SITE")
+  PC <- mutate(PC,pIntsInFshry=100*pIntsInFshry)
   tmp1 <- dplyr::select(PC,-NINTS,-pIntsInFshry,-ttlVehSiteFshry)
   tmp2 <- dplyr::select(PC,-TTLINTS,-ttlVehSite)
   tmp3 <- split(tmp2,tmp2$FISHERY)
@@ -552,11 +561,11 @@ table2 <- function(PC) {
     dplyr::select(-dplyr::contains("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
     dplyr::filter(!duplicated(.)) %>%
     dplyr::arrange(MONTH,DAYTYPE,SITE) %>%
-    dplyr::mutate(# Remove repeated rows in MONTH and DAYTYPE variables
-      MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
-                   "",as.character(MONTH)),
-      DAYTYPE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="DAYTYPE"),
-                   "",as.character(DAYTYPE)))
+    # Remove repeated rows in MONTH and DAYTYPE variables
+    dplyr::mutate(MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                               "",as.character(MONTH)),
+                  DAYTYPE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="DAYTYPE"),
+                                 "",as.character(DAYTYPE)))
   
   acs <- which(grepl("ttlVehSiteFshry",names(tbl1)))
   for (i in rev(acs)) {
@@ -582,11 +591,11 @@ table2 <- function(PC) {
     # No decimals for observed values and total days
     set_number_format(row=everywhere,col=contains("INTS"),value=0) %>%
     set_number_format(row=everywhere,col=contains("ttlVeh"),value=1) %>%
-    set_number_format(row=everywhere,col=contains("pInts"),value=2) %>%
+    set_number_format(row=everywhere,col=contains("pInts"),value=0) %>%
     # Extra label at the top
     rbind(c("MONTH","DAYTYPE","SITE",
-            rep(c("Ints","Prop","Veh",""),numf),
-            "Ints","Veh"),.) %>%
+            rep(c("N","P","Veh",""),numf),
+            "N","Veh"),.) %>%
     rbind(toplbl,.)
   # Adjust headers
   for (i in 1:numf) {
@@ -647,16 +656,15 @@ table3 <- function(H) {
     set_align(row=everywhere,col=-(1:3),value="right") %>%
     # contol decimals
     set_number_format(row=everywhere,col=c(4,6,8,10,12),value=0) %>%
-    set_number_format(row=everywhere,col=c(5,7,9),value=2) %>%
+    set_number_format(row=everywhere,col=9,value=1) %>%
+    set_number_format(row=everywhere,col=c(5,7),value=2) %>%
     set_number_format(row=everywhere,col=11,value=4) %>%
     # Extra label at the top
     rbind(c("FISHERY","MONTH","DAYTYPE","Vehicles","per Int","Anglers",
             "Hours","Angler Hrs","Success","Anglers","Rate","Harvest"),.) %>%
     rbind(c("","","","Total","Angler","Total",
-            "Avg","Total","Prop","Success","Harvest","Total"),.) %>%
+            "Avg","Total","Perc","Success","Harvest","Total"),.) %>%
     set_align(row=1:2,col=everywhere,value="center") %>%
-    # highlight harvest columns
-    set_background_color(row=everywhere,col=11:12,value="gray95") %>%
     # Sets table & column widths
     set_width(0.9) %>%
     set_col_width(col=c(.2,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1)) %>%
@@ -688,6 +696,12 @@ table4 <- function(H) {
     dplyr::summarize(numFshrys=length(unique(FISHERY))) %>%
     dplyr::filter(numFshrys==2)
   tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & FISHERY=="All"))
+  ## Drop the "All" MONTHs for species captured in only one month
+  ## (note the use of 2 in the filter because of an "All" MONTH)
+  SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+    dplyr::summarize(numMons=length(unique(MONTH))) %>%
+    dplyr::filter(numMons==2)
+  tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & MONTH=="All"))
   ## Remove repeated rows in SPP, FISHERY, MONTH variables (aesthetics in huxt)
   tbl1 <- tbl1 %>%
           dplyr::mutate(SPP=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPP"),
@@ -696,7 +710,7 @@ table4 <- function(H) {
               ## against cutting a FISHERY across species
               FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPP","FISHERY")),
                              "",as.character(FISHERY)),
-              MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+              MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPP","MONTH")),
                            "",as.character(MONTH)))
   ## Rows with a MONTH names (except first) will get extra space above
   spaceAbove <- which(tbl1$SPP!="")[-1]
@@ -714,9 +728,6 @@ table4 <- function(H) {
     # No decimals for harvest rates, four for harvest rate
     set_number_format(row=everywhere,col=contains("Harvest"),value=0) %>%
     set_number_format(row=everywhere,col=contains("Rate"),value=4) %>%
-    # Color total harvest for all months and fisherys by species
-    set_background_color(row=c(spaceAbove-1,nrow(.)),col=ncol(.),
-                         value="gray95") %>%
     # Extra label at the top
     rbind(c("SPP","FISHERY","MONTH",rep(c("Rate","Harvest",""),2),
             "Rate","Harvest"),.) %>%
@@ -749,6 +760,7 @@ table5 <- function(f) {
   tbl1 <- tmp2 %>%
     dplyr::select(-dplyr::contains("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
     dplyr::filter(!duplicated(.)) %>%
+    dplyr::mutate(SPP=iOrderSpecies(SPP)) %>%
     dplyr::arrange(SPP,MONTH,ORIGIN)
   
   ## Drop the "All" ORIGINs for species have only one ORIGIN
@@ -758,11 +770,18 @@ table5 <- function(f) {
     dplyr::filter(numOrigins==2)
   tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & ORIGIN=="All"))
 
+  ## Drop the "All" MONTHs for species have only one MONTH
+  ## (note the use of 2 in the filter because of an "All" MONTH)
+  SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+    dplyr::summarize(numMons=length(unique(MONTH))) %>%
+    dplyr::filter(numMons==2)
+  tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & MONTH=="All"))
+  
   ## Remove repeated rows in SPP, MONTH and ORIGIN variables
   tbl1 <- tbl1 %>%
     dplyr::mutate(SPP=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPP"),
                              "",as.character(SPP)),
-                  MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                  MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPP","MONTH")),
                                "",as.character(MONTH)))
   
   ## Add extra columns for aesthetics in huxtable
