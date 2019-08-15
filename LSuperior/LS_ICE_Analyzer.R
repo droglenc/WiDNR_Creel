@@ -16,7 +16,7 @@
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
-ROUTE2USE <- c("Ashland","Washburn","Saxon","Superior")[1]
+ROUTE2USE <- c("Ashland","Washburn/Bayfield","Saxon","Superior")[1]
 YEAR <- 2019
 # Working directory (base + "LSuperior"); where helper and rmarkdown files located.
 WDIR <- file.path(here::here(),"LSuperior")

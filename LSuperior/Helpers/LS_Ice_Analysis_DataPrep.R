@@ -53,7 +53,7 @@ ints_NOFISH <- ints_ORIG %>%
 #   * Summarized to pcSum below. This is intermediate calculation.
 #   * Table 2 (used to compare to "*EPANDED PRESSURE.XLSX" file)
 # EXPORTED: not exported
-pcSite <- pcSumBySite(ints_NOFISH)
+pcSite <- pcSumBySite(ints_NOFISH,pressureCount)
            
            
 # RESULT: data.frame pressure count data expanded to represent the number of

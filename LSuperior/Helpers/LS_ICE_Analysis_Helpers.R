@@ -57,12 +57,12 @@ readPressureCountData_ICE <- function(RDIR,LOC,FD) {
 }
 
 # Summarize pressure counts by SITE
-pcSumBySite <- function(nofish) {
+pcSumBySite <- function(nofish,pc) {
   # Get proportion of interviews at each SITE (within each MONTH and DAYTYPE)
   # that are within each interviewed FISHERY
   iFindPropIntsInFishery(nofish) %>%
     # Find number of vehicles at each SITE within each FISHERY by MONTH, DAYTYPE
-    iFindTtlVehiclesInFishery(pressureCount) %>%
+    iFindTtlVehiclesInFishery(pc) %>%
     ## OPEN QUESTION -- how were the vehicles at a SITE allocated into FISHERYs
     ##   when those FISHERYs did not appear in an interview ... this is apparently
     ##   handled on an ad hoc basis (accoring to Zunk) ... I have started to address
@@ -414,15 +414,25 @@ iFindTtlVehiclesInFishery <- function(d,pc) {
 
 #
 iHndlNoIntsButPressure <- function(d) {
-  ## Find records with missing ttlVehSiteFshry (i.e., pressure but no interviews)
+  ## Helper Function
+  iFillRecords <- function(d,tmp,fshry,unit) {
+    d$FISHERY[tmp] <- fshry
+    d$UNIT[tmp] <- unit
+    d    
+  }
+  
+  # Find records with missing ttlVehSiteFshry (i.e., pressure but no interviews)
   MISS <- is.na(d$ttlVehSiteFshry)
-  ## Ashland, 2nd Landing ... some effort for both bobbing and shallow
-  tmp <- MISS & d$ROUTE=="Ashland" & d$SITE=="204-2nd Landing"
-  ## Ashland, not 2nd Landing ... all shallow (assume no bobbing)
+  
+  ## ASHLAND
+  ### not 2nd Landing ... all shallow (assume no bobbing)
   tmp <- MISS & d$ROUTE=="Ashland" & d$SITE!="204-2nd Landing"
-  d$FISHERY[tmp] <- "< 60 ft - Shallow"
-  d$UNIT[tmp] <- "WI-2"
   d$ttlVehSiteFshry[tmp] <- d$ttlVehSite[tmp]
+  d <- iFillRecords(d,tmp,"< 60 ft - Shallow","WI-2")
+  ### 2nd Landing ... some effort for both bobbing and shallow
+  tmp <- MISS & d$ROUTE=="Ashland" & d$SITE=="204-2nd Landing"
+  
+  
   d
 }
 
