@@ -56,10 +56,23 @@ readPressureCountData_ICE <- function(RDIR,LOC,FD) {
   as.data.frame(PC)
 }
 
+# Summarize pressure counts by SITE
+pcSumBySite <- function(nofish) {
+  # Get proportion of interviews at each SITE (within each MONTH and DAYTYPE)
+  # that are within each interviewed FISHERY
+  iFindPropIntsInFishery(nofish) %>%
+    # Find number of vehicles at each SITE within each FISHERY by MONTH, DAYTYPE
+    iFindTtlVehiclesInFishery(pressureCount) %>%
+    ## OPEN QUESTION -- how were the vehicles at a SITE allocated into FISHERYs
+    ##   when those FISHERYs did not appear in an interview ... this is apparently
+    ##   handled on an ad hoc basis (accoring to Zunk) ... I have started to address
+    ##   this with the iHndlNoIntsButPressure() function
+    iHndlNoIntsButPressure()
+}
+
 # Summarize pressure counts by MONTH, FISHERY, and DAYTYPE, across SITEs
 sumPressureCount <- function(d) {
-  d %>%
-    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
+  dplyr::group_by(d,SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                      ttlVehFshry=sum(ttlVehSiteFshry,na.rm=TRUE)) %>%
     as.data.frame()
@@ -625,7 +638,8 @@ table3 <- function(H) {
                   avgAnglerHours,ttlAnglerHours,percSucc,ttlSuccAnglers,
                   harvestRate,ttlHarvest) %>%
     dplyr::arrange(FISHERY,MONTH,DAYTYPE) %>%
-    dplyr::mutate(# Remove repeated rows in MONTH and FISHERY variables
+    # Remove repeated rows in MONTH and FISHERY variables
+    dplyr::mutate(
       MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
                    "",as.character(MONTH)),
       FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use="FISHERY"),

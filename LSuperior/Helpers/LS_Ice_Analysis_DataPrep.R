@@ -28,20 +28,6 @@ pressureCount <- readPressureCountData_ICE(RDIR,LOC,fdays)
 
 
 ## Interviewed Effort ----
-# RESULT: data.frame (pcSite) of pressure count data expanded to represent the
-#         number of vehicles at each SITE in each FISHERY by MONTH and DAYTYPE.
-#   * NINTS: Number of observed interviews at SITE in FISHERY
-#   * TTLINTS: Number of observed interview at SITE
-#   * pIntsInFishery: Proportion of total interviews at SITE in each FISHERY
-#   * ttlVehSite: Total vehicles at the SITE
-#   * ttlVehSiteFshry: Total vehicles at the SITE in each FISHERY
-# NOTES:
-#   * This is the bulk of 2019 ASHLAND ICE CREEL EXPANDED PRESSURE.XLSX.
-# USE:
-#   * Summarized to pcSum below. This is intermediate calculations.
-#   * Table 2 (used to compare to "*EPANDED PRESSURE.XLSX" file)
-# EXPORTED: not exported
-
 # Read original interview data and also create a data.frame that has just the
 # unique interview data (i.e., remove variables related to the different species
 # of fish and then remove the rows that were duplcated for the different species)
@@ -50,19 +36,26 @@ ints_NOFISH <- ints_ORIG %>%
   dplyr::select(-SPP,-NUM) %>%
   dplyr::distinct()
 
-pcSite <- ints_NOFISH %>%
-  # Get proportion of interviews at each SITE (within each MONTH and DAYTYPE)
-  # that are within each interviewed FISHERY
-  iFindPropIntsInFishery() %>%
-  # Find number of vehicles at each SITE within each FISHERY by MONTH, DAYTYPE
-  iFindTtlVehiclesInFishery(pressureCount) %>%
-  ## OPEN QUESTION -- how were the vehicles at a SITE allocated into FISHERYs
-  ##   when those FISHERYs did not appear in an interview ... this is apparently
-  ##   handled on an ad hoc basis (accoring to Zunk) ... I have started to address
-  ##   this with the iHndlNoIntsButPressure() function
-  iHndlNoIntsButPressure()
 
-
+# RESULT: data.frame of pressure count data expanded to represent the number
+#         of vehicles at each SITE in each FISHERY by MONTH and DAYTYPE.
+#   * NINTS: Number of observed interviews at SITE in FISHERY
+#   * TTLINTS: Number of observed interview at SITE
+#   * pIntsInFishery: Proportion of total interviews at SITE in each FISHERY
+#   * ttlVehSite: Total vehicles at the SITE
+#   * ttlVehSiteFshry: Total vehicles at the SITE in each FISHERY
+# NOTES:
+#   * OPEN QUESTION -- vehicles at a SITE were allocated into FISHERYs on an ad
+#     hoc basis (accoring to Zunk) ... I have started to address this with the
+#     iHndlNoIntsButPressure() function inside the pcSumBySite()
+#   * This is the bulk of 2019 ASHLAND ICE CREEL EXPANDED PRESSURE.XLSX.
+# USE:
+#   * Summarized to pcSum below. This is intermediate calculation.
+#   * Table 2 (used to compare to "*EPANDED PRESSURE.XLSX" file)
+# EXPORTED: not exported
+pcSite <- pcSumBySite(ints_NOFISH)
+           
+           
 # RESULT: data.frame pressure count data expanded to represent the number of
 #         vehicles in each FISHERY by MONTH and DAYTYPE (across SITEs).
 #   * NINTS: Number of observed interviews in each FISHERY
