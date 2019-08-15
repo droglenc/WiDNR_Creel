@@ -60,14 +60,44 @@ readPressureCountData_ICE <- function(RDIR,LOC,FD) {
 pcSumBySite <- function(nofish,pc) {
   # Get proportion of interviews at each SITE (within each MONTH and DAYTYPE)
   # that are within each interviewed FISHERY
-  iFindPropIntsInFishery(nofish) %>%
-    # Find number of vehicles at each SITE within each FISHERY by MONTH, DAYTYPE
-    iFindTtlVehiclesInFishery(pc) %>%
-    ## OPEN QUESTION -- how were the vehicles at a SITE allocated into FISHERYs
-    ##   when those FISHERYs did not appear in an interview ... this is apparently
-    ##   handled on an ad hoc basis (accoring to Zunk) ... I have started to address
-    ##   this with the iHndlNoIntsButPressure() function
-    iHndlNoIntsButPressure()
+  ## Number of interviews at each SITE within MONTH, DAYTYPE, FISHERY
+  tmp1 <- nofish %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE,SITE) %>%
+    dplyr::summarize(NINTS=dplyr::n()) %>%
+    as.data.frame()
+  ## Number of interviews at each SITE within MONTH, DAYTYPE
+  tmp2 <- tmp1 %>%
+    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,DAYTYPE,SITE) %>%
+    dplyr::summarize(TTLINTS=sum(NINTS)) %>%
+    as.data.frame()  
+  ## Combine and compute proportion of interviews at a SITE within each FISHERY
+  ## by MONTH, DAYTYPE ... return result
+  obsPropIntsInFshry <- dplyr::left_join(tmp1,tmp2,
+                                         by=c("SURVEY","ROUTE","UNIT",
+                                              "MONTH","DAYTYPE","SITE")) %>%
+    dplyr::mutate(pIntsInFshry=NINTS/TTLINTS)
+  
+  # Find number of vehicles at each SITE within each FISHERY by MONTH, DAYTYPE
+  obsNumVehInFshry <- dplyr::full_join(obsPropIntsInFshry,pc,
+                                       by=c("SURVEY","ROUTE","MONTH",
+                                            "DAYTYPE","SITE")) %>%
+    dplyr::rename(ttlVehSite=ttlVeh) %>%
+    dplyr::select(-cntDays,-ttlDays,-cntdVeh)
+  
+  # Separate into those with observed interviews and those without
+  tmp <- filter(obsNumVehInFshry,is.na(pIntsInFshry)) %>%
+    select(-FISHERY,-pIntsInFshry)
+  obsNumVehInFshry <- filter(obsNumVehInFshry,!is.na(pIntsInFshry))
+  # Join the pints from pints file onto those without observed interviews
+  tmp <- tmp %>%
+    mutate(UNIT=unique(obsNumVehInFshry$UNIT)) %>%
+    left_join(pints,by=c("SURVEY","ROUTE","MONTH","DAYTYPE","SITE")) %>%
+    filter(pIntsInFshry>0) %>%
+    select(names(obsNumVehInFshry))
+  # Combine those that had interviews with the new without interviews
+  rbind(obsNumVehInFshry,tmp) %>%
+    arrange(SURVEY,ROUTE,MONTH,SITE,FISHERY,DAYTYPE) %>%
+    dplyr::mutate(ttlVehSiteFshry=ttlVehSite*pIntsInFshry)
 }
 
 # Summarize pressure counts by MONTH, FISHERY, and DAYTYPE, across SITEs
@@ -385,32 +415,6 @@ iHndlSiteDesc <- function(s,d) paste0(s,"-",FSA::capFirst(d))
 # Convert NAs to zeroes
 iNA2zero <- function(x) ifelse(is.na(x),0,x)
 
-## Find the proportio of iterviews at a SITE that are in each FISHERY type.
-iFindPropIntsInFishery <- function(nofish) {
-  ## Number of interviews at each SITE within MONTH, DAYTYPE, FISHERY
-  tmp1 <- ints_NOFISH %>%
-    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE,SITE) %>%
-    dplyr::summarize(NINTS=dplyr::n()) %>%
-    as.data.frame()
-  ## Number of interviews at each SITE within MONTH, DAYTYPE
-  tmp2 <- tmp1 %>%
-    dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,DAYTYPE,SITE) %>%
-    dplyr::summarize(TTLINTS=sum(NINTS)) %>%
-    as.data.frame()  
-  ## Combine and compute proportion of interviews at a SITE within each FISHERY
-  ## by MONTH, DAYTYPE ... return result
-  dplyr::left_join(tmp1,tmp2,
-                   by=c("SURVEY","ROUTE","UNIT","MONTH","DAYTYPE","SITE")) %>%
-    dplyr::mutate(pIntsInFshry=NINTS/TTLINTS)
-}
-
-# Combines 
-iFindTtlVehiclesInFishery <- function(d,pc) {
-  dplyr::full_join(d,pc,by=c("SURVEY","ROUTE","MONTH","DAYTYPE","SITE")) %>%
-    dplyr::rename(ttlVehSite=ttlVeh) %>%
-    dplyr::mutate(ttlVehSiteFshry=ttlVehSite*pIntsInFshry) %>%
-    dplyr::select(-cntDays,-ttlDays,-cntdVeh)
-}
 
 #
 iHndlNoIntsButPressure <- function(d) {

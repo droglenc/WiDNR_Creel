@@ -10,6 +10,27 @@ source(file.path(WDIR,"Helpers","LS_ICE_Analysis_Helpers.R"))
 # EXPORTED: Not exported.
 fdays <- readFishableDays(RDIR,LOC)
 
+####### Temporarily and propInts for each site
+#######    All but 204-2nd Landing will be all "<60 ft-Shallow"
+fdays <- fdays %>%
+  mutate('< 60 ft - Shallow'=case_when(
+                             SITE=="204-2nd Landing" & MONTH=="Jan" ~ 0.8,
+                             SITE=="204-2nd Landing" & MONTH=="Feb" ~ 0.7,
+                             SITE=="204-2nd Landing" & MONTH=="Mar" ~ 0.6,
+                             TRUE ~ 1),
+         '> 60 ft - Bobbing'=case_when(SITE=="204-2nd Landing" & MONTH=="Jan" ~ 0.2,
+                             SITE=="204-2nd Landing" & MONTH=="Feb" ~ 0.3,
+                             SITE=="204-2nd Landing" & MONTH=="Mar" ~ 0.4,
+                             TRUE ~ 0),
+         Tribal=0,
+         Pleasure=0,
+         'Post LT Open-Water'=0)
+
+pints <- select(fdays,-ttlDays) %>%
+  tidyr::gather(key="FISHERY",value="pIntsInFishery",-(SURVEY:SITE))
+fdays <- select(fdays,SURVEY:ttlDays)
+
+
 # RESULT: data.frame of pressure count data expanded to represent the number of
 #         vehicles at each SITE by MONTH and DAYTYPE.
 #   * cntDays: Days that vehicles were counted at that SITE, MONTH, DAYTYPE
