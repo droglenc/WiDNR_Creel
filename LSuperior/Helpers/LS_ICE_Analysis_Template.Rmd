@@ -26,6 +26,7 @@ knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE)
 
 ## Run the analysis
 source(file.path(WDIR,"Helpers","LS_ICE_Analysis_DataPrep.R"))
+source(file.path(WDIR,"Helpers","LS_ICE_Analysis_Helpers.R"))
 
 ## Make table and figure captions
 tables <- tableCaptions()
