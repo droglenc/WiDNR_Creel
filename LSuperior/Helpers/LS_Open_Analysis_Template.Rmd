@@ -2,11 +2,13 @@
 title: "LAKE SUPERIOR OPEN-WATER CREEL SURVEY"
 params:
   LOC:
-    value: sup
+    value: NULL
+  YR:
+    value: NULL
   SDATE:
-    value: 05/21/2014
+    value: NULL
   FDATE:
-    value: 09/30/2014
+    value: NULL
   DAY_LENGTH:
     value: NULL
   CNTS_FILE:
@@ -26,6 +28,7 @@ output:
 ```{r input, echo=FALSE}
 ## Grab User's Inputs from parameters
 LOC <- params$LOC
+YR <- params$YEAR
 SDATE <- params$SDATE
 FDATE <- params$FDATE
 CNTS_FILE <- params$CNTS_FILE

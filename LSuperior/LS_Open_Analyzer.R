@@ -39,12 +39,6 @@ for (i in seq_along(fns)) {
   # Read user-specified information
   source(fns[i])
   message("Processing '",LOCATION,"' location ...",appendLF=FALSE)
-  # Make longer location name
-  LOCATION2 <-  FSA::mapvalues(LOCATION,warn=FALSE,
-                               from=c("ash","byf","cpw","lsb","rdc","sax","sup","wsh"),
-                               to=c("Ashland","Bayfield","Corny-Port Wing",
-                                    "Little Sand Bay","Red Cliff","Saxon","Superior",
-                                    "Washburn"))
   # Extract the analysis year
   YEAR <- lubridate::year(as.Date(START_DATE,"%m/%d/%Y"))
   # Create the working directory (base directory + "LSuperior" folder). This is
@@ -54,10 +48,10 @@ for (i in seq_along(fns)) {
   # This should be the same as where the information file was read from
   RDIR <- dirname(fns[i])
   # Create a name for the report output file ("Analysis_" + location + year).
-  OUTFILE <- paste0("Analysis_",LOCATION2,"_",YEAR,".html")
+  OUTFILE <- paste0("Analysis_",LOCATION,"_",YEAR,".html")
   # Render the markdown report file with the information from above
   rmarkdown::render(input=file.path(WDIR,"Helpers","LS_Open_Analysis_Template.Rmd"),
-                    params=list(LOC=LOCATION,
+                    params=list(LOC=LOCATION,YR=YEAR,
                                 SDATE=START_DATE,FDATE=END_DATE,
                                 DAY_LENGTH=DAY_LENGTH,
                                 CNTS_FILE=CNTS_FILE,INTS_FILE=INTS_FILE,

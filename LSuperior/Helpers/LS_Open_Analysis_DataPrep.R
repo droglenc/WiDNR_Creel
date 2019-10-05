@@ -10,7 +10,6 @@
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
 
-
 ## Setup -----------------------------------------------------------------------
 ### Load helper files
 source(file.path(WDIR,"Helpers","LS_Open_Analysis_Helpers.R"))
@@ -20,8 +19,7 @@ SDATE <- as.Date(SDATE,"%m/%d/%Y")
 FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
 ### Filename prefix
-fnpre <- fnPrefix(RDIR,LOC,SDATE)
-
+fnpre <- paste0(RDIR,"/",LOC,"_",YR,"_")
 
 
 ## Pressure counts -------------------------------------------------------------
@@ -37,11 +35,18 @@ fnpre <- fnPrefix(RDIR,LOC,SDATE)
 # USE: Used to expand sampling info to population. Also basis for Table 1.
 # EXPORTED: Not exported to a file.
 calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
-  dplyr::mutate(YEAR=year(DATE),
+  dplyr::mutate(YEAR=YR,
                 MONTH=droplevels(lubridate::month(DATE,label=TRUE)),
-                DAYTYPE=iMvDaytype(lubridate::wday(DATE,label=TRUE),
-                                   MONTH,lubridate::mday(DATE))
-  ) %>%
+                WDAY=lubridate::wday(DATE,label=TRUE),
+                MDAY=lubridate::mday(DATE),
+                DAYTYPE=FSA::mapvalues(WDAY,
+                                       from=c("Mon","Tue","Wed","Thu","Fri",
+                                              "Sat","Sun"),
+                                       to=c("Weekday","Weekday","Weekday",
+                                            "Weekday","Weekday",
+                                            "Weekend","Weekend"),warn=FALSE),
+                DAYTYPE=iHndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
+                DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend"))) %>%
   dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
   dplyr::summarize(DAYS=n()) %>%
   dplyr::mutate(DAYLEN=iMvDaylen(MONTH,DAY_LENGTH)) %>%
@@ -62,11 +67,40 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 #            each amount of time the clerk was at the stop summed across 
 #            multiple stops at the site.
 # NOTES:
+#   * Counts (for Superior) from the original file are average number of parties
+#     present during the wait time, not total effort seen during the wait time.
 #   * These are observed values
 #   * Both WAIT & COUNT have been combined for multiple visits during shift
 # USE: Expanded to population counts below.
 # EXPORTED: Not exported to a file.
-pressureCount <- readPressureCountData(CNTS_FILE,RDIR,LOC,SDATE,FDATE)
+pressureCount <- readxl::read_excel(file.path(RDIR,CNTS_FILE)) %>%
+  ## Filter to chosen route
+  dplyr::filter(ROUTE==LOC,YEAR==YR) %>%
+  ## Change all variable names to upper-case (easier to remember)
+  dplyr::rename_all(.funs=toupper) %>%
+  dplyr::mutate(
+    DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
+    MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
+    MONTH=iHndlMonth(MONTH,droplevels=TRUE),
+    WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
+    DAYTYPE=iHndlDaytype(iMvDaytype(DAYTYPE),droplevels=TRUE),
+    SITE=iHndlSiteDesc(SITE,SITEDESC),
+    # Calculate the "WAIT" time (hours at the site)
+    WAIT=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE),
+    # Convert average counts (the original TOTAL variable) to "total effort"
+    # during shift (by muliplying by the WAIT time) so that multiple shifts on
+    # each day can be combined (from original SAS code).
+    COUNT=TOTAL*WAIT
+  ) %>% 
+  # Remove records with "bad" wait times
+  dplyr::filter(!is.na(WAIT)) %>%
+  # selec only variables that will be used later
+  dplyr::select(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
+  # Combine observations of WAIT and COUNT from multiple visits to the same
+  #   SITE within the same day
+  dplyr::group_by(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
+  dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT)) %>%
+  as.data.frame()
 
 # RESULT: data.frame of pressure count data expanded to represent the entire
 #         population and then summarized by MONTH and DAYTYPE.
@@ -85,29 +119,53 @@ pressureCount <- expandPressureCounts(pressureCount,calSum)
 
 
 
-
 ## Interviewed fishing effort --------------------------------------------------
 # RESULT: A data.frame of raw interview data.
 # NOTES:
-#   * CLIPXX, LENXX, and SPECIESXX variables that did not have data were removed
 #   * Days that had no effort between SDATE and FDATE were removed (these rows
 #     would have NA for the HOURS variable). This also removes days with bad
 #     SDATE and FDATE values (e.g., SDATE>FDATE)
 #   * The SUCCESS (whether interviewee caught fish), RES (residency), and 
 #     FISH (number of fish caught) variables were removed (not used further)
-# USE: Separated into two smaller data.frames below (more details there)
+# USE: Filtered into a smaller data.frames below (more details there)
+#      Joined with the fish data.
 # EXPORTED: Not exported to a file.
-ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE)
+intvs_ORIG <- readxl::read_excel(file.path(RDIR,INTS_FILE)) %>%
+  ## Filter to chosen route
+  dplyr::filter(ROUTE==LOC,YEAR==YR) %>%
+  ## Change all variable names to upper-case (easier to remember)
+  dplyr::rename_all(.funs=toupper) %>%
+  ## Rename a few variables
+  dplyr::rename(SPECIES=SPP,HARVEST=NUM) %>%
+  dplyr::mutate(
+    ## Handle dates (find weekends/days) & times (incl. hrs of effort)
+    DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
+    MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
+    MONTH=iHndlMonth(MONTH,droplevels=TRUE),
+    WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
+    ## Convert to factors
+    DAYTYPE=iHndlDaytype(iMvDaytype(DAYTYPE),droplevels=TRUE),
+    FISHERY=iHndlFishery(FISHERY,droplevels=TRUE),
+    MUNIT=iMvMgmtUnit(UNIT,droplevels=TRUE),
+    SPECIES=iHndlSpecies(SPECIES,droplevels=TRUE),
+    ## Create longer site description
+    SITE=iHndlSiteDesc(SITE,SITEDESC),
+    ## Find hrs of effort
+    HOURS=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE)) %>%
+  ## Rearrange vars (& drop SUCCESS, RES, STARTHH, STARTMM, STOPHH, STOPMM,NUM)
+  dplyr::select(INTERVIEW,DATE,YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,DAY,
+                SITE,STATUS,HOURS,PERSONS,SPECIES,HARVEST) %>%
+  ## Drop "bad" HOURS records
+  dplyr::filter(!is.na(HOURS)) %>%
+  as.data.frame()
 
-# RESULT: A data.frame of individual interview data, from ints_ORIG but with
-#         only interviee and no fish data.
+# RESULT: A subset of intvs_ORIG without any fish variables.
 #   * YEAR: Year of interview
-#   * MONTH: Month of interview 
-#   * WATERS: Waters where interviewee fished (WI or non-WI)
 #   * MUNIT: Management unit where interviewee fished (e.g., WI-1, WI-2)
 #   * STATE: State where inteviewee fished (e.g., WI, WI/MN)
 #   * FISHERY: Type of fishery (e.g., Cold-Open, Warm-Open)
 #   * DAYTPE: Type of day (Weekday or Weekend ... holidays are weekends)
+#   * MONTH: Month of interview 
 #   * HOURS: Hours of fishing effort reported by the interviewee
 #   * PERSONS: Number of individuals in the fishing party
 #   * STATUS: Whether the interview represents a completed trip or not
@@ -115,7 +173,7 @@ ints_ORIG <- readInterviewData(INTS_FILE,RDIR,LOC,SDATE,FDATE)
 #   * This is observed data, not yet expanded to all days in month/year.
 # USE: Ultimately sent to make Table 2 and expanded to entire population below.
 # EXPORTED: Not exported to a file.
-ints_NOFISH <- ints_ORIG %>%
+intvs <- intvs_ORIG %>%
   dplyr::select(YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,HOURS,PERSONS,STATUS)
 
 # RESULT: A data.frame that summarizes the number of OBSERVED interviews and
@@ -138,7 +196,7 @@ ints_NOFISH <- ints_ORIG %>%
 #     in WI/MI state is apportioned to WI and MI.)
 # USE: Used later for computing total effort (expanded to population)
 # EXPORTED: Not exported to a file
-intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
+intvdEffortWaters <- sumInterviewedEffort(intvs)
 
 
 
@@ -171,7 +229,7 @@ intvdEffortWaters <- sumInterviewedEffort(ints_NOFISH)
 #   * To expand catch to harvest further below.
 # EXPORTED: Exported as "LOCATION_YEAR_ttlEffort.csv".
 ttlEffort <- sumEffort(intvdEffortWaters,pressureCount) %>% 
-  dplyr::mutate(ROUTE=LOC,WATERS=iMvWaters(MUNIT)) %>%
+  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(MUNIT)) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:VTRIPS)
 writeDF(ttlEffort,fnpre)
 
@@ -180,7 +238,7 @@ writeDF(ttlEffort,fnpre)
 ## Calculate Harvest -----------------------------------------------------------
 # RESULT: data.frame from ints_ORIG of mostly just fish-related data
 #   * INTID: A unique ID for each interview
-#   * DATE: Data of interview ... maintained for Table 9
+#   * DATE: Date of interview ... maintained for Table 9
 #   * YEAR: Year of interview
 #   * STATE: State fished (e.g., WI, WI/MN)
 #   * SITE: Specific site code (of landing) ... maintained for Table 9
@@ -200,11 +258,11 @@ writeDF(ttlEffort,fnpre)
 #     the original interviews data file.
 # USE: To compute harvest and summarize length data further below.
 # EXPORTED: Not exported to a file.
-ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
-  dplyr::filter(FISHERY!="NON-FISHING") %>%
-  dplyr::select(INTID,DATE,YEAR,MUNIT,STATE,SITE,DAYTYPE,FISHERY,MONTH,
-                HOURS,SPECIES,CLIP,CLIPPED,LEN) %>%
-  droplevels()
+#!ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
+#!  dplyr::filter(FISHERY!="NON-FISHING") %>%
+#!  dplyr::select(INTID,DATE,YEAR,MUNIT,STATE,SITE,DAYTYPE,FISHERY,MONTH,
+#!                HOURS,SPECIES,CLIP,CLIPPED,LEN) %>%
+#!  droplevels()
 
 # RESULT: data.frame that summarizes (see below) harvest observed from
 #         interviews by strata (WATERS, DAYTYPE, FISHERY, MONTH, SPECIES)
@@ -220,7 +278,8 @@ ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
 #     in WI/MI state is apportioned to WI and MI.)
 # USE: To compute total harvest below
 # EXPORTED: Not exported to a file.
-intvdHarv <- sumObsHarvest(ints_FISH)
+intvdHarv <- sumObsHarvest(intvs_ORIG)
+
 
 # RESULT: data.frame that is a subset of records and variables from ttlEffort
 #   * All variables defined above.
@@ -234,6 +293,7 @@ ttlEffort2 <- ttlEffort %>%
   dplyr::filter(FISHERY!="NON-FISHING") %>%
   dplyr::select(YEAR,MUNIT,DAYTYPE,FISHERY,MONTH,
                 NINTS,HOURS,USSHOURS,INDHRS,PHOURS,VPHOURS)
+
 
 # RESULT:
 #   * YEAR, WATERS, MUNIT DAYTYPE, FISHERY, MONTH: as above, may incl. "All"
@@ -249,13 +309,25 @@ ttlEffort2 <- ttlEffort %>%
 # USE: For Table 5 and Figure 3-5.
 # EXPORTED: Exported to "LOCATION_YEAR_ttlHarvest.csv"
 ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2) %>%
-  dplyr::mutate(ROUTE=LOC,WATERS=iMvWaters(MUNIT)) %>%
+  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(MUNIT)) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:HRATE)
 writeDF(ttlHarvest,fnpre)
 
 
 
 ## Length summaries ------------------------------------------------------------
+# RESULT: A data.frame of raw individual fish data.
+# USE: Joined with interview data below.
+# EXPORTED: Not exported to a file.
+fish <- readxl::read_excel(file.path(RDIR,FISH_FILE)) %>%
+  ## Filter to chosen route
+  dplyr::filter(ROUTE==LOC) %>%
+  ## Change all variable names to upper-case (easier to remember)
+  dplyr::rename_all(.funs=toupper) %>%
+  dplyr::rename(SPECIES=SPP) %>%
+  dplyr::select(INTERVIEW,SPECIES,LENGTH,CLIP) %>%
+  dplyr::mutate(SPECIES=iHndlSpecies(SPECIES,droplevels=TRUE))
+
 # RESULT: re-arranged data.frame from ints_FISH for export
 #   * All but WT variable defined previously.
 #   * Added weight (WT) variable in grams.
@@ -263,10 +335,15 @@ writeDF(ttlHarvest,fnpre)
 #   * None.
 # USE: For Tables 6-9 and Figure 6.
 # EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
-lengths <- ints_FISH %>%
-  dplyr::mutate(ROUTE=LOC,WATERS=iMvWaters(MUNIT)) %>%
+intvs_FISH <- intvs_ORIG %>%
+  select(INTERVIEW,YEAR,MUNIT,FISHERY,MONTH,DATE,SITE)
+
+lengths <- dplyr::right_join(intvs_FISH,fish,by="INTERVIEW") %>%
+  dplyr::mutate(ROUTE=LOC,
+                WATERS=iHndlWaters(MUNIT),
+                CLIPPED=ifelse(CLIP=="Native","No Clip","Clip")) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT,FISHERY,MONTH,
-                DATE,SITE,SPECIES,CLIP,CLIPPED,LEN) %>%
+                DATE,SITE,SPECIES,CLIP,CLIPPED,LENGTH) %>%
   addWeights(RDIR,YEAR)
 writeDF(lengths,fnpre)
 
