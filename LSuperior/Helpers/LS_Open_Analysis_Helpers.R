@@ -74,15 +74,15 @@ expandPressureCounts <- function(dcnts,cal) {
 ##
 sumInterviewedEffort <- function(dints) {
   # All records where fishing was in one state
-  f1 <- dplyr::filter(dints,!STATE %in% c("WI/MN","WI/MI"))
+  f1 <- dplyr::filter(dints,!STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan"))
   # All records where fishing was in two states
-  f2 <- dplyr::filter(dints,STATE %in% c("WI/MN","WI/MI")) %>%
+  f2 <- dplyr::filter(dints,STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan")) %>%
     ## Cut the fishing effort (HOURS) in half (apportioned to each state)
     dplyr::mutate(HOURS=0.5*HOURS)
   # Duplicate f2 to get other half of HOURS
   f3 <- f2 %>%
     ## label MUNIT as other state
-    dplyr::mutate(MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
+    dplyr::mutate(MUNIT=ifelse(STATE=="Wisconsin/Minnesota","MN","MI"))
   
   # Combine to get all interviews corrected for location
   f <- rbind(f1,f2,f3) %>%
@@ -215,81 +215,6 @@ sumEffort <- function(ieff,pct) {
     dplyr::arrange(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH)
   # return final data.frame
   eff
-}
-
-
-## Rearrange fish information from interviews
-##   Note that FINCLIP=99 means length field has number of fish harvested.
-rearrangeFishInfo <- function(dints) {
-  ## Get the main information about the interview
-  mainInts <- dplyr::select(dints,INTID:HOURS)
-  
-  ## Isolate species, clips, and lengths and make long format
-  ## Change missing SPECCODEs to actual NAs
-  specInts <- dplyr::select(dints,INTID,contains("SPEC")) %>%
-    tidyr::gather(tmp,SPECCODE,-INTID) %>%
-    dplyr::select(-tmp) %>%
-    dplyr::mutate(SPECCODE=ifelse(SPECCODE=="",NA,SPECCODE))
-  
-  ## Isolate clips, make long, change code to word, add clipped variable
-  clipInts <- dplyr::select(dints,INTID,contains("CLIP")) %>%
-    tidyr::gather(tmp,CLIPCODE,-INTID) %>%
-    dplyr::select(-tmp)
-  
-  ## Isolate lengths, make long
-  lenInts <- dplyr::select(dints,INTID,contains("LEN")) %>%
-    tidyr::gather(tmp,LEN,-INTID) %>%
-    dplyr::select(-tmp)
-  
-  ## Put species, clips, and lengths back together
-  ## Reduce to only those where a species, clip, or length was recorded (this
-  ##   allows for one to be missing ... most commonly a length)
-  sclInts <- cbind(specInts,
-                   clipInts[,"CLIPCODE",drop=FALSE],
-                   lenInts[,"LEN",drop=FALSE]) %>%
-    dplyr::filter(!(is.na(SPECCODE) & is.na(CLIPCODE) & is.na(LEN)))
-  
-  ## Expand records that were only counts of fish (when CLIPCODE==99 or when
-  ## CLIPCODE='099' ... extra work is needed here because the CLIPCODE can be
-  ## either numeric or character depending on original file type)
-  if (is.character(sclInts$CLIPCODE)) {
-    if (any(sclInts$CLIPCODE=='099',na.rm=TRUE)) {
-      ### isolate records to be expanded
-      tmp <- dplyr::filter(sclInts,CLIPCODE=='099')
-      ### determine how many of each row to repeat, repeat those rows, 
-      ###   replace CLIPCODE with '040' (for not examined), replace LEN with NA
-      reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
-      tmp2 <- tmp[reprows,] %>%
-        dplyr::mutate(CLIPCODE='040',LEN=NA)
-      ### combine originals without records that needed expanding, with expanded
-      sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!='099'),tmp2)
-    }
-  } else {
-    if (any(sclInts$CLIPCODE==99,na.rm=TRUE)) {
-      ### isolate records to be expanded
-      tmp <- dplyr::filter(sclInts,CLIPCODE==99)
-      ### determine how many of each row to repeat, repeat those rows, 
-      ###   replace CLIPCODE with 40 (for not examined), replace LEN with NA
-      reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
-      tmp2 <- tmp[reprows,] %>%
-        dplyr::mutate(CLIPCODE=40,LEN=NA)
-      ### combine originals without records that needed expanding, with expanded
-      sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!=99),tmp2)
-    }
-  }
-  
-  ## Add words from codes
-  sclInts %<>% dplyr::mutate(SPECIES=iMvSpecies(SPECCODE),
-                             CLIP=iMvFinclips(CLIPCODE),
-                             CLIPPED=iFinclipped(CLIP)) %>%
-    dplyr::select(INTID,SPECCODE,SPECIES,CLIPCODE,CLIP,CLIPPED,LEN)
-  
-  ## Join back on the main interview information
-  tmp <- dplyr::right_join(mainInts,sclInts,by="INTID") %>%
-    dplyr::arrange(INTID)
-  
-  ## Return data.frame
-  as.data.frame(tmp)
 }
 
 
@@ -428,7 +353,7 @@ sumLengths <- function(d,var) {
   lenSum4 <- dplyr::select(lenSum4,names(lenSum1))
   ## put them all together
   lenSum <- rbind(lenSum1,lenSum2,lenSum3,lenSum4) %>%
-    mutate(SPECIES=iMvSpecies(SPECIES),
+    mutate(SPECIES=iHndlSpecies(SPECIES),
            MONTH=iOrderMonths(MONTH,addAll=TRUE))
   if (tmp=="CLIPPED") {
     lenSum %<>%
@@ -726,10 +651,10 @@ table4 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
+    dplyr::mutate(WATERS=iHndlWaters(WATERS,addAll=TRUE),
+                  FISHERY=iHndlFishery(FISHERY,addAll=TRUE),
                   MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+                  DAYTYPE=iHndlDaytype(DAYTYPE,addAll=TRUE)) %>%
     ## Select only variables for the table
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,PHOURS,SDPHOURS,PARTY,
                   INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS) %>%
@@ -794,10 +719,10 @@ table5 <- function(fnpre) {
   tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  SPECIES=iMvSpecies(SPECIES)) %>%
+                  WATERS=iHndlWaters(WATERS,addAll=TRUE),
+                  DAYTYPE=iHndlDaytype(DAYTYPE,addAll=TRUE),
+                  FISHERY=iHndlFishery(FISHERY,addAll=TRUE),
+                  SPECIES=iHndlSpecies(SPECIES)) %>%
     ## Select only variables for the table
     dplyr::select(WATERS,FISHERY,SPECIES,MONTH,DAYTYPE,
                   HARVEST,SDHARVEST,HRATE) %>%
@@ -867,7 +792,7 @@ table6 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
     ##   Remove fish for which a length was not recorded
-    dplyr::filter(!is.na(LEN)) %>%
+    dplyr::filter(!is.na(LENGTH)) %>%
     ##   Summarize lengths by whether clipped or not
     sumLengths(CLIPPED) %>%
     droplevels() %>%
@@ -913,7 +838,7 @@ table7 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
     ##   Remove fish for which a length was not recorded
-    dplyr::filter(!is.na(LEN))
+    dplyr::filter(!is.na(LENGTH))
   ## Find only those species for which a fin-slip was recorded
   specClipped <- as.character(unique(dplyr::filter(lengths,CLIPPED=="Clip")$SPECIES))
   ##   Summarize lengths by whether clipped or not
@@ -1023,9 +948,9 @@ table8 <- function(dlen) {
 table9 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
-    dplyr::select(SPECIES,MUNIT,SITE,FISHERY,DATE,LEN,CLIP) %>%
-    dplyr::arrange(SPECIES,DATE,LEN) %>%
-    dplyr::rename(`TL (in)`=LEN) %>%
+    dplyr::select(SPECIES,MUNIT,SITE,FISHERY,DATE,LENGTH,CLIP) %>%
+    dplyr::arrange(SPECIES,DATE,LENGTH) %>%
+    dplyr::rename(`TL (in)`=LENGTH) %>%
     droplevels() %>%
     dplyr::mutate(SPECIES=ifelse(duplicated(SPECIES),"",levels(SPECIES)[SPECIES]))
   ## Find rows for extra space above
@@ -1098,7 +1023,7 @@ figure1 <- function(d) {
     ## Select only variables for the figure
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or fisheries
-    dplyr::filter(WATERS=="WI",MONTH!="All") %>%
+    dplyr::filter(WATERS=="Wisconsin",MONTH!="All") %>%
     ## Drop unused levels
     droplevels()
   ## Remove DAYTYPE and FISHERY total rows (i.e., == "All)
@@ -1126,7 +1051,7 @@ figure2 <- function(d) {
     ## Select only variables for the figuree
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or Fisheries
-    dplyr::filter(WATERS=="WI",MONTH!="All") %>%
+    dplyr::filter(WATERS=="Wisconsin",MONTH!="All") %>%
     dplyr::filter(FISHERY!="All") %>%
     ## Drop unused levels
     droplevels()
@@ -1153,7 +1078,7 @@ figure2 <- function(d) {
 figure3 <- function(d) {
   tmp <- d %>%
     ## Just WI waters
-    dplyr::filter(WATERS=="WI") %>%
+    dplyr::filter(WATERS=="Wisconsin") %>%
     ## Get the total total total rows (to find topN)
     dplyr::filter(MONTH=="All",DAYTYPE=="All",FISHERY=="All")
   
@@ -1175,7 +1100,7 @@ figure3 <- function(d) {
 figure4 <- function(d,topN=3) {
   tmp <- d %>%
     ## Just WI waters
-    dplyr::filter(WATERS=="WI")
+    dplyr::filter(WATERS=="Wisconsin")
   ## Remove MONTH, DAYTYPE, and FISHERY total rows (i.e., == "All)
   tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE!="All",FISHERY!="All")
   ## Get the DAYTYPE total rows (for error bars in ggplot)
@@ -1208,7 +1133,7 @@ figure4 <- function(d,topN=3) {
 figure5 <- function(d,topN=3) {
   tmp <- d %>%
     ## Just WI waters
-    dplyr::filter(WATERS=="WI")
+    dplyr::filter(WATERS=="Wisconsin")
   ## Get the DAYTYPE nd FISHERY total rows (for error bars in ggplot)
   tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE=="All",FISHERY=="All") %>%
     dplyr::mutate(DAYTYPE=NA)
@@ -1247,7 +1172,7 @@ figure6 <- function(dlen,topN=3) {
   # Reduce original data.frame to the topN species
   dlen %<>% filter(SPECIES %in% TOPN$SPECIES)
   # Make the plot
-  p <- ggplot(data=dlen,aes(x=LEN,fill=CLIPPED)) +
+  p <- ggplot(data=dlen,aes(x=LENGTH,fill=CLIPPED)) +
     geom_histogram(binwidth=1,na.rm=TRUE) +
     xlab("Length (Inches)") +
     ylab("Relative Frequency") +
@@ -1318,13 +1243,19 @@ iMvDaylen <- function(x,DAY_LENGTH) {
 }
 
 ## Create "waters" variable to identify if the fished area was in WI or not
-iHndlWaters <- function(x,droplevels=FALSE) {
+iMvWaters <- function(x) {
   x <- dplyr::case_when(
-    x=="Minnesota" ~ "Non-Wisconsin",
-    x=="Michigan" ~ "Non-Wisconsin",
+    x=="MN" ~ "Non-Wisconsin",
+    x=="MI" ~ "Non-Wisconsin",
     TRUE ~ "Wisconsin"
   )
-  x <- factor(x,levels=c("Wisconsin","Non-Wisconsin"))
+  x
+}
+
+iHndlWaters <- function(x,addAll=TRUE,droplevels=FALSE) {
+  tmp <- c("Wisconsin","Non-Wisconsin")
+  if (addAll) tmp <- c(tmp,"All")
+  x <- factor(x,levels=tmp)
   if (droplevels) x <- droplevels(x)
   x
 }
@@ -1384,9 +1315,12 @@ iOrderMonths <- function(x,addAll=FALSE) {
 
 
 iSumLen <- function(dgb) {
-  tmp <- dplyr::summarize(dgb,n=dplyr::n(),mnLen=mean(LEN,na.rm=TRUE),
-                          sdLen=sd(LEN,na.rm=TRUE),seLen=FSA::se(LEN,na.rm=TRUE),
-                          minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
+  tmp <- dplyr::summarize(dgb,n=dplyr::n(),
+                          mnLen=mean(LENGTH,na.rm=TRUE),
+                          sdLen=sd(LENGTH,na.rm=TRUE),
+                          seLen=FSA::se(LENGTH,na.rm=TRUE),
+                          minLen=min(LENGTH,na.rm=TRUE),
+                          maxLen=max(LENGTH,na.rm=TRUE)) %>%
     as.data.frame()
   tmp$sdLen[is.nan(tmp$sdLen)] <- NA
   tmp

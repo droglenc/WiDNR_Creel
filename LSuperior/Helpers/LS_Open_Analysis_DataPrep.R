@@ -81,7 +81,7 @@ pressureCount <- readxl::read_excel(file.path(RDIR,CNTS_FILE)) %>%
   dplyr::mutate(
     DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
     MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
-    MONTH=iHndlMonth(MONTH,droplevels=TRUE),
+    MONTH=droplevels(factor(month.abb[MONTH],levels=month.abb,ordered=TRUE)),
     WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
     DAYTYPE=iHndlDaytype(iMvDaytype(DAYTYPE),droplevels=TRUE),
     SITE=iHndlSiteDesc(SITE,SITEDESC),
@@ -141,7 +141,7 @@ intvs_ORIG <- readxl::read_excel(file.path(RDIR,INTS_FILE)) %>%
     ## Handle dates (find weekends/days) & times (incl. hrs of effort)
     DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
     MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
-    MONTH=iHndlMonth(MONTH,droplevels=TRUE),
+    MONTH=droplevels(factor(month.abb[MONTH],levels=month.abb,ordered=TRUE)),
     WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
     ## Convert to factors
     DAYTYPE=iHndlDaytype(iMvDaytype(DAYTYPE),droplevels=TRUE),
@@ -229,41 +229,13 @@ intvdEffortWaters <- sumInterviewedEffort(intvs)
 #   * To expand catch to harvest further below.
 # EXPORTED: Exported as "LOCATION_YEAR_ttlEffort.csv".
 ttlEffort <- sumEffort(intvdEffortWaters,pressureCount) %>% 
-  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(MUNIT)) %>%
+  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(iMvWaters(MUNIT))) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:VTRIPS)
 writeDF(ttlEffort,fnpre)
 
 
 
 ## Calculate Harvest -----------------------------------------------------------
-# RESULT: data.frame from ints_ORIG of mostly just fish-related data
-#   * INTID: A unique ID for each interview
-#   * DATE: Date of interview ... maintained for Table 9
-#   * YEAR: Year of interview
-#   * STATE: State fished (e.g., WI, WI/MN)
-#   * SITE: Specific site code (of landing) ... maintained for Table 9
-#   * DAYTYPE: Type of day (Weekday or Weekend ... holidays are weekends)
-#   * FISHERY: Type of fishery (e.g., cold-open, warm-open)
-#   * MONTH: Month of interview
-#   * HOURS: Hours that party fished
-#   * SPECIES: Species name of fish harvested
-#   * CLIP: Fin-clip type (code + name)
-#   * CLIPPED: Whether the fish was clipped or not (CLIP or NO CLIP)
-#   * LEN: Measured length of the fish (inches, nearest tenth)
-# NOTES:
-#   * Removed non-fishing records
-#   * At times the clerk only recorded the number of fish. In these cases the
-#     number was expanded to separate rows for each fish but no LEN, CLIP, or
-#     CLIPPED was recorded. These instances were recorded as CLIPCODE1=99 in
-#     the original interviews data file.
-# USE: To compute harvest and summarize length data further below.
-# EXPORTED: Not exported to a file.
-#!ints_FISH <- rearrangeFishInfo(ints_ORIG) %>%
-#!  dplyr::filter(FISHERY!="NON-FISHING") %>%
-#!  dplyr::select(INTID,DATE,YEAR,MUNIT,STATE,SITE,DAYTYPE,FISHERY,MONTH,
-#!                HOURS,SPECIES,CLIP,CLIPPED,LEN) %>%
-#!  droplevels()
-
 # RESULT: data.frame that summarizes (see below) harvest observed from
 #         interviews by strata (WATERS, DAYTYPE, FISHERY, MONTH, SPECIES)
 #   * YEAR, WATERS, DAYTYPE, FISHERY, MONTH: as defined above
@@ -309,7 +281,7 @@ ttlEffort2 <- ttlEffort %>%
 # USE: For Table 5 and Figure 3-5.
 # EXPORTED: Exported to "LOCATION_YEAR_ttlHarvest.csv"
 ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2) %>%
-  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(MUNIT)) %>%
+  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(iMvWaters(MUNIT))) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:HRATE)
 writeDF(ttlHarvest,fnpre)
 
@@ -340,7 +312,7 @@ intvs_FISH <- intvs_ORIG %>%
 
 lengths <- dplyr::right_join(intvs_FISH,fish,by="INTERVIEW") %>%
   dplyr::mutate(ROUTE=LOC,
-                WATERS=iHndlWaters(MUNIT),
+                WATERS=iHndlWaters(iMvWaters(MUNIT)),
                 CLIPPED=ifelse(CLIP=="Native","No Clip","Clip")) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT,FISHERY,MONTH,
                 DATE,SITE,SPECIES,CLIP,CLIPPED,LENGTH) %>%
