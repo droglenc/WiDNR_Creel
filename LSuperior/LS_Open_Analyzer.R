@@ -18,7 +18,8 @@
 #     AFTER sourcing this script ==>  combineCSV(RDIR,YEAR,removeOrig=TRUE)
 #
 # R VERSIONS (CONVERTED FROM SAS): 
-#     XXXX, 201X (version 2 - Derek O)
+#     XXXX, 2019 (version 3 - Derek O)
+#     SEPTEMBER, 2019 (version 2 - Derek O)
 #     JULY, 2016 (version 1 - Iyob T)
 #
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
