@@ -45,11 +45,19 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
                                        to=c("Weekday","Weekday","Weekday",
                                             "Weekday","Weekday",
                                             "Weekend","Weekend"),warn=FALSE),
-                DAYTYPE=iHndlHolidays(MONTH,MDAY,WDAY,DAYTYPE),
+                ## Handle Hoidays (find them, make them a weekend)
+                DAYTYPE=dplyr::case_when(
+                  MONTH=="Jan" & MDAY==1 ~ "Weekend",                # New Years Day
+                  MONTH=="May" & MDAY>=25 & WDAY=="Mon" ~ "Weekend", # Memorial Day
+                  MONTH=="Jul" & MDAY==4 ~ "Weekend",                # 4th of July
+                  MONTH=="Sep" & MDAY<=7 & WDAY=="Mon" ~ "Weekend",  # Labor Day
+                  TRUE ~ as.character(DAYTYPE)),
                 DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend"))) %>%
+  ## Count the number of each DAYTYPE in each MONTH
   dplyr::group_by(YEAR,MONTH,DAYTYPE) %>%
   dplyr::summarize(DAYS=n()) %>%
-  dplyr::mutate(DAYLEN=iMvDaylen(MONTH,DAY_LENGTH)) %>%
+  ## Add on the day length for each month
+  dplyr::mutate(DAYLEN=DAY_LENGTH[as.character(MONTH)]) %>%
   as.data.frame()
 
 
@@ -74,17 +82,18 @@ calSum <- data.frame(DATE=seq(SDATE,FDATE,1)) %>%
 # USE: Expanded to population counts below.
 # EXPORTED: Not exported to a file.
 pressureCount <- readxl::read_excel(file.path(RDIR,CNTS_FILE)) %>%
-  ## Filter to chosen route
-  dplyr::filter(ROUTE==LOC,YEAR==YR) %>%
   ## Change all variable names to upper-case (easier to remember)
   dplyr::rename_all(.funs=toupper) %>%
+  ## Filter to chosen route
+  dplyr::filter(ROUTE==LOC,YEAR==YR) %>%
   dplyr::mutate(
     DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
     MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
     MONTH=droplevels(factor(month.abb[MONTH],levels=month.abb,ordered=TRUE)),
     WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
-    DAYTYPE=iHndlDaytype(iMvDaytype(DAYTYPE),droplevels=TRUE),
-    SITE=iHndlSiteDesc(SITE,SITEDESC),
+    DAYTYPE=FSA::mapvalues(DAYTYPE,from="Weekend/Holiday",to="Weekend"),
+    DAYTYPE=droplevels(factor(DAYTYPE,levels=c("Weekday","Weekend"))),
+    SITE=paste0(SITE,"-",FSA::capFirst(SITEDESC)),
     # Calculate the "WAIT" time (hours at the site)
     WAIT=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE),
     # Convert average counts (the original TOTAL variable) to "total effort"
@@ -131,10 +140,10 @@ pressureCount <- expandPressureCounts(pressureCount,calSum)
 #      Joined with the fish data.
 # EXPORTED: Not exported to a file.
 intvs_ORIG <- readxl::read_excel(file.path(RDIR,INTS_FILE)) %>%
-  ## Filter to chosen route
-  dplyr::filter(ROUTE==LOC,YEAR==YR) %>%
   ## Change all variable names to upper-case (easier to remember)
   dplyr::rename_all(.funs=toupper) %>%
+  ## Filter to chosen route
+  dplyr::filter(ROUTE==LOC,YEAR==YR) %>%
   ## Rename a few variables
   dplyr::rename(SPECIES=SPP,HARVEST=NUM) %>%
   dplyr::mutate(
@@ -144,12 +153,14 @@ intvs_ORIG <- readxl::read_excel(file.path(RDIR,INTS_FILE)) %>%
     MONTH=droplevels(factor(month.abb[MONTH],levels=month.abb,ordered=TRUE)),
     WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
     ## Convert to factors
-    DAYTYPE=iHndlDaytype(iMvDaytype(DAYTYPE),droplevels=TRUE),
-    FISHERY=iHndlFishery(FISHERY,droplevels=TRUE),
-    MUNIT=iMvMgmtUnit(UNIT,droplevels=TRUE),
-    SPECIES=iHndlSpecies(SPECIES,droplevels=TRUE),
+    DAYTYPE=FSA::mapvalues(DAYTYPE,from="Weekend/Holiday",to="Weekend"),
+    DAYTYPE=droplevels(factor(DAYTYPE,levels=c("Weekday","Weekend"))),
+    FISHERY=droplevels(factor(FISHERY,levels=lvlsFISHERY)),
+    MUNIT=droplevels(factor(UNIT,levels=c("WI-1","WI-2","MI","MN"))),
+    SPECIES=FSA::capFirst(SPECIES),
+    SPECIES=droplevels(factor(SPECIES,levels=lvlsSPECIES)),
     ## Create longer site description
-    SITE=iHndlSiteDesc(SITE,SITEDESC),
+    SITE=paste0(SITE,"-",FSA::capFirst(SITEDESC)),
     ## Find hrs of effort
     HOURS=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE)) %>%
   ## Rearrange vars (& drop SUCCESS, RES, STARTHH, STARTMM, STOPHH, STOPMM,NUM)
@@ -174,6 +185,9 @@ intvs_ORIG <- readxl::read_excel(file.path(RDIR,INTS_FILE)) %>%
 # USE: Ultimately sent to make Table 2 and expanded to entire population below.
 # EXPORTED: Not exported to a file.
 intvs <- intvs_ORIG %>%
+  ## Reduce to records of All Fish only to remove duplicated variables
+  dplyr::filter(SPECIES=="All Fish") %>%
+  ## Restrict to variables of interest
   dplyr::select(YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,HOURS,PERSONS,STATUS)
 
 # RESULT: A data.frame that summarizes the number of OBSERVED interviews and
@@ -229,7 +243,9 @@ intvdEffortWaters <- sumInterviewedEffort(intvs)
 #   * To expand catch to harvest further below.
 # EXPORTED: Exported as "LOCATION_YEAR_ttlEffort.csv".
 ttlEffort <- sumEffort(intvdEffortWaters,pressureCount) %>% 
-  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(iMvWaters(MUNIT))) %>%
+  dplyr::mutate(ROUTE=LOC,
+                WATERS=iMvWaters(MUNIT),
+                WATERS=factor(WATERS,levels=c("Wisconsin","Non-Wisconsin"))) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:VTRIPS)
 writeDF(ttlEffort,fnpre)
 
@@ -281,7 +297,9 @@ ttlEffort2 <- ttlEffort %>%
 # USE: For Table 5 and Figure 3-5.
 # EXPORTED: Exported to "LOCATION_YEAR_ttlHarvest.csv"
 ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2) %>%
-  dplyr::mutate(ROUTE=LOC,WATERS=iHndlWaters(iMvWaters(MUNIT))) %>%
+  dplyr::mutate(ROUTE=LOC,
+                WATERS=iMvWaters(MUNIT),
+                WATERS=factor(WATERS,levels=c("Wisconsin","Non-Wisconsin"))) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:HRATE)
 writeDF(ttlHarvest,fnpre)
 
@@ -292,13 +310,14 @@ writeDF(ttlHarvest,fnpre)
 # USE: Joined with interview data below.
 # EXPORTED: Not exported to a file.
 fish <- readxl::read_excel(file.path(RDIR,FISH_FILE)) %>%
-  ## Filter to chosen route
-  dplyr::filter(ROUTE==LOC) %>%
   ## Change all variable names to upper-case (easier to remember)
   dplyr::rename_all(.funs=toupper) %>%
+  ## Filter to chosen route and survey years
+  dplyr::filter(ROUTE==LOC,SURVEY==YR) %>%
   dplyr::rename(SPECIES=SPP) %>%
   dplyr::select(INTERVIEW,SPECIES,LENGTH,CLIP) %>%
-  dplyr::mutate(SPECIES=iHndlSpecies(SPECIES,droplevels=TRUE))
+  dplyr::mutate(SPECIES=FSA::capFirst(SPECIES),
+                SPECIES=droplevels(factor(SPECIES,levels=lvlsSPECIES)))
 
 # RESULT: re-arranged data.frame from ints_FISH for export
 #   * All but WT variable defined previously.
@@ -308,11 +327,15 @@ fish <- readxl::read_excel(file.path(RDIR,FISH_FILE)) %>%
 # USE: For Tables 6-9 and Figure 6.
 # EXPORTED: Exported to "LOCATION_YEAR_lengths.csv"
 intvs_FISH <- intvs_ORIG %>%
+  filter(SPECIES=="All Fish") %>%
   select(INTERVIEW,YEAR,MUNIT,FISHERY,MONTH,DATE,SITE)
 
 lengths <- dplyr::right_join(intvs_FISH,fish,by="INTERVIEW") %>%
   dplyr::mutate(ROUTE=LOC,
-                WATERS=iHndlWaters(iMvWaters(MUNIT)),
+                WATERS=iMvWaters(MUNIT),
+                WATERS=droplevels(factor(WATERS,
+                                  levels=c("Wisconsin","Non-Wisconsin"))),
+                CLIP=droplevels(factor(CLIP,levels=lvlsCLIP)),
                 CLIPPED=ifelse(CLIP=="Native","No Clip","Clip")) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT,FISHERY,MONTH,
                 DATE,SITE,SPECIES,CLIP,CLIPPED,LENGTH) %>%
