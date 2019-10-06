@@ -13,51 +13,29 @@ for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
 
 
 
+## Constants -------------------------------------------------------------------
+## DEREK --> ASK WHAT THIS ENTIRE LIST WILL BE
+lvlsFISHERY <- c("Open-Water Cold","Open-Water Cool","Pleasure","Shore",
+                 "Stream","Tribal")
+lvlsSPECIES <- c('Lake Trout','Siscowet Lake Trout','Atlantic Salmon',
+                 'Brook Trout','Brown Trout','Coho Salmon','Chinook Salmon',
+                 'Pink Salmon','Rainbow Trout','Splake',
+                 'Lake Herring','Lake Whitefish','Round Whitefish',
+                 'Smelt','Burbot','Lake Sturgeon',
+                 'Walleye','Yellow Perch','Ruffe','White Perch',
+                 'Northern Pike',"Muskellunge",
+                 'Bluegill','Pumpkinseed','Sunfish','Black Crappie','Crappie',
+                 'Largemouth Bass','Rock Bass','Smallmouth Bass',
+                 'Channel Catfish','Common Carp',
+                 'All Fish')
+lvlsCLIP <- c("Native","Adipose","LRAd","RRAd","LFAd","RFAd","LR","RR","LF",
+              "RF","BR","RFLR","BRAd","D","LFRR","RRD","RFD","RFLF","LFLR",
+              "DAd","BRD","LFD","LRD","RFM","LMAd","LFM","Hatchery/Curled Fin",
+              "RRRFAD","LFRRAd","RFBR","LRRR","BF","RFRR","Not checked")
+
+
+
 ## Main Helpers ----------------------------------------------------------------
-
-## Read and prepare the pressure counts data file
-##  Note that counts (for Lake Superior) from the original file are average
-##    number of parties present during the wait time, not total effort seen
-##    during the wait time.
-readPressureCountData <- function(FN,RDIR,LOC,SDATE,FDATE,dropHM=TRUE) {
-  FN <- file.path(RDIR,FN)
-  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(FN)
-  else d <- read.csv(FN)
-  d <- d %>%
-    # Find various varsions of dates (note that DATE had to be handled
-    #   differently than above b/c four rather than two digits used here).
-    dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
-                  YEAR=lubridate::year(DATE),
-                  MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
-                  WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
-                  DAYTYPE=iMvDaytype(WDAY,MONTH,DAY),
-                  # Convert missing COUNTs to zeroes
-                  COUNT=iConvNA20(COUNT),
-                  # Calculate the "WAIT" time (hours at the site)
-                  WAIT=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,
-                                  DATE,SDATE,FDATE),
-                  # Convert average counts (the original COUNT variable) to
-                  # "total effort" during shift (by muliplying by the WAIT time)
-                  # so that multiple shifts on each day can be combined (from
-                  # original SAS code).
-                  COUNT=COUNT*WAIT
-    )
-  # Drop hours and minutes variables if asked to do so
-  if (dropHM) d <- dplyr::select(d,-(STARTMM:STOPHH))
-  d %<>% 
-    # Remove records with "bad" wait times
-    dplyr::filter(!is.na(WAIT)) %>%
-    # Narrow variable list down
-    dplyr::select(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE,WAIT,COUNT) %>%
-    # Combine observations of WAIT and COUNT from multiple visits to the same
-    #   SITE within the same day
-    dplyr::group_by(YEAR,MONTH,DAY,WDAY,DAYTYPE,SITE) %>%
-    dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT))
-  # Return data.frame
-  as.data.frame(d)
-}
-
-
 ## Expand pressure counts from observed days/times to daylengths & days/month
 expandPressureCounts <- function(dcnts,cal) {
   ## Isolate daylengths for each month from the calendar
@@ -115,63 +93,18 @@ expandPressureCounts <- function(dcnts,cal) {
 }
 
 
-## Read and prepare the interview data file
-readInterviewData <- function(FN,RDIR,LOC,SDATE,FDATE,dropCLS=TRUE) {
-  FN <- file.path(RDIR,FN)
-  if (tools::file_ext(FN)=="sas7bdat") d <- haven::read_sas(FN)
-  else d <- read.csv(FN)
-  d <- d %>%
-    ## Add interview ID number
-    dplyr::mutate(INTID=1:dplyr::n(),
-                  ## Convert some codes to words
-                  STATE=iMvStates(STATE),
-                  FISHERY=iMvFishery(FISHERY),
-                  STATUS=iMvStatus(STATUS),
-                  RES=iMvResidency(RES),
-                  ## Handle dates (find weekends/days) & times (incl. hrs of effort)
-                  DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%y"),
-                  YEAR=lubridate::year(DATE),
-                  MONTH=lubridate::month(DATE,label=TRUE,abbr=TRUE),
-                  WDAY=lubridate::wday(DATE,label=TRUE,abbr=TRUE),
-                  ## Find weekends/days
-                  DAYTYPE=iMvDaytype(WDAY,MONTH,DAY),
-                  ## Find hrs of effort
-                  HOURS=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,
-                                   DATE,SDATE,FDATE))
-  ## Handle management unit variable ... will add MUNIT if it is missing.
-  d %<>% mutate(MUNIT=iMvMgmtUnit(.,LOC))
-  ## Drop CLIP, LEN, and SPEC variables that have no data, if asked to
-  if (dropCLS) {
-    allNA <- sapply(d,function(x) {
-      if (is.character(x)) all(is.na(x) | x=="")
-      else all(is.na(x))
-    })
-    d <- d[,!allNA]
-  }
-  ## Rearrange vars (& drop SUCCESS, FISH, RES, STARTHH, STARTMM, STOPHH, STOPMM)
-  d %<>% dplyr::select(INTID,DATE,YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
-                       DAY,SITE,STATUS,HOURS,PERSONS,
-                       contains("SPEC"),contains("CLIP"),contains("LEN")) %>%
-    ## Drop "bad" HOURS records
-    dplyr::filter(!is.na(HOURS)) %>%
-    ## Drop unused levels for factor variables
-    droplevels()
-  ## Return data.frame
-  as.data.frame(d)
-}
-
 ##
 sumInterviewedEffort <- function(dints) {
   # All records where fishing was in one state
-  f1 <- dplyr::filter(dints,!STATE %in% c("WI/MN","WI/MI"))
+  f1 <- dplyr::filter(dints,!STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan"))
   # All records where fishing was in two states
-  f2 <- dplyr::filter(dints,STATE %in% c("WI/MN","WI/MI")) %>%
+  f2 <- dplyr::filter(dints,STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan")) %>%
     ## Cut the fishing effort (HOURS) in half (apportioned to each state)
     dplyr::mutate(HOURS=0.5*HOURS)
   # Duplicate f2 to get other half of HOURS
   f3 <- f2 %>%
     ## label MUNIT as other state
-    dplyr::mutate(MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
+    dplyr::mutate(MUNIT=ifelse(STATE=="Wisconsin/Minnesota","MN","MI"))
   
   # Combine to get all interviews corrected for location
   f <- rbind(f1,f2,f3) %>%
@@ -307,98 +240,20 @@ sumEffort <- function(ieff,pct) {
 }
 
 
-## Rearrange fish information from interviews
-##   Note that FINCLIP=99 means length field has number of fish harvested.
-rearrangeFishInfo <- function(dints) {
-  ## Get the main information about the interview
-  mainInts <- dplyr::select(dints,INTID:HOURS)
-  
-  ## Isolate species, clips, and lengths and make long format
-  ## Change missing SPECCODEs to actual NAs
-  specInts <- dplyr::select(dints,INTID,contains("SPEC")) %>%
-    tidyr::gather(tmp,SPECCODE,-INTID) %>%
-    dplyr::select(-tmp) %>%
-    dplyr::mutate(SPECCODE=ifelse(SPECCODE=="",NA,SPECCODE))
-  
-  ## Isolate clips, make long, change code to word, add clipped variable
-  clipInts <- dplyr::select(dints,INTID,contains("CLIP")) %>%
-    tidyr::gather(tmp,CLIPCODE,-INTID) %>%
-    dplyr::select(-tmp)
-  
-  ## Isolate lengths, make long
-  lenInts <- dplyr::select(dints,INTID,contains("LEN")) %>%
-    tidyr::gather(tmp,LEN,-INTID) %>%
-    dplyr::select(-tmp)
-  
-  ## Put species, clips, and lengths back together
-  ## Reduce to only those where a species, clip, or length was recorded (this
-  ##   allows for one to be missing ... most commonly a length)
-  sclInts <- cbind(specInts,
-                   clipInts[,"CLIPCODE",drop=FALSE],
-                   lenInts[,"LEN",drop=FALSE]) %>%
-    dplyr::filter(!(is.na(SPECCODE) & is.na(CLIPCODE) & is.na(LEN)))
-  
-  ## Expand records that were only counts of fish (when CLIPCODE==99 or when
-  ## CLIPCODE='099' ... extra work is needed here because the CLIPCODE can be
-  ## either numeric or character depending on original file type)
-  if (is.character(sclInts$CLIPCODE)) {
-    if (any(sclInts$CLIPCODE=='099',na.rm=TRUE)) {
-      ### isolate records to be expanded
-      tmp <- dplyr::filter(sclInts,CLIPCODE=='099')
-      ### determine how many of each row to repeat, repeat those rows, 
-      ###   replace CLIPCODE with '040' (for not examined), replace LEN with NA
-      reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
-      tmp2 <- tmp[reprows,] %>%
-        dplyr::mutate(CLIPCODE='040',LEN=NA)
-      ### combine originals without records that needed expanding, with expanded
-      sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!='099'),tmp2)
-    }
-  } else {
-    if (any(sclInts$CLIPCODE==99,na.rm=TRUE)) {
-      ### isolate records to be expanded
-      tmp <- dplyr::filter(sclInts,CLIPCODE==99)
-      ### determine how many of each row to repeat, repeat those rows, 
-      ###   replace CLIPCODE with 40 (for not examined), replace LEN with NA
-      reprows <- rep(seq_len(nrow(tmp)),tmp$LEN)
-      tmp2 <- tmp[reprows,] %>%
-        dplyr::mutate(CLIPCODE=40,LEN=NA)
-      ### combine originals without records that needed expanding, with expanded
-      sclInts <- rbind(dplyr::filter(sclInts,CLIPCODE!=99),tmp2)
-    }
-  }
-  
-  ## Add words from codes
-  sclInts %<>% dplyr::mutate(SPECIES=iMvSpecies(SPECCODE),
-                             CLIP=iMvFinclips(CLIPCODE),
-                             CLIPPED=iFinclipped(CLIP)) %>%
-    dplyr::select(INTID,SPECCODE,SPECIES,CLIPCODE,CLIP,CLIPPED,LEN)
-  
-  ## Join back on the main interview information
-  tmp <- dplyr::right_join(mainInts,sclInts,by="INTID") %>%
-    dplyr::arrange(INTID)
-  
-  ## Return data.frame
-  as.data.frame(tmp)
-}
-
-
 ## Summarize observed harvest by strata and species
 sumObsHarvest <- function(d) {
   ## Compute harvest for each interview
   harv <- d %>%
-    dplyr::group_by(INTID,YEAR,MUNIT,STATE,FISHERY,DAYTYPE,MONTH,
-                    DATE,HOURS,SPECIES) %>%
-    dplyr::summarize(HARVEST=dplyr::n()) %>%
-    dplyr::ungroup()
+    dplyr::filter(FISHERY!="non-fishing")
 
   ## Harvest for when fishing only in one state
-  h1 <- dplyr::filter(harv,!STATE %in% c("WI/MN","WI/MI"))
+  h1 <- dplyr::filter(harv,!STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan"))
   ## Harvest for when fishing in more than one state ... harvest cut in half
-  h2 <- dplyr::filter(harv,STATE %in% c("WI/MN","WI/MI")) %>%
+  h2 <- dplyr::filter(harv,STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan")) %>%
     dplyr::mutate(HOURS=0.5*HOURS,HARVEST=0.5*HARVEST)
   ## Duplicated h2 to get other half of HOURS/HARVEST, label MUNITS
   h3 <- h2 %>%
-    dplyr::mutate(MUNIT=ifelse(STATE=="WI/MN","MN","MI"))
+    dplyr::mutate(MUNIT=ifelse(STATE=="Wisconsin/Minnesota","MN","MI"))
   ## Combine to get all interviews corrected for location
   harv <- rbind(h1,h2,h3)
   ## Summarize harvest by strata and species
@@ -520,14 +375,16 @@ sumLengths <- function(d,var) {
   lenSum4 <- dplyr::select(lenSum4,names(lenSum1))
   ## put them all together
   lenSum <- rbind(lenSum1,lenSum2,lenSum3,lenSum4) %>%
-    mutate(SPECIES=iMvSpecies(SPECIES),
+    mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES),
            MONTH=iOrderMonths(MONTH,addAll=TRUE))
   if (tmp=="CLIPPED") {
     lenSum %<>%
       dplyr::mutate(CLIPPED=factor(CLIPPED,levels=c("No Clip","Clip","All"))) %>%
       dplyr::arrange(YEAR,SPECIES,MONTH,CLIPPED)
   } else {
-    lenSum %<>% dplyr::arrange(YEAR,SPECIES,MONTH,CLIP)
+    lenSum %<>% 
+      dplyr::mutate(CLIP=droplevels(factor(CLIP,levels=c(lvlsCLIP,"All")))) %>%
+      dplyr::arrange(YEAR,SPECIES,MONTH,CLIP)
   }
   ## Remove rows that are duplicates of a previous row for just the summary vars
   lenSum %<>% filter(FSA::repeatedRows2Keep(.,
@@ -546,12 +403,12 @@ addWeights <- function(d,RDIR,YEAR) {
     mutate(SPECIES2=FSA::capFirst(SPECIES)) %>%
     select(SPECIES2,a,b)
   
-  ## Temporarily create SPECIES2 to handle different eqnfor clipped lake trout
+  ## Temporarily create SPECIES2 to handle different eqn for clipped lake trout
   d %<>% mutate(SPECIES2=as.character(SPECIES))
   d$SPECIES2[d$SPECIES2=="Lake Trout" & d$CLIPPED=="Clip"] <- "Lake Trout (hatchery)"
   ## Temporarily append a and b values for each fish according to its species
   d %<>% left_join(lwregs,by="SPECIES2") %>%
-    mutate(WT=round(exp(a)*(LEN*25.4)^b,0)) %>%
+    mutate(WEIGHT=round(exp(a)*(LENGTH*25.4)^b,0)) %>%
     select(-SPECIES2,-a,-b)
 }
 
@@ -581,7 +438,81 @@ combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
 
 
 
+## Internals for Mains ----
+## Create "waters" variable to identify if the fished area was in WI or not
+iMvWaters <- function(x) {
+  x <- dplyr::case_when(
+    x=="MN" ~ "Non-Wisconsin",
+    x=="MI" ~ "Non-Wisconsin",
+    TRUE ~ "Wisconsin"
+  )
+  x
+}
+
+## Compute hours of effort, put NAs if before start or after end of survey
+##   period or if stop time is before start time.
+iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
+  START <- STARTHH*60+STARTMM
+  STOP <- STOPHH*60+STOPMM
+  dplyr::case_when(
+    DATE < SDATE ~ NA_real_,   # Date before start date
+    DATE > FDATE ~ NA_real_,   # Date after end date
+    STOP < START ~ NA_real_,   # Stopped before started
+    TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
+  )
+}
+
+## Converts months to an ordered factor
+iOrderMonths <- function(x,addAll=FALSE) {
+  if (addAll) ordered(x,levels=c(format(ISOdate(2004,1:12,1),"%b"),"All"))
+  else ordered(x,levels=format(ISOdate(2004,1:12,1),"%b"))
+}
+
+## Convenience function for summarizing lengths
+iSumLen <- function(dgb) {
+  tmp <- dplyr::summarize(dgb,n=dplyr::n(),
+                          mnLen=mean(LENGTH,na.rm=TRUE),
+                          sdLen=sd(LENGTH,na.rm=TRUE),
+                          seLen=FSA::se(LENGTH,na.rm=TRUE),
+                          minLen=min(LENGTH,na.rm=TRUE),
+                          maxLen=max(LENGTH,na.rm=TRUE)) %>%
+    as.data.frame()
+  tmp$sdLen[is.nan(tmp$sdLen)] <- NA
+  tmp
+}
+
+## Converts missing values to zeroes
+iConvNA20 <- function(x) {
+  dplyr::case_when(
+    is.na(x) ~ 0,
+    TRUE ~ x
+  )
+}
+
+## Convenience function for making a file of the data.frame in x
+writeDF <- function(x,fnpre) {
+  x1 <- deparse(substitute(x))
+  write.csv(x,file=paste0(fnpre,x1,".csv"),
+            row.names=FALSE,quote=FALSE,na="")
+}
+
+
+
 ## Tables ----------------------------------------------------------------------
+## Add final characteristics to all tables
+iFinishTable <- function(h,labelsRow,labelsCol) {
+  h <- h %>%
+    # Line above top and below bottom of table
+    set_top_border(row=1,col=everywhere,2) %>%
+    set_bottom_border(row=final(),col=everywhere,2) %>%
+    # Line below variable names
+    set_bottom_border(row=labelsRow,col=everywhere,1) %>%
+    # Bold rows and columns of labels
+    set_bold(row=1:labelsRow,col=everywhere,TRUE) %>%
+    set_bold(row=everywhere,col=1:labelsCol,TRUE)
+  h
+}
+
 tableCaptions <- function() {
   tables <- captioner::captioner(prefix="Table")
   tables(name="Table1",
@@ -818,15 +749,16 @@ table4 <- function(fnpre) {
   ## Prepare data.frame for huxtable
   tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
-    dplyr::mutate(WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
+    dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
+                  WATERS=droplevels(factor(WATERS,
+                                    levels=c("Wisconsin","Non-Wisconsin","All"))),
+                  FISHERY=droplevels(factor(FISHERY,
+                                    levels=c(lvlsFISHERY,"All"))),
+                  DAYTYPE=droplevels(factor(DAYTYPE,
+                                    levels=c("Weekday","Weekend","All")))) %>%
     ## Select only variables for the table
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,PHOURS,SDPHOURS,PARTY,
                   INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS) %>%
-    ## Drop unused levels
-    droplevels() %>%
     dplyr::arrange(WATERS,FISHERY,MONTH,DAYTYPE) %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(WATERS=ifelse(!FSA::repeatedRows2Keep(.,cols2use="WATERS"),
@@ -886,15 +818,16 @@ table5 <- function(fnpre) {
   tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  WATERS=factor(WATERS,levels=c("WI","Non-WI","All")),
-                  DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
-                  FISHERY=iMvFishery(FISHERY,addAll=TRUE),
-                  SPECIES=iMvSpecies(SPECIES)) %>%
+                  WATERS=droplevels(factor(WATERS,
+                                    levels=c("Wisconsin","Non-Wisconsin","All"))),
+                  FISHERY=droplevels(factor(FISHERY,
+                                    levels=c(lvlsFISHERY,"All"))),
+                  DAYTYPE=droplevels(factor(DAYTYPE,
+                                    levels=c("Weekday","Weekend","All"))),
+                  SPECIES=FSA::capFirst(SPECIES),
+                  SPECIES=droplevels(factor(SPECIES,levels=lvlsSPECIES))) %>%
     ## Select only variables for the table
-    dplyr::select(WATERS,FISHERY,SPECIES,MONTH,DAYTYPE,
-                  HARVEST,SDHARVEST,HRATE) %>%
-    ## Drop unused levels
-    droplevels() %>%
+    dplyr::select(WATERS,FISHERY,SPECIES,MONTH,DAYTYPE,HARVEST,SDHARVEST,HRATE) %>%
     ## Convert to wide format
     tidyr::gather(temp,value,HARVEST:HRATE) %>%
     tidyr::unite(temp1,DAYTYPE,temp,sep=".") %>%
@@ -959,7 +892,7 @@ table6 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
     ##   Remove fish for which a length was not recorded
-    dplyr::filter(!is.na(LEN)) %>%
+    dplyr::filter(!is.na(LENGTH)) %>%
     ##   Summarize lengths by whether clipped or not
     sumLengths(CLIPPED) %>%
     droplevels() %>%
@@ -1005,7 +938,7 @@ table7 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
     ##   Remove fish for which a length was not recorded
-    dplyr::filter(!is.na(LEN))
+    dplyr::filter(!is.na(LENGTH))
   ## Find only those species for which a fin-slip was recorded
   specClipped <- as.character(unique(dplyr::filter(lengths,CLIPPED=="Clip")$SPECIES))
   ##   Summarize lengths by whether clipped or not
@@ -1098,6 +1031,8 @@ table8 <- function(dlen) {
     set_all_padding(1) %>%
     set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     set_top_padding(row=breakRows,col=everywhere,value=15) %>%
+    # Change NAs to dashes
+    set_na_string(row=everywhere,col=-(1:2),value="--") %>%
     # Add column labels
     rbind(names(tmpTbl1),.) %>%
     rbind(c("","","MONTH",rep("",mos-1)),.) %>%
@@ -1115,18 +1050,20 @@ table8 <- function(dlen) {
 table9 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
-    dplyr::select(SPECIES,MUNIT,SITE,FISHERY,DATE,LEN,CLIP) %>%
-    dplyr::arrange(SPECIES,DATE,LEN) %>%
-    dplyr::rename(`TL (in)`=LEN) %>%
+    dplyr::select(SPECIES,MUNIT,SITE,FISHERY,DATE,LENGTH,CLIP) %>%
+    dplyr::arrange(SPECIES,DATE,LENGTH) %>%
+    dplyr::rename(`TL (in)`=LENGTH) %>%
     droplevels() %>%
-    dplyr::mutate(SPECIES=ifelse(duplicated(SPECIES),"",levels(SPECIES)[SPECIES]))
-  ## Find rows for extra space above
+    # Convert species to character and leave name for only first row
+    dplyr::mutate(SPECIES=levels(SPECIES)[SPECIES],
+                  SPECIES=ifelse(duplicated(SPECIES),"",SPECIES))
+  ## Find rows for extra space above (remove first one)
   breakRows <- which(tmp$SPECIES!="")[-1]
   ## Make huxtable
   tmpTbl2 <- as_hux(tmp,add_colnames=TRUE) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
-    set_top_padding(row=breakRows,col=everywhere,15) %>%
+    set_top_padding(row=breakRows+1,col=everywhere,15) %>%
     # Put extra spacing between columns
     set_left_padding(row=everywhere,col=everywhere,15) %>%
     # Round lengths to one decimal (what they were recorded in)
@@ -1190,7 +1127,7 @@ figure1 <- function(d) {
     ## Select only variables for the figure
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or fisheries
-    dplyr::filter(WATERS=="WI",MONTH!="All") %>%
+    dplyr::filter(WATERS=="Wisconsin",MONTH!="All") %>%
     ## Drop unused levels
     droplevels()
   ## Remove DAYTYPE and FISHERY total rows (i.e., == "All)
@@ -1218,7 +1155,7 @@ figure2 <- function(d) {
     ## Select only variables for the figuree
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or Fisheries
-    dplyr::filter(WATERS=="WI",MONTH!="All") %>%
+    dplyr::filter(WATERS=="Wisconsin",MONTH!="All") %>%
     dplyr::filter(FISHERY!="All") %>%
     ## Drop unused levels
     droplevels()
@@ -1245,7 +1182,7 @@ figure2 <- function(d) {
 figure3 <- function(d) {
   tmp <- d %>%
     ## Just WI waters
-    dplyr::filter(WATERS=="WI") %>%
+    dplyr::filter(WATERS=="Wisconsin") %>%
     ## Get the total total total rows (to find topN)
     dplyr::filter(MONTH=="All",DAYTYPE=="All",FISHERY=="All")
   
@@ -1266,8 +1203,8 @@ figure3 <- function(d) {
 
 figure4 <- function(d,topN=3) {
   tmp <- d %>%
-    ## Just WI waters
-    dplyr::filter(WATERS=="WI")
+    ## Just WI waters, don't include "Pleasure"
+    dplyr::filter(WATERS=="Wisconsin",FISHERY!="Pleasure")
   ## Remove MONTH, DAYTYPE, and FISHERY total rows (i.e., == "All)
   tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE!="All",FISHERY!="All")
   ## Get the DAYTYPE total rows (for error bars in ggplot)
@@ -1300,7 +1237,7 @@ figure4 <- function(d,topN=3) {
 figure5 <- function(d,topN=3) {
   tmp <- d %>%
     ## Just WI waters
-    dplyr::filter(WATERS=="WI")
+    dplyr::filter(WATERS=="Wisconsin")
   ## Get the DAYTYPE nd FISHERY total rows (for error bars in ggplot)
   tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE=="All",FISHERY=="All") %>%
     dplyr::mutate(DAYTYPE=NA)
@@ -1339,7 +1276,7 @@ figure6 <- function(dlen,topN=3) {
   # Reduce original data.frame to the topN species
   dlen %<>% filter(SPECIES %in% TOPN$SPECIES)
   # Make the plot
-  p <- ggplot(data=dlen,aes(x=LEN,fill=CLIPPED)) +
+  p <- ggplot(data=dlen,aes(x=LENGTH,fill=CLIPPED)) +
     geom_histogram(binwidth=1,na.rm=TRUE) +
     xlab("Length (Inches)") +
     ylab("Relative Frequency") +
@@ -1352,239 +1289,4 @@ figure6 <- function(dlen,topN=3) {
       axis.text.y.left = element_blank()
     )
   p
-}
-
-
-## Internals for Mains ----
-## Make filename prefix
-fnPrefix <- function(RDIR,LOC,SDATE) {
-  paste0(RDIR,"/",iMvLoc(LOC),"_",lubridate::year(SDATE),"_")
-}
-
-## Convenience function for making a file of the data.frame in x
-writeDF <- function(x,fnpre) {
-  x1 <- deparse(substitute(x))
-  write.csv(x,file=paste0(fnpre,x1,".csv"),
-            row.names=FALSE,quote=FALSE,na="")
-}
-
-
-## Creates day lengths from month names
-iMvDaylen <- function(x,DAY_LENGTH) {
-  daylens <- DAY_LENGTH[as.character(x)]
-  names(daylens) <- NULL
-  daylens
-}
-
-## Convert DOW to weekend or weekdays ... with holidays as weekends
-iMvDaytype <- function(wd,mon,md) {
-  wd2 <- FSA::mapvalues(wd,from=c("Mon","Tue","Wed","Thu","Fri","Sat","Sun"),
-                         to=c("Weekday","Weekday","Weekday","Weekday","Weekday",
-                              "Weekend","Weekend"),warn=FALSE)
-  wd2 <- iHndlHolidays(mon,md,wd,wd2)
-  wd2 <- factor(wd2,levels=c("Weekday","Weekend"))
-  wd2  
-}
-
-## Make New Years, Memorial Day, July 4th, and Labor Day as WEEKENDS
-##   Note that only official holidays are New Years, Memorial Day, July Fourth,
-##     and Labor Day (Thanksgiving and Christmas are not included).
-iHndlHolidays <- function(mon,md,wd,dt) {
-  dplyr::case_when(
-    mon=="Jan" & md==1 ~ "Weekend",              # New Years Day
-    mon=="May" & md>=25 & wd=="Mon" ~ "Weekend", # Memorial Day
-    mon=="Jul" & md==4 ~ "Weekend",              # 4th of July
-    mon=="Sep" & md<=7 & wd=="Mon" ~ "Weekend",  # Labor Day
-    TRUE ~ as.character(dt)
-  )
-}
-
-
-## Convert state codes to words
-iMvStates <- function(x) {
-  tmp <- c("WI","MN","MI","WI/MN","WI/MI")
-  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:5,to=tmp,warn=FALSE)
-  factor(x,levels=tmp)
-}
-
-## Create "waters" variable to identify if the fished area was in WI or not
-iMvWaters <- function(x) {
-  x <- dplyr::case_when(
-    x=="MN" ~ "Non-WI",
-    x=="MI" ~ "Non-WI",
-    TRUE ~ "WI"
-  )
-  factor(x,levels=c("WI","Non-WI"))
-}
-
-## Convert "fishery" codes to words
-##   left "old" in just in case return to legacy names
-iMvFishery <- function(x,addAll=FALSE) {
-  old <- c("COLDWATER-OPEN","WARMWATER-OPEN","ICE-STREAM MOUTH","ICE-WARMWATER",
-           "ICE-BOBBING","BAD RIVER","NON-FISHING","SHORE","TRIBAL","COMBINED")
-  tmp <- c("Cold-Open","Warm-Open","Ice-Mouth","Ice-Warm","Ice-Bob",
-           "Bad R.","Non-Fishing","Shore","Tribal","Combined")
-  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:10,to=tmp,warn=FALSE)
-  if (addAll) tmp <- c(tmp,"All")
-  factor(x,levels=tmp)
-}
-
-iMvMgmtUnit <- function(d,LOC,addALL=FALSE) {
-  ## If unit variable does not exist, initiate it with NAs
-  if (!"MUNIT" %in% names(d)) unit <- as.character(rep(NA,length(d$SITE)))
-  ## If unit is cpw then must handle filling blank units differently
-  if (LOC=="cpw") {
-    ### NEED TO WORK THIS OUT
-  } else {
-    ### Complete mgmt units based on location of creel
-    unit[is.na(unit)] <- dplyr::case_when(
-      LOC %in% c("ash","byf","lsb","rdc","sax","wsh") ~ "WI-2",
-      LOC=="sup" ~ "WI-1"
-    )
-  }
-  ## However, correct if fishing state was not at least partially WI
-  unit[d$STATE %in% c("MI","MN")] <- as.character(d$STATE[d$STATE %in% c("MI","MN")])
-  ## Create factor with ordered levels
-  tmp <- c("WI-1","WI-2","MI","MN")
-  if (addALL) tmp <- c(tmp,"All")
-  factor(unit,levels=tmp)
-}
-
-
-## Convert status codes to words
-iMvStatus <- function(x) {
-  tmp <- c("Complete","Incomplete")
-  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:2,to=tmp,warn=FALSE)
-  factor(x,levels=tmp)
-}
-
-## Convert residency codes to words
-##   left "old" in just in case return to legacy names
-iMvResidency <- function(x) {
-  old <- c("Resident","Non-Resident","Resident/Non-Resident")
-  tmp <- c("Res","Non-Res","Res/Non-Res")
-  if (is.numeric(x)) x <- FSA::mapvalues(x,from=1:3,to=tmp,warn=FALSE)
-  factor(x,levels=tmp)
-}
-
-## Compute hours of effort, put NAs if before start or after end of survey
-##   period or if stop time is before start time.
-iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
-  START <- STARTHH*60+STARTMM
-  STOP <- STOPHH*60+STOPMM
-  dplyr::case_when(
-    DATE < SDATE ~ NA_real_,   # Date before start date
-    DATE > FDATE ~ NA_real_,   # Date after end date
-    STOP < START ~ NA_real_,   # Stopped before started
-    TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
-  )
-}
-
-## Convert fish species codes to words ... note possibly three sets of codes
-iMvSpecies <- function(x) {
-  if (is.numeric(x)) code <- c(2,3,4,5,6,7,11,13,33,34,35,36,43,45,46,47,48,49,
-                               51,52,60,62,66,67,70,71,76,78,98,99)
-  else {
-    tmp <- substr(x,1,1)
-    if (any(tmp %in% c("W","M","I","B","R","X")))
-      code <- c('W09','W00','W02','W14','I22','W06','R01','M12','I04','I24',
-                'I23','I28','L02','I21','I19','W04','I16','I14','I12','I20',
-                'J01','B01','W12','W11','I05','I18','X15','X22','098','099')
-    else code <- c('002','003','004','005','006','007','011','013','033','034',
-                   '035','036','043','045','046','047','048','049','051','052',
-                   '060','062','066','067','070','071','076','078','098','099')
-  }
-  nms <- c('BLUEGILL','SUNFISH SPP.','CRAPPIE SPP.','BLACK CRAPPIE',
-           'BROOK TROUT','PUMPKINSEED','BURBOT','CARP','LAKE HERRING',
-           'SISCOWET','LAKE TROUT','SPLAKE','NORTHERN PIKE','BROWN TROUT',
-           'RAINBOW TROUT','ROCK BASS','CHINOOK','COHO','PINK SALMON',
-           'ATLANTIC SALMON','SMELT','STURGEON','LARGEMOUTH BASS',
-           'SMALLMOUTH BASS','LAKE WHITEFISH','ROUND WHITEFISH','YELLOW PERCH',
-           'WALLEYE','CATFISH','NA')
-  lvls <- c('LAKE TROUT','SISCOWET','ATLANTIC SALMON','BROOK TROUT',
-            'BROWN TROUT','COHO','CHINOOK','PINK SALMON','RAINBOW TROUT',
-            'SPLAKE','BURBOT','LAKE HERRING','LAKE WHITEFISH','ROUND WHITEFISH',
-            'SMELT','STURGEON','WALLEYE','YELLOW PERCH','NORTHERN PIKE',
-            'BLUEGILL','PUMPKINSEED','SUNFISH SPP.','BLACK CRAPPIE',
-            'CRAPPIE SPP.','LARGEMOUTH BASS','ROCK BASS','SMALLMOUTH BASS',
-            'CATFISH','CARP')
-  nms <- FSA::capFirst(nms)
-  nms[length(nms)] <- NA
-  lvls <- FSA::capFirst(lvls)
-  if (!any(x %in% nms)) x <- FSA::mapvalues(x,from=code,to=nms,warn=FALSE)
-  factor(x,levels=lvls)
-}
-
-## Convert fin-clip codes to words
-##   99 is mapped to 40 as this happens after 99 is expanded to multiple lengths
-iMvFinclips <- function(x,addAll=TRUE) {
-  tmp <- c('00: NONE','01: AD','02: AD+LV','03: AD+RV','04: AD+LP','05: AD+RP',
-           '06: LV','07: RV','08: LP','09: RP','10: LV+RV','11: RP+LV',
-           '12: AD+LV+RV','13: D','14: HATCHERY','15: LP+RV','16: D+RV',
-           '17: D+RP','18: AD+RM','19: LP+RM','20: LP+LV','21: D+AD',
-           '22: D+LV+RV','23: D+LP','24: D+LV','40: NOT EXAMINED',
-           '40: NOT EXAMINED',NA)
-  if (is.numeric(x)) x <- FSA::mapvalues(x,from=c(0:24,40,99,NA),
-                                          to=tmp,warn=FALSE)
-  if (addAll) tmp <- c(tmp,"All")
-  factor(x,levels=tmp[!duplicated(tmp)])
-}
-
-## Adds whether a fish was clipped or not
-iFinclipped <- function(x) {
-  tmp <- dplyr::case_when(
-    is.na(x) ~ NA_character_,
-    x %in% c('00: NONE','40: NOT EXAMINED') ~ "No Clip",
-    TRUE ~ "Clip"
-  )
-  factor(tmp,levels=c("Clip","No Clip"))
-}
-
-
-## Create long name from abbreviated location name
-iMvLoc <- function(x) {
-  codes <- c("ash","byf","cpw","lsb","rdc","sax","sup","wsh")
-  names <- c("Ashland","Bayfield","Corny-Port Wing","Little Sand Bay",
-             "Red Cliff","Saxon","Superior","Washburn")
-  FSA::mapvalues(x,from=codes,to=names,warn=FALSE)
-}
-
-## Converts months to an ordered factor
-iOrderMonths <- function(x,addAll=FALSE) {
-  if (addAll) ordered(x,levels=c(format(ISOdate(2004,1:12,1),"%b"),"All"))
-  else ordered(x,levels=format(ISOdate(2004,1:12,1),"%b"))
-}
-
-
-iSumLen <- function(dgb) {
-  tmp <- dplyr::summarize(dgb,n=dplyr::n(),mnLen=mean(LEN,na.rm=TRUE),
-                          sdLen=sd(LEN,na.rm=TRUE),seLen=FSA::se(LEN,na.rm=TRUE),
-                          minLen=min(LEN,na.rm=TRUE),maxLen=max(LEN,na.rm=TRUE)) %>%
-    as.data.frame()
-  tmp$sdLen[is.nan(tmp$sdLen)] <- NA
-  tmp
-}
-
-
-## Converts missing values to zeroes
-iConvNA20 <- function(x) {
-  dplyr::case_when(
-    is.na(x) ~ 0,
-    TRUE ~ x
-  )
-}
-
-
-## Add final characteristics to all tables
-iFinishTable <- function(h,labelsRow,labelsCol) {
-  h <- h %>%
-    # Line above top and below bottom of table
-    set_top_border(row=1,col=everywhere,2) %>%
-    set_bottom_border(row=final(),col=everywhere,2) %>%
-    # Line below variable names
-    set_bottom_border(row=labelsRow,col=everywhere,1) %>%
-    # Bold rows and columns of labels
-    set_bold(row=1:labelsRow,col=everywhere,TRUE) %>%
-    set_bold(row=everywhere,col=1:labelsCol,TRUE)
-  h
 }

@@ -2,11 +2,13 @@
 title: "LAKE SUPERIOR OPEN-WATER CREEL SURVEY"
 params:
   LOC:
-    value: sup
+    value: NULL
+  YR:
+    value: NULL
   SDATE:
-    value: 05/21/2014
+    value: NULL
   FDATE:
-    value: 09/30/2014
+    value: NULL
   DAY_LENGTH:
     value: NULL
   CNTS_FILE:
@@ -26,6 +28,7 @@ output:
 ```{r input, echo=FALSE}
 ## Grab User's Inputs from parameters
 LOC <- params$LOC
+YR <- params$YR
 SDATE <- params$SDATE
 FDATE <- params$FDATE
 CNTS_FILE <- params$CNTS_FILE
@@ -47,7 +50,7 @@ tables <- tableCaptions()
 figures <- figureCaptions()
 ```
 
-## `r paste("Report for",iMvLoc(LOC),"from",format(SDATE,format='%B %d, %Y'),"to",format(FDATE,format='%B %d, %Y'))`
+## `r paste("Report for",LOC,"from",format(SDATE,format='%B %d, %Y'),"to",format(FDATE,format='%B %d, %Y'))`
 #### Run on `r format(lubridate::now(),format="%B %d, %Y at %H:%M")`
 
 
@@ -62,7 +65,7 @@ table1(fnpre,calSum)
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table2"))
-table2(ints_NOFISH)
+table2(intvs)
 ```
 
 ```{r table3}
