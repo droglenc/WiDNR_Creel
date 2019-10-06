@@ -14,20 +14,21 @@ for (i in seq_along(rqrd)) suppressPackageStartupMessages(library(rqrd[i],
 
 
 ## Constants -------------------------------------------------------------------
-## DEREK --> ASK WHAT THIS ENTIRE LIST WILL BE
-lvlsFISHERY <- c("Open-Water Cold","Open-Water Cool","Pleasure","Shore",
-                 "Stream","Tribal")
-lvlsSPECIES <- c('Lake Trout','Siscowet Lake Trout','Atlantic Salmon',
-                 'Brook Trout','Brown Trout','Coho Salmon','Chinook Salmon',
-                 'Pink Salmon','Rainbow Trout','Splake',
-                 'Lake Herring','Lake Whitefish','Round Whitefish',
-                 'Smelt','Burbot','Lake Sturgeon',
-                 'Walleye','Yellow Perch','Ruffe','White Perch',
-                 'Northern Pike',"Muskellunge",
-                 'Bluegill','Pumpkinseed','Sunfish','Black Crappie','Crappie',
-                 'Largemouth Bass','Rock Bass','Smallmouth Bass',
-                 'Channel Catfish','Common Carp',
-                 'All Fish')
+lvlsFISHERY <- c("Open-Water Cold","Open-Water Cool","Stream","Pleasure",
+                 "Shore","Tribal","Open-Water Whitefish","SMB Only")
+lvlsSPECIES <- c('lake trout','siscowet lake trout','splake','brook trout',
+                 'brown trout','rainbow trout','Chinook salmon','coho salmon',
+                 'atlantic salmon','lake whitefish','round whitefish',
+                 'lake herring','bloater','kiyi','shortjaw cisco',
+                 'cisco crosses','chubs','mule whitefish','walleye',
+                 'yellow perch','ruffe','muskellunge','northern pike',
+                 'bluegill','pumpkinseed sunfish','largemouth bass',
+                 'smallmouth bass','rock bass','crappie','rainbow smelt',
+                 'burbot','lake sturgeon','common carp','Channel Catfish',
+                 'black bullhead','brown bullhead','yellow bullhead',
+                 'round goby','tube nose goby','sea lamprey','alewife',
+                 'white perch','All Fish')
+lvlsSPECIES <- FSA::capFirst(lvlsSPECIES)
 lvlsCLIP <- c("Native","Adipose","LRAd","RRAd","LFAd","RFAd","LR","RR","LF",
               "RF","BR","RFLR","BRAd","D","LFRR","RRD","RFD","RFLF","LFLR",
               "DAd","BRD","LFD","LRD","RFM","LMAd","LFM","Hatchery/Curled Fin",
@@ -168,9 +169,9 @@ sumEffort <- function(ieff,pct) {
                   NINTS,HOURS,USSHOURS,PHOURS,VPHOURS,
                   INDHRS,VINDHRS,TRIPS,VTRIPS) %>%
     ## Convert NAs to zeroes in the variance variables
-    dplyr::mutate(VPHOURS=iConvNA20(VPHOURS),
-                  VINDHRS=iConvNA20(VINDHRS),
-                  VTRIPS=iConvNA20(VTRIPS)) %>%
+    dplyr::mutate(VPHOURS=ifelse(is.na(VPHOURS),0,VPHOURS),
+                  VINDHRS=ifelse(is.na(VINDHRS),0,VINDHRS),
+                  VTRIPS=ifelse(is.na(VTRIPS),0,VTRIPS)) %>%
     as.data.frame()
   
   ## Summarize across Daytypes
@@ -439,16 +440,6 @@ combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
 
 
 ## Internals for Mains ----
-## Create "waters" variable to identify if the fished area was in WI or not
-iMvWaters <- function(x) {
-  x <- dplyr::case_when(
-    x=="MN" ~ "Non-Wisconsin",
-    x=="MI" ~ "Non-Wisconsin",
-    TRUE ~ "Wisconsin"
-  )
-  x
-}
-
 ## Compute hours of effort, put NAs if before start or after end of survey
 ##   period or if stop time is before start time.
 iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
@@ -479,14 +470,6 @@ iSumLen <- function(dgb) {
     as.data.frame()
   tmp$sdLen[is.nan(tmp$sdLen)] <- NA
   tmp
-}
-
-## Converts missing values to zeroes
-iConvNA20 <- function(x) {
-  dplyr::case_when(
-    is.na(x) ~ 0,
-    TRUE ~ x
-  )
 }
 
 ## Convenience function for making a file of the data.frame in x

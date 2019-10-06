@@ -244,7 +244,7 @@ intvdEffortWaters <- sumInterviewedEffort(intvs)
 # EXPORTED: Exported as "LOCATION_YEAR_ttlEffort.csv".
 ttlEffort <- sumEffort(intvdEffortWaters,pressureCount) %>% 
   dplyr::mutate(ROUTE=LOC,
-                WATERS=iMvWaters(MUNIT),
+                WATERS=ifelse(MUNIT %in% c("MN","MI"),"Non-Wisconsin","Wisconsin"),
                 WATERS=factor(WATERS,levels=c("Wisconsin","Non-Wisconsin"))) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:VTRIPS)
 writeDF(ttlEffort,fnpre)
@@ -298,7 +298,7 @@ ttlEffort2 <- ttlEffort %>%
 # EXPORTED: Exported to "LOCATION_YEAR_ttlHarvest.csv"
 ttlHarvest <- sumHarvestEffort(intvdHarv,ttlEffort2) %>%
   dplyr::mutate(ROUTE=LOC,
-                WATERS=iMvWaters(MUNIT),
+                WATERS=ifelse(MUNIT %in% c("MN","MI"),"Non-Wisconsin","Wisconsin"),
                 WATERS=factor(WATERS,levels=c("Wisconsin","Non-Wisconsin"))) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT:HRATE)
 writeDF(ttlHarvest,fnpre)
@@ -331,12 +331,12 @@ intvs_FISH <- intvs_ORIG %>%
   select(INTERVIEW,YEAR,MUNIT,FISHERY,MONTH,DATE,SITE)
 
 lengths <- dplyr::right_join(intvs_FISH,fish,by="INTERVIEW") %>%
-  dplyr::mutate(ROUTE=LOC,
-                WATERS=iMvWaters(MUNIT),
-                WATERS=droplevels(factor(WATERS,
-                                  levels=c("Wisconsin","Non-Wisconsin"))),
-                CLIP=droplevels(factor(CLIP,levels=lvlsCLIP)),
-                CLIPPED=ifelse(CLIP=="Native","No Clip","Clip")) %>%
+  dplyr::mutate(
+    ROUTE=LOC,
+    WATERS=ifelse(MUNIT %in% c("MN","MI"),"Non-Wisconsin","Wisconsin"),
+    WATERS=droplevels(factor(WATERS,levels=c("Wisconsin","Non-Wisconsin"))),
+    CLIP=droplevels(factor(CLIP,levels=lvlsCLIP)),
+    CLIPPED=ifelse(CLIP=="Native","No Clip","Clip")) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT,FISHERY,MONTH,
                 DATE,SITE,SPECIES,CLIP,CLIPPED,LENGTH) %>%
   addWeights(RDIR,YEAR)
