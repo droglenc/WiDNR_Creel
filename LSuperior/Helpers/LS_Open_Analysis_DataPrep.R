@@ -156,7 +156,10 @@ intvs_ORIG <- readxl::read_excel(file.path(RDIR,INTS_FILE)) %>%
     DAYTYPE=FSA::mapvalues(DAYTYPE,from="Weekend/Holiday",to="Weekend"),
     DAYTYPE=droplevels(factor(DAYTYPE,levels=c("Weekday","Weekend"))),
     FISHERY=droplevels(factor(FISHERY,levels=lvlsFISHERY)),
-    MUNIT=droplevels(factor(UNIT,levels=c("WI-1","WI-2","MI","MN"))),
+    MUNIT=dplyr::case_when(STATE=="Minnesota" ~ "MN",
+                           STATE=="Michigan" ~ "MI",
+                           TRUE ~ UNIT),
+    MUNIT=droplevels(factor(MUNIT,levels=c("WI-1","WI-2","MI","MN"))),
     SPECIES=FSA::capFirst(SPECIES),
     SPECIES=droplevels(factor(SPECIES,levels=lvlsSPECIES)),
     ## Create longer site description
