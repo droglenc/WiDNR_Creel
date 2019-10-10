@@ -102,9 +102,8 @@ sumInterviewedEffort <- function(dints) {
   f2 <- dplyr::filter(dints,STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan")) %>%
     ## Cut the fishing effort (HOURS) in half (apportioned to each state)
     dplyr::mutate(HOURS=0.5*HOURS)
-  # Duplicate f2 to get other half of HOURS
+  # Duplicate f2 to get other half of HOURS (& label MUNIT as other state)
   f3 <- f2 %>%
-    ## label MUNIT as other state
     dplyr::mutate(MUNIT=ifelse(STATE=="Wisconsin/Minnesota","MN","MI"))
   
   # Combine to get all interviews corrected for location
@@ -413,6 +412,15 @@ addWeights <- function(d,RDIR,YEAR) {
     select(-SPECIES2,-a,-b)
 }
 
+
+## Convenience function for making a file of the data.frame in x
+writeDF <- function(x,fnpre) {
+  x1 <- deparse(substitute(x))
+  write.csv(x,file=paste0(fnpre,x1,".csv"),
+            row.names=FALSE,quote=FALSE,na="")
+}
+
+
 ## Combines the three types of CSV files in the RDIR directory that were 
 ## created after sourcing the LS_Analyzer script. Essentially combines summary
 ## results across routes within a year.
@@ -470,13 +478,6 @@ iSumLen <- function(dgb) {
     as.data.frame()
   tmp$sdLen[is.nan(tmp$sdLen)] <- NA
   tmp
-}
-
-## Convenience function for making a file of the data.frame in x
-writeDF <- function(x,fnpre) {
-  x1 <- deparse(substitute(x))
-  write.csv(x,file=paste0(fnpre,x1,".csv"),
-            row.names=FALSE,quote=FALSE,na="")
 }
 
 

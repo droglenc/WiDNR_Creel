@@ -12,14 +12,14 @@
 
 ## Setup -----------------------------------------------------------------------
 ### Load helper files
-source(file.path(WDIR,"Helpers","LS_Open_Analysis_Helpers.R"))
+source(file.path(WDIR,"Helpers","LS_Open_Helpers.R"))
 
 ### Converts SDATE and FDATE to useful objects
 SDATE <- as.Date(SDATE,"%m/%d/%Y")
 FDATE <- as.Date(FDATE,"%m/%d/%Y")
 
 ### Filename prefix
-fnpre <- paste0(RDIR,"/",LOC,"_",YR,"_")
+fnpre <- paste0(RDIR,"/",LOC,"_Open_",YR,"_")
 
 
 ## Pressure counts -------------------------------------------------------------

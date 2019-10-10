@@ -5,6 +5,7 @@ WiDNR_Creel.Rproj
 /LSuperior/LS_Creel*
 ## Intermediate or output files not needed in repository
 /LSuperior/LS_Analysis*
+/LSuperior/LS_OPEN*
 /LSuperior/LS_Schedules*
 /LSuperior/Helpers/LS_Scheduler_Template.knit.md
 /LSuperior/Helpers/LS_Scheduler_Template.utf8.md
