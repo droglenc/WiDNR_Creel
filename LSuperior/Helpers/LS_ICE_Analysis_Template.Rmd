@@ -25,7 +25,7 @@ RDIR <- params$RDIR
 knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE)
 
 ## Run the analysis
-source(file.path(WDIR,"Helpers","LS_ICE_Analysis_DataPrep.R"))
+source(file.path(WDIR,"Helpers","LS_ICE_DataPrep.R"))
 
 ## Make table and figure captions
 tables <- captioner::captioner(prefix="Table")
@@ -43,7 +43,6 @@ iFinishTable <- function(h,labelsRow,labelsCol) {
     set_bold(row=everywhere,col=1:labelsCol,TRUE)
   h
 }
-
 ```
 
 ## `r paste("Report for",LOC,"from",YEAR)`
@@ -268,7 +267,6 @@ tbl2 <- as_hux(tbl1) %>%
   set_col_width(col=c(.2,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1)) %>%
   iFinishTable(labelsRow=2,labelsCol=3)
 tbl2
-
 ```
 
 ```{r table4}
@@ -292,38 +290,38 @@ tmp2 <- dplyr::filter(H,DAYTYPE=="Weekend") %>%
   dplyr::select(-DAYTYPE)
 tmp3 <- dplyr::filter(H,DAYTYPE=="All") %>%
   dplyr::select(-DAYTYPE)
-tbl1 <- dplyr::full_join(tmp1,tmp2,by=c("SPP","FISHERY","MONTH")) %>%
-  dplyr::full_join(tmp3,by=c("SPP","FISHERY","MONTH")) %>%
-  dplyr::filter(!is.na(SPP)) %>%
-  dplyr::mutate(SPP=iOrderSpecies(SPP)) %>%
-  dplyr::arrange(SPP,FISHERY,MONTH) %>%
+tbl1 <- dplyr::full_join(tmp1,tmp2,by=c("SPECIES","FISHERY","MONTH")) %>%
+  dplyr::full_join(tmp3,by=c("SPECIES","FISHERY","MONTH")) %>%
+  dplyr::filter(!is.na(SPECIES)) %>%
+  dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
+  dplyr::arrange(SPECIES,FISHERY,MONTH) %>%
   ## Add aesthetic spacing columns (for huxtable)
   tibble::add_column(.,spc1="",.after="ttlHarvest.x") %>%
   tibble::add_column(.,spc2="",.after="ttlHarvest.y")
 ## Drop the "All" FISHERYs for species captured in only one fishery
 ## (note the use of 2 in the filter because of an "All" fishery)
-SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
   dplyr::summarize(numFshrys=length(unique(FISHERY))) %>%
   dplyr::filter(numFshrys==2)
-tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & FISHERY=="All"))
+tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & FISHERY=="All"))
 ## Drop the "All" MONTHs for species captured in only one month
 ## (note the use of 2 in the filter because of an "All" MONTH)
-SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
   dplyr::summarize(numMons=length(unique(MONTH))) %>%
   dplyr::filter(numMons==2)
-tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & MONTH=="All"))
-## Remove repeated rows in SPP, FISHERY, MONTH variables (aesthetics in huxt)
+tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & MONTH=="All"))
+## Remove repeated rows in SPECIES, FISHERY, MONTH variables (aesthetics in huxt)
 tbl1 <- tbl1 %>%
-        dplyr::mutate(SPP=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPP"),
-                                  "",as.character(SPP)),
-            ## Use of both SPP and FISHERY (rather than just FISHERY) guards
+        dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
+                                  "",as.character(SPECIES)),
+            ## Use of both SPECIES and FISHERY (rather than just FISHERY) guards
             ## against cutting a FISHERY across species
-            FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPP","FISHERY")),
+            FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","FISHERY")),
                            "",as.character(FISHERY)),
-            MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPP","MONTH")),
+            MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","MONTH")),
                          "",as.character(MONTH)))
 ## Rows with a MONTH names (except first) will get extra space above
-spaceAbove <- which(tbl1$SPP!="")[-1]
+spaceAbove <- which(tbl1$SPECIES!="")[-1]
 
 ## Make the huxtable
 tbl2 <- as_hux(tbl1) %>%
@@ -339,7 +337,7 @@ tbl2 <- as_hux(tbl1) %>%
   set_number_format(row=everywhere,col=contains("Harvest"),value=0) %>%
   set_number_format(row=everywhere,col=contains("Rate"),value=4) %>%
   # Extra label at the top
-  rbind(c("SPP","FISHERY","MONTH",rep(c("Rate","Harvest",""),2),
+  rbind(c("SPECIES","FISHERY","MONTH",rep(c("Rate","Harvest",""),2),
           "Rate","Harvest"),.) %>%
   rbind(c("","","",rep(c("Harvest","Total",""),2),"Harvest","Total"),.) %>%
   rbind(c("","","","Weekdays","","","Weekends","","","All",""),.) %>%
@@ -356,7 +354,6 @@ tbl2 <- as_hux(tbl1) %>%
   set_col_width(col=c(.2,.3,.1,.15,.1,.025,.15,.1,.025,.15,.1)) %>%
   iFinishTable(labelsRow=3,labelsCol=3)
 tbl2
-
 ```
 
 ```{r table5}
@@ -376,7 +373,7 @@ cat(tables("Table5"))
 ## Prepare data.frame for huxtable
 fshrys <- unique(sumLen$FISHERY)
 numf <- length(fshrys)
-bys <- c("SURVEY","ROUTE","UNIT","SPP","MONTH","ORIGIN")
+bys <- c("SURVEY","ROUTE","UNIT","SPECIES","MONTH","ORIGIN")
 tmp1 <- split(sumLen,sumLen$FISHERY)
 tmp2 <- dplyr::full_join(tmp1[[1]],tmp1[[2]],by=bys)
 for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
@@ -384,28 +381,28 @@ for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
 tbl1 <- tmp2 %>%
   dplyr::select(-dplyr::contains("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
   dplyr::filter(!duplicated(.)) %>%
-  dplyr::mutate(SPP=iOrderSpecies(SPP)) %>%
-  dplyr::arrange(SPP,MONTH,ORIGIN)
+  dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
+  dplyr::arrange(SPECIES,MONTH,ORIGIN)
 
 ## Drop the "All" ORIGINs for species have only one ORIGIN
 ## (note the use of 2 in the filter because of an "All" ORIGIN)
-SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
   dplyr::summarize(numOrigins=length(unique(ORIGIN))) %>%
   dplyr::filter(numOrigins==2)
-tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & ORIGIN=="All"))
+tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & ORIGIN=="All"))
 
 ## Drop the "All" MONTHs for species have only one MONTH
 ## (note the use of 2 in the filter because of an "All" MONTH)
-SPP2dropAll <- dplyr::group_by(tbl1,SPP) %>%
+SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
   dplyr::summarize(numMons=length(unique(MONTH))) %>%
   dplyr::filter(numMons==2)
-tbl1 <- filter(tbl1,!(SPP %in% SPP2dropAll$SPP & MONTH=="All"))
+tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & MONTH=="All"))
 
-## Remove repeated rows in SPP, MONTH and ORIGIN variables
+## Remove repeated rows in SPECIES, MONTH and ORIGIN variables
 tbl1 <- tbl1 %>%
-  dplyr::mutate(SPP=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPP"),
-                           "",as.character(SPP)),
-                MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPP","MONTH")),
+  dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
+                           "",as.character(SPECIES)),
+                MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","MONTH")),
                              "",as.character(MONTH)))
 
 ## Add extra columns for aesthetics in huxtable
@@ -415,7 +412,7 @@ for (i in rev(acs[-length(acs)])) {
   names(tbl1)[i+1] <- paste0("spc",i)
 }
 
-spaceAbove <- which(tbl1$SPP!="")[-1]
+spaceAbove <- which(tbl1$SPECIES!="")[-1]
 
 toplbl <- c("","","")
 for (i in fshrys) toplbl <- c(toplbl,i,"","","","","")
@@ -434,7 +431,7 @@ tbl2 <- as_hux(tbl1) %>%
   set_number_format(row=everywhere,col=starts_with("n"),value=0) %>%
   set_number_format(row=everywhere,col=contains("Len"),value=1) %>%
   # Extra label at the top
-  rbind(c("SPP","MONTH","ORIGIN",
+  rbind(c("SPECIES","MONTH","ORIGIN",
           rep(c("n","Mean","SD","Min","Max",""),numf-1),
           "n","Mean","SD","Min","Max"),.) %>%
   rbind(toplbl,.)

@@ -4,8 +4,9 @@ WiDNR_Creel.Rproj
 ## Ignored Access databases
 /LSuperior/LS_Creel*
 ## Intermediate or output files not needed in repository
-/LSuperior/LS_Analysis*
-/LSuperior/LS_OPEN*
+/LSuperior/LS_ANALYSIS*
+/LSuperior/LS_ICE_2*
+/LSuperior/LS_OPEN_2*
 /LSuperior/LS_Schedules*
 /LSuperior/Helpers/LS_Scheduler_Template.knit.md
 /LSuperior/Helpers/LS_Scheduler_Template.utf8.md
