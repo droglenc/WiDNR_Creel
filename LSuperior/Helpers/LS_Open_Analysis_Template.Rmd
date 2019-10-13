@@ -26,7 +26,7 @@ output:
 ---
 
 ```{r input, echo=FALSE}
-## Grab User's Inputs from parameters
+## Grab user's inputs from parameters sent when calling template
 LOC <- params$LOC
 YR <- params$YR
 SDATE <- params$SDATE
@@ -42,7 +42,7 @@ RDIR <- params$RDIR
 ## Preliminaries
 knitr::opts_chunk$set(echo=FALSE, results='asis', warning=FALSE, message=FALSE)
 
-## Run the analysis
+## Run the analysis script ... this does all of the calculations
 source(file.path(WDIR,"Helpers","LS_Open_DataPrep.R"))
 
 ## Make table and figure captions

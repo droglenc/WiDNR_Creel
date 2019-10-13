@@ -37,115 +37,134 @@ lvlsCLIP <- c("Native","Adipose","LRAd","RRAd","LFAd","RFAd","LR","RR","LF",
 
 
 ## Main Helpers ----------------------------------------------------------------
-## Expand pressure counts from observed days/times to daylengths & days/month
-expandPressureCounts <- function(dcnts,cal) {
+## Computes hours of effort from the start and stop times recorded by the clerk.
+## Will NA if recorded data is before start or after end of survey period or if
+## stop time is before start time.
+hndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
+  START <- STARTHH*60+STARTMM
+  STOP <- STOPHH*60+STOPMM
+  dplyr::case_when(
+    DATE < SDATE ~ NA_real_,   # Date before start date
+    DATE > FDATE ~ NA_real_,   # Date after end date
+    STOP < START ~ NA_real_,   # Stopped before started
+    TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
+  )
+}
+
+## Expands observed pressure counts from the sampled days/times (in opc) to all
+## days and times according to day lengths and number of days per month month
+## (in cal)
+expandPressureCounts <- function(opc,cal) {
   ## Isolate daylengths for each month from the calendar
   tmp <- cal[,c("MONTH","DAYLEN")]
   tmp <- tmp[!duplicated(tmp),]
-  dcnts %<>%
+  opc %<>%
     ### Adds a temporary day length variable (from cal) to each count
-    right_join(tmp,by="MONTH") %>%
+    dplyr::right_join(tmp,by="MONTH") %>%
     ### Expand observed pressure counts to represent the entire day at each site 
     dplyr::mutate(COUNT=COUNT*DAYLEN/WAIT) %>%
     ### Compute daily pressure counts (across sites within days)
     dplyr::group_by(YEAR,MONTH,DAY,DAYTYPE) %>%
     dplyr::summarize(WAIT=sum(WAIT),COUNT=sum(COUNT)) %>%
     dplyr::ungroup() %>%
-    ### Summarizes daily pressure counts by daytype and month
+    ### Computed n, variance, and mean daily pressure counts by daytype and month
     dplyr::group_by(YEAR,DAYTYPE,MONTH) %>%
     dplyr::summarize(NCOUNT=dplyr::n(),
                      VCOUNT=var(COUNT,na.rm=TRUE),
                      MCOUNT=mean(COUNT,na.rm=TRUE)) %>%
+    ### Converts variance of individuals to a variance of means (i.e., SE^s)
     dplyr::mutate(VCOUNT=VCOUNT/NCOUNT) %>%
     dplyr::ungroup() %>%
     ### Expand by number of days in the month (in cal)
     merge(cal[,c("MONTH","DAYTYPE","DAYS")],by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(TCOUNT=MCOUNT*DAYS,VCOUNT=VCOUNT*(DAYS^2)) %>%
     dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,TCOUNT,VCOUNT)
-  ## Find totals across DAYTYPEs
-  dcnts1 <- dplyr::group_by(dcnts,YEAR,MONTH) %>%
+  ## Find totals across DAYTYPEs (within each month)
+  opc1 <- dplyr::group_by(opc,YEAR,MONTH) %>%
     dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
                      DAYS=sum(DAYS,na.rm=TRUE),
                      TCOUNT=sum(TCOUNT,na.rm=TRUE),
                      VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
     dplyr::mutate(DAYTYPE="All") %>%
-    dplyr::select(names(dcnts)) %>%
+    dplyr::select(names(opc)) %>%
     as.data.frame()
-  dcnts <- rbind(dcnts,dcnts1)
-  ## Find totals across all MONTHs
-  dcnts2 <- dplyr::group_by(dcnts,YEAR,DAYTYPE) %>%
+  ## Combine DAYTYPE (within MONTHs) summaries with original values
+  opc <- rbind(opc,opc1)
+  ## Find totals across all MONTHs (within each DAYTYPE)
+  opc2 <- dplyr::group_by(opc,YEAR,DAYTYPE) %>%
     dplyr::summarize(NCOUNT=sum(NCOUNT,na.rm=TRUE),
                      DAYS=sum(DAYS,na.rm=TRUE),
                      TCOUNT=sum(TCOUNT,na.rm=TRUE),
                      VCOUNT=sum(VCOUNT,na.rm=TRUE)) %>%
     dplyr::mutate(MONTH="All") %>%
-    dplyr::select(names(dcnts)) %>%
+    dplyr::select(names(opc)) %>%
     as.data.frame()
-  dcnts <- rbind(dcnts,dcnts2)
-  ## Convert to SDs and rearrange variables
-  dcnts %<>% dplyr::mutate(SDCOUNT=sqrt(VCOUNT)) %>%
+  ## Combine MONTH (within DAYTYPE) summaries with original values
+  opc <- rbind(opc,opc2)
+  ## Convert to SEs and rearrange variables
+  opc %<>% dplyr::mutate(SDCOUNT=sqrt(VCOUNT)) %>%
     dplyr::select(YEAR,DAYTYPE,MONTH,NCOUNT,DAYS,TCOUNT,SDCOUNT,VCOUNT) %>%
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All"))) %>%
     dplyr::arrange(YEAR,MONTH,DAYTYPE) %>%
     as.data.frame()
   ## Return data.frame
-  dcnts
+  opc
 }
 
 
 ##
 sumInterviewedEffort <- function(dints) {
-  # All records where fishing was in one state
+  ## Correct for effort in "two" states
+  ### All records where fishing was in one state
   f1 <- dplyr::filter(dints,!STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan"))
-  # All records where fishing was in two states
+  ### All records where fishing was in two states
   f2 <- dplyr::filter(dints,STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan")) %>%
-    ## Cut the fishing effort (HOURS) in half (apportioned to each state)
+    ### Cut the fishing effort (HOURS) in half (apportioned to each state)
     dplyr::mutate(HOURS=0.5*HOURS)
-  # Duplicate f2 to get other half of HOURS (& label MUNIT as other state)
+  ### Duplicate f2 to get other half of HOURS (& label MUNIT as other state)
   f3 <- f2 %>%
     dplyr::mutate(MUNIT=ifelse(STATE=="Wisconsin/Minnesota","MN","MI"))
+  ### Combine to get all interviews corrected for location
+  f <- rbind(f1,f2,f3)
   
-  # Combine to get all interviews corrected for location
-  f <- rbind(f1,f2,f3) %>%
-    ## Compute people-hours of fishing effort (in INDHRS) ... only used to find
-    ##   mean party size (in PARTY) below
-    ## Compute hours for only completed trips (in CHOURS) ... only used to find
-    ##   mean length of a COMPLETED trip (in MTRIP) below.
+  fsum <- f  %>%
+    ### Compute people-hours of fishing effort (in INDHRS) ... only used to find
+    ###   mean party size (in PARTY) below
+    ### Compute hours for only completed trips (in CHOURS) ... only used to find
+    ###   mean length of a COMPLETED trip (in MTRIP) below.
     dplyr::mutate(INDHRS=PERSONS*HOURS,
-                  CHOURS=ifelse(STATUS=="Complete",HOURS,NA))
-  
-  # Summarize interviewed effort data by MUNIT, DAYTPE, FISHERY, MONTH
-  #   across all interviews, sites, and days
-  # !! This was how PARTY was calculated in the SAS code ... it is NOT the same
-  # !! as calculating the mean of PERSONS ... not clear why computed this way.
-  # !! Note that USSHours is the uncorrected SS of HOURS ... this is used later
-  # !! to find the variance of the HOURS
-  fsum <- f %>%
+                  CHOURS=ifelse(STATUS=="Complete",HOURS,NA)) %>%
+    ## Summarize interviewed effort data by MUNIT, DAYTPE, FISHERY, MONTH
+    ##   across all interviews, sites, and days
     dplyr::group_by(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH) %>%
     dplyr::summarize(NINTS=dplyr::n(),
                      MTRIP=mean(CHOURS,na.rm=TRUE),
                      USSHOURS=sum(HOURS^2,na.rm=TRUE),
                      HOURS=sum(HOURS,na.rm=TRUE),
                      INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    ## !! This was how PARTY was calculated in the SAS code ... it is NOT the same
+    ## !! as calculating the mean of PERSONS ... not clear why computed this way.
+    ## !! Note that USSHours is the uncorrected SS of HOURS ... this is used later
+    ## !! to find the variance of the HOURS
     dplyr::mutate(PARTY=INDHRS/HOURS) %>%
     dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,
                   NINTS,HOURS,MTRIP,USSHOURS,PARTY) %>%
     as.data.frame()
   
-  # Find total interviewed hours by MONTH and DAYTYPE (nints in SAS code)
+  ## Find total interviewed hours by MONTH and DAYTYPE (nints in SAS code)
   fsum2 <- dints %>%
     dplyr::group_by(MONTH,DAYTYPE) %>%
     dplyr::summarize(THOURS_MD=sum(HOURS,na.rm=TRUE)) %>%
     as.data.frame()
   
-  # Combine the summarized effort with fsum2 to compute PROP
+  ## Combine the summarized effort with fsum2 to compute PROP
   f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
     dplyr::mutate(PROP=HOURS/THOURS_MD) %>%
     dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,
                   NINTS,HOURS,USSHOURS,MTRIP,PROP,PARTY) %>%
     dplyr::arrange(MUNIT,FISHERY,DAYTYPE,MONTH)
-  ### Return data.frame
+  ## Return data.frame (not a tibble)
   as.data.frame(f)
 }
 
@@ -242,32 +261,34 @@ sumEffort <- function(ieff,pct) {
 
 ## Summarize observed harvest by strata and species
 sumObsHarvest <- function(d) {
-  ## Compute harvest for each interview
+  ## Remove records of interviews not related to fishing
   harv <- d %>%
     dplyr::filter(FISHERY!="non-fishing")
 
-  ## Harvest for when fishing only in one state
+  ## Correct for interviews in "two" states
+  ### Harvest for when fishing only in one state
   h1 <- dplyr::filter(harv,!STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan"))
-  ## Harvest for when fishing in more than one state ... harvest cut in half
+  ### Harvest for when fishing in more than one state ... harvest cut in half
   h2 <- dplyr::filter(harv,STATE %in% c("Wisconsin/Minnesota","Wisconsin/Michigan")) %>%
     dplyr::mutate(HOURS=0.5*HOURS,HARVEST=0.5*HARVEST)
-  ## Duplicated h2 to get other half of HOURS/HARVEST, label MUNITS
+  ### Duplicated h2 to get other half of HOURS/HARVEST, label MUNITS
   h3 <- h2 %>%
     dplyr::mutate(MUNIT=ifelse(STATE=="Wisconsin/Minnesota","MN","MI"))
-  ## Combine to get all interviews corrected for location
+  ### Combine to get all interviews corrected for location
   harv <- rbind(h1,h2,h3)
+  
   ## Summarize harvest by strata and species
-  ##   USSHARVEST is uncorrected SS for computer variance of HARVEST later
-  ##   UCOVAR is intermediate value to compute HARVEST HOURS covariance later
+  ###   USSHARVEST is uncorrected SS for computer variance of HARVEST later
+  ###   UCOVAR is intermediate value to compute HARVEST HOURS covariance later
   harv %<>% dplyr::group_by(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES) %>%
     dplyr::summarize(USSHARVEST=sum(HARVEST^2,na.rm=TRUE),
                      UCOVAR=sum(HARVEST*HOURS,na.rm=TRUE),
                      HARVEST=sum(HARVEST,na.rm=TRUE)) %>%
-    ## Note that HOURS is not returned but it is merged from the summarized
-    ## effort data (by waters, fishery, daytype, and month) in the next function
+    ### Note that HOURS is not returned but it is merged from the summarized
+    ### effort data (by waters, fishery, daytype, and month) in the next function
     dplyr::select(YEAR,MUNIT,FISHERY,DAYTYPE,MONTH,SPECIES,
                   HARVEST,USSHARVEST,UCOVAR)
-  ### Return data.frame
+  ## Return data.frame (not a tibble)
   as.data.frame(harv)
 }
 
@@ -320,6 +341,7 @@ sumHarvestEffort <- function(h,f) {
     as.data.frame()
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf1)
+
   ## Summarizes across months
   hf2 <- dplyr::group_by(hf,YEAR,MUNIT,FISHERY,SPECIES,DAYTYPE) %>%
     dplyr::summarize(NINTS=sum(NINTS),
@@ -331,6 +353,7 @@ sumHarvestEffort <- function(h,f) {
     as.data.frame()
   ## Combine those two summaries to original data.frame
   hf <- rbind(hf,hf2)
+  
   ## Summarizes across fisheries
   hf3 <- dplyr::group_by(hf,YEAR,MUNIT,SPECIES,DAYTYPE,MONTH) %>%
     dplyr::summarize(NINTS=sum(NINTS),
@@ -448,18 +471,6 @@ combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
 
 
 ## Internals for Mains ----
-## Compute hours of effort, put NAs if before start or after end of survey
-##   period or if stop time is before start time.
-iHndlHours <- function(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE) {
-  START <- STARTHH*60+STARTMM
-  STOP <- STOPHH*60+STOPMM
-  dplyr::case_when(
-    DATE < SDATE ~ NA_real_,   # Date before start date
-    DATE > FDATE ~ NA_real_,   # Date after end date
-    STOP < START ~ NA_real_,   # Stopped before started
-    TRUE ~ (STOP-START)/60     # OK ... calc hours of effort
-  )
-}
 
 ## Converts months to an ordered factor
 iOrderMonths <- function(x,addAll=FALSE) {
