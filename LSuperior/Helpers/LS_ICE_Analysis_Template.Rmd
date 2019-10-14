@@ -376,10 +376,10 @@ numf <- length(fshrys)
 bys <- c("SURVEY","ROUTE","UNIT","SPECIES","MONTH","ORIGIN")
 tmp1 <- split(sumLen,sumLen$FISHERY)
 tmp2 <- dplyr::full_join(tmp1[[1]],tmp1[[2]],by=bys)
-for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
+if (numf>2) for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
 
 tbl1 <- tmp2 %>%
-  dplyr::select(-dplyr::contains("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
+  dplyr::select(SPECIES,MONTH,ORIGIN,n.x:maxLen.x,n.y:maxLen.y) %>%
   dplyr::filter(!duplicated(.)) %>%
   dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
   dplyr::arrange(SPECIES,MONTH,ORIGIN)

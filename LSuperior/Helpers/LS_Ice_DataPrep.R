@@ -362,3 +362,4 @@ fish <-
 #   * minLen: Minimum length
 #   * maxLen: Maximum length
 sumLen <- sumLengths(fish)
+
