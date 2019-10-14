@@ -421,7 +421,8 @@ sumLengths <- function(d,var) {
 addWeights <- function(d,RDIR,YEAR) {
   ## Read in the length-weight regression results
   lwregs <- 
-    readxl::read_excel(file.path(RDIR,paste0("LWRegressions_",YEAR,".xlsx"))) %>%
+    readxl::read_excel(file.path(RDIR,"data",
+                                 paste0("LWRegressions_",YEAR,".xlsx"))) %>%
     ## make sure capitalization is the same as in SPECIES
     mutate(SPECIES2=FSA::capFirst(SPECIES)) %>%
     select(SPECIES2,a,b)
@@ -465,7 +466,7 @@ combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
       else d <- rbind(d,read.csv(fn))
     }
     ## Write out the combined file
-    fn <- paste0("COMBINED_",YEAR,"_",i,".csv")
+    fn <- paste0("LS_OPEN_",YEAR,"_",i,".csv")
     write.csv(d,file=file.path(RDIR,fn),row.names=FALSE,quote=FALSE,na="")
     ## Remove the original files
     if (removeOrigs) file.remove(file.path(RDIR,tmp))

@@ -95,7 +95,7 @@ calSum <-
 #   * Counts (for Superior) from the original file are average number of parties
 #     present during the wait time, not total effort seen during the wait time.
 pressureCount <- 
-  readxl::read_excel(file.path(RDIR,CNTS_FILE)) %>%
+  readxl::read_excel(file.path(RDIR,"data",CNTS_FILE)) %>%
   ## Change all variable names to upper-case (easier to remember)
   dplyr::rename_all(.funs=toupper) %>%
   ## Filter to chosen route and year
@@ -158,7 +158,7 @@ pressureCount <- expandPressureCounts(pressureCount,calSum)
 #     FISH (number of fish caught) variables were removed (not used further).
 #     This is noted here just because it is different than the SAS code.
 intvs_ORIG <- 
-  readxl::read_excel(file.path(RDIR,INTS_FILE)) %>%
+  readxl::read_excel(file.path(RDIR,"data",INTS_FILE)) %>%
   ## Change all variable names to upper-case (easier to remember)
   dplyr::rename_all(.funs=toupper) %>%
   ## Filter to chosen route and year
@@ -186,7 +186,7 @@ intvs_ORIG <-
     ## Create longer site description
     SITE=paste0(SITE,"-",FSA::capFirst(SITEDESC)),
     ## Find hrs of effort
-    HOURS=iHndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE)) %>%
+    HOURS=hndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE)) %>%
   ## Rearrange vars (& drop several)
   dplyr::select(INTERVIEW,DATE,YEAR,STATE,MUNIT,FISHERY,DAYTYPE,MONTH,DAY,
                 SITE,STATUS,HOURS,PERSONS,SPECIES,HARVEST) %>%
@@ -339,7 +339,7 @@ writeDF(ttlHarvest,fnpre)
 # DESCRIPTION: This creates a data.frame from the raw individual fish data. It
 #              is joined with interview data further below (see details there).
 fish <- 
-  readxl::read_excel(file.path(RDIR,FISH_FILE)) %>%
+  readxl::read_excel(file.path(RDIR,"data",FISH_FILE)) %>%
   ## Change all variable names to upper-case (easier to remember)
   dplyr::rename_all(.funs=toupper) %>%
   ## Filter to chosen route and survey years
