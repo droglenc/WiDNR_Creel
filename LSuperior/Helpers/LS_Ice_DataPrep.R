@@ -8,6 +8,8 @@
 ### Load helpers file
 source(file.path(WDIR,"Helpers","LS_Ice_Helpers.R"))
 
+### Filename prefix
+fnpre <- paste0(RDIR,"/",LOC2,"_Ice_",YR,"_")
 
 ## Pressure counts -------------------------------------------------------------
 
@@ -150,6 +152,7 @@ pressureCount <-
 #   * YEAR: Calendar year for the interview
 #   * MONTH: Month for the interview
 #   * DAY: Day for the interview
+#   * DATE: Date for the interview
 #   * DAYTYPE: Type of day (Weekday or Weekend)
 #   * FISHERY: Type of ice fishery
 #   * STATUS: Whether the interview represents a completed trip or not 
@@ -167,7 +170,8 @@ intvs_ORIG <-
   ## Convert MONTH number to name and re-level so that DEC is first
   ## Simplify DAYTYPE name and convert to factor
   ## Create combined site name
-  dplyr::mutate(MONTH=factor(month.abb[MONTH],levels=month.abb[c(12,1:11)]),
+  dplyr::mutate(DATE=as.Date(paste(MONTH,DAY,YEAR,sep="/"),"%m/%d/%Y"),
+                MONTH=factor(month.abb[MONTH],levels=month.abb[c(12,1:11)]),
                 DAYTYPE=factor(FSA::mapvalues(DAYTYPE,
                                               from="Weekend/Holiday",to="Weekend"),
                                levels=c("Weekday","Weekend")),
@@ -178,8 +182,8 @@ intvs_ORIG <-
                 ## compute HOURS of effort
                 HOURS=((STOPHH+STOPMM/60)-(STARTHH+STARTMM/60))) %>%
   ## Arrange variables (also removes unneeded variables
-  dplyr::select(INTERVIEW,SURVEY,ROUTE,SITE,STATE,UNIT,YEAR,MONTH,DAY,DAYTYPE,
-                FISHERY,STATUS,PERSONS,SUCCESS,HOURS,SPECIES,NUM) %>%
+  dplyr::select(INTERVIEW,SURVEY,ROUTE,SITE,STATE,UNIT,YEAR,MONTH,DAY,DATE,
+                DAYTYPE,FISHERY,STATUS,PERSONS,SUCCESS,HOURS,SPECIES,NUM) %>%
   ## Make a data.frame(and not a tibble)
   as.data.frame()
 
@@ -187,8 +191,8 @@ intvs_ORIG <-
 # DESCRIPTION: This creates a data.frame from intvs_ORIG that is just the unique
 #              interview data (i.e., no information about the harvested fish).
 # RESULT: A data.frame with ...
-#   * INTERVIEW, SURVEY, ROUTE, SITE, STATE, UNIT, YEAR, MONTH, DAY, DAYTYPE,
-#     FISHERY, STATUS, PERSONS, SUCCESS, HOURS: as defined above.
+#   * INTERVIEW, SURVEY, ROUTE, SITE, STATE, UNIT, YEAR, MONTH, DAY, DATE,
+#     DAYTYPE, FISHERY, STATUS, PERSONS, SUCCESS, HOURS: as defined above.
 intvs_NOFISH <-
   intvs_ORIG %>%
   # remove variables related to the different species of fish
@@ -200,7 +204,7 @@ intvs_NOFISH <-
 # DESCRIPTION: This creates a data.frame of pressure count data expanded to
 #              represent the total number of vehicles at each SITE in each
 #              FISHERY by MONTH and DAYTYPE. Ultimately this is an intermediate
-#              calculation used to find pcSum below. This is used in Table 2.
+#              calculation used to find ttlEffort below. This is used in Table 2.
 # RESULT: A data.frame with ...
 #   * SURVEY, ROUTE, UNIT, MONTH, DAYTYPE, SITE, FISHERY: as defined above.
 #   * NINTS: Number of observed interviews at SITE in FISHERY
@@ -213,13 +217,13 @@ intvs_NOFISH <-
 #   * ttlVehSiteFshry: Total vehicles at the SITE in each FISHERY (this used
 #                      pIntsInFishery)
 # NOTES: This is the bulk of 2019 ASHLAND ICE CREEL EXPANDED PRESSURE.XLSX.
-pcSite <- expandPressureCount(pressureCount,intvs_NOFISH,pints)
+ttlEffortBySite <- expandPressureCount(pressureCount,intvs_NOFISH,pints)
 
 
 # DESCRIPTION: This creates a data.frame of pressure count data expanded to
 #              represent the number of vehicles in each FISHERY by MONTH and
 #              DAYTYPE (across all SITEs). This is used in the harvest
-#              calculations further below.
+#              calculations further below and is expored as "*_ttlEffort.csv".
 # RESULT: A data.frame with ...
 #   * SURVEY, ROUTE, UNIT, MONTH, DAYTYPE, FISHERY: as defined above.
 #   * NINTS: Number of observed interviews in each FISHERY
@@ -227,12 +231,12 @@ pcSite <- expandPressureCount(pressureCount,intvs_NOFISH,pints)
 # NOTES:
 #   * This is the summaries in 2019 ASHLAND ICE CREEL EXPANDED PRESSURE.XLSX 
 #     that are carried forward to 2019 ASHLAND ICE CREEL HARVEST.XLSX.
-pcSum <- pcSite %>%
+ttlEffort <- ttlEffortBySite %>%
   dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
   dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                    ttlVehFshry=sum(ttlVehSiteFshry,na.rm=TRUE)) %>%
   as.data.frame()
-
+writeDF(ttlEffort,fnpre)
 
 
 ## Harvest ---------------------------------------------------------------------
@@ -267,7 +271,7 @@ pcSum <- pcSite %>%
 #   * ttlSuccAnglers: Total (expanded) successful (caught fish) anglers ...
 #                     only computed for "All fish"
 #   * ttlHarvest: Total (expanded) number of harvested fish
-expHarv <- expandHarv(intvs_NOFISH,intvs_ORIG,pcSum)
+expHarv <- expandHarv(intvs_NOFISH,intvs_ORIG,ttlEffort)
 
 
 # DESCRIPTION: This creates a data.frame that ultimately contains expanded
@@ -323,21 +327,33 @@ sumExpHarvAll <- sumExpHarvestAll(expHarv)
 sumExpHarvSPP <- sumExpHarvestSPP(expHarv,sumExpHarvAll)
 
 
+# DESCRIPTION: This creates a data.frame that combines sumExpHarvALL and
+#              sumExpHarvSPP. All variables are defined above. It is exported
+#              as "*_ttlHarvest.csv".
+ttlHarvest <- 
+  sumExpHarvSPP %>%
+  mutate(ttlVehFshry=NA_real_,anglersPerInt=NA_real_,ttlAnglers=NA_real_,
+         avgAnglerHours=NA_real_,ttlAnglerHours=NA_real_,percSucc=NA_real_,
+         ttlSuccAnglers=NA_real_) %>%
+  select(names(sumExpHarvAll)) %>%
+  bind_rows(sumExpHarvAll) %>%
+  mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
+  arrange(SURVEY,ROUTE,UNIT,SPECIES,FISHERY,MONTH,DAYTYPE)
+writeDF(ttlEffort,fnpre)
+
 
 ## Fish Lengths ----
 
-# DESCRIPTION: This creates a data.frame that ultimately contains expected
-#              harvest of individual species by MONTH, FISHERY, and DAYTYPE, and
-#              includes summaries across MONTHs, FISHERYs, and DAYTYPEs. See
-#              above for summaries of "All Fish". This is used in Table 4. The
-#              lengths are summarized further below.
+# DESCRIPTION: This creates a data.frame that contains length and clip
+#              information for all measured fish. The lengths are summarized
+#              further below. This is used in Table 5 and is exported as
+#              "*_lengths.csv". 
 # RESULT: A data.frame with ...
-#   * SURVEY, ROUTE, UNIT, FISHERY, MONTH, SPECIES: as defined above.
+#   * SURVEY, ROUTE, UNIT, FISHERY, MONTH, DATE, SITE, SPECIES: as defined above.
 #   * LENGTH: Total length in inches.
 #   * CLIP: Fin clip type
 #   * ORIGIN: Whether "Native" or from a "Hatchery"
-# NOTES: This is same as 2019ASHLANDICECATCH.XLSX
-fish <- 
+lengths <- 
   readxl::read_excel(file.path(RDIR,"data",FISH_FILE)) %>%
   ## Filter to the route in LOC and current SURVEY year
   dplyr::filter(ROUTE==LOC,SURVEY==YEAR) %>%
@@ -349,12 +365,15 @@ fish <-
   dplyr::mutate(SPECIES=FSA::capFirst(SPP),
                 ORIGIN=ifelse(is.na(CLIP)|CLIP=="Native","Native","Hatchery")) %>%
   ## Join on the interview specific information
-  dplyr::left_join(dplyr::select(intvs_NOFISH,INTERVIEW,UNIT,MONTH,FISHERY),
+  dplyr::left_join(dplyr::select(intvs_NOFISH,-SURVEY,-ROUTE,-STATUS,-PERSONS,-SUCCESS,-HOURS),
                    by="INTERVIEW")  %>%
   ## Isolate and rearrange the variables
-  dplyr::select(SURVEY,ROUTE,UNIT,FISHERY,MONTH,SPECIES,LENGTH,CLIP,ORIGIN) %>%
+  dplyr::select(SURVEY,ROUTE,UNIT,FISHERY,MONTH,DATE,SITE,SPECIES,CLIP,ORIGIN,LENGTH) %>%
+  ## Sort rows
+  dplyr::arrange(SURVEY,ROUTE,UNIT,SPECIES,FISHERY,MONTH,LENGTH) %>%
   ## Make a data.frame (and not a tibble)
   as.data.frame()
+writeDF(lengths,fnpre)
 
 
 # DESCRIPTION: This creates a data.frame that summarizes (see below) total
@@ -366,5 +385,4 @@ fish <-
 #   * sdLen: SD length
 #   * minLen: Minimum length
 #   * maxLen: Maximum length
-sumLen <- sumLengths(fish)
-
+sumLen <- sumLengths(lengths)

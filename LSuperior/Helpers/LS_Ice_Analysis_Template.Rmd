@@ -5,6 +5,8 @@ params:
     value: ""
   LOC2:
     value: ""
+  YR:
+    value: NULL
   WDIR:
     value: ""
   RDIR:
@@ -19,6 +21,7 @@ output:
 ## Grab User's Inputs from parameters
 LOC <- params$LOC
 LOC2 <- params$LOC2
+YR <- params$YR
 WDIR <- params$WDIR
 RDIR <- params$RDIR
 ```
@@ -63,63 +66,72 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table1"))
 
-table1 <- function(pressureCount) {
-## Prepare data.frame for huxtable
-PC <- dplyr::select(pressureCount,-SURVEY,-ROUTE)
-tmp1 <- dplyr::filter(PC,DAYTYPE=="Weekday") %>%
-  dplyr::select(-DAYTYPE)
-tmp2 <- dplyr::filter(PC,DAYTYPE=="Weekend") %>%
-  dplyr::select(-DAYTYPE)
-tbl1 <- dplyr::full_join(tmp1,tmp2,by=c("MONTH","SITE")) %>%
-  arrange(MONTH,SITE) %>%
-  dplyr::mutate(# Remove repeated rows in MONTH variable
-                MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
-                             "",as.character(MONTH))) %>%
-  tibble::add_column(.,spc1="",.after="cntdVeh.x") %>%
-  tibble::add_column(.,spc2="",.after="cntdVeh.y") %>%
-  tibble::add_column(.,spc3="",.after="ttlVeh.x")
-## Rows with a MONTH names (except first) will get extra space above
-spaceAbove <- which(tbl1$MONTH!="")[-1]
+table1 <- function(PC) {
+  # Prepare data.frame for huxtable
+  PC <- PC %>%
+    ## Remove unneeded variables from pressureCount
+    dplyr::select(-SURVEY,-ROUTE) %>%
+    ## Remove records where there wre no fishable days
+    dplyr::filter(TTLDAYS>0)
+  ## Separate into weekdays and seekends
+  tmp <- split(PC,PC$DAYTYPE,drop=TRUE)
+  ## Join so daytypes are side-by-side
+  if (length(tmp)>1) {
+    tmp <- dplyr::full_join(tmp[[1]],tmp[[2]],by=c("MONTH","SITE"))
+  } else tmp <- tmp[[1]]
+  ## So that they can be put side-by-side for the table
+  tbl1 <- tmp %>%
+    dplyr::select(-dplyr::starts_with("DAYTYPE")) %>%
+    dplyr::arrange(MONTH,SITE) %>%
+    dplyr::mutate(
+      # Remove repeated rows in MONTH variable
+      MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                   "",as.character(MONTH))) %>%
+    ## Add spacer columns to make table look nice
+    tibble::add_column(.,spc1="",.after="cntdVeh.x") %>%
+    tibble::add_column(.,spc2="",.after="cntdVeh.y") %>%
+    tibble::add_column(.,spc3="",.after="ttlVeh.x")
+  ## Rows with a MONTH names (except first) will get extra space above
+  spaceAbove <- which(tbl1$MONTH!="")[-1]
 
-## Make the huxtable
-tbl2 <- as_hux(tbl1) %>%
-  # Set all cell paddings
-  set_all_padding(1) %>%
-  set_right_padding(row=everywhere,col=everywhere,value=5) %>%
-  set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
-  # Convert NAs to dashes
-  set_na_string(row=everywhere,col=-(1:2),value="--") %>%
-  # right align all but leftmost two columns
-  set_align(row=everywhere,col=-(1:2),value="right") %>%
-  # No decimals for observed values and total days
-  set_number_format(row=everywhere,col=c(3:4,6,9:10,12),value=0) %>%
-  set_number_format(row=everywhere,col=c(7,13),value=1) %>%
-  # Extra label at the top
-  rbind(c("MONTH","SITE",rep(c("Days","Vehicles",""),3),"Days","Vehicles"),.) %>%
-  rbind(c("","","Counted","","","Total","","","Counted","","","Total",""),.) %>%
-  rbind(c("","","Weekdays","","","","","","Weekends","","","",""),.) %>%
-  # Adjust headers
-  merge_cells(row=1,col=3:7) %>%
-  set_bottom_border(row=1,col=3,value=1) %>%
-  merge_cells(row=1,col=9:13) %>%
-  set_bottom_border(row=1,col=9,value=1) %>%
-  set_align(row=1,col=everywhere,value="center") %>%
-  merge_cells(row=2,col=3:4) %>%
-  set_bottom_border(row=2,col=3,value=1) %>%
-  merge_cells(row=2,col=6:7) %>%
-  set_bottom_border(row=2,col=6,value=1) %>%
-  merge_cells(row=2,col=9:10) %>%
-  set_bottom_border(row=2,col=9,value=1) %>%
-  merge_cells(row=2,col=12:13) %>%
-  set_bottom_border(row=2,col=12,value=1) %>%
-  set_align(row=2,col=everywhere,value="center") %>%
-  # Sets table & column widths
-  set_width(0.9) %>%
-  set_col_width(col=c(.1,.35,.1,.1,.025,.1,.1,.075,.1,.1,.025,.1,.1)) %>%
-  iFinishTable(labelsRow=3,labelsCol=2)
-
-## Return the huxtable
-tbl2
+  ## Make the huxtable
+  tbl2 <- as_hux(tbl1) %>%
+    # Set all cell paddings
+    set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
+    # Convert NAs to dashes
+    set_na_string(row=everywhere,col=-(1:2),value="--") %>%
+    # right align all but leftmost two columns
+    set_align(row=everywhere,col=-(1:2),value="right") %>%
+    # No decimals for observed values and total days
+    set_number_format(row=everywhere,col=c(3:4,6,9:10,12),value=0) %>%
+    set_number_format(row=everywhere,col=c(7,13),value=1) %>%
+    # Extra label at the top
+    rbind(c("MONTH","SITE",rep(c("Days","Vehicles",""),3),"Days","Vehicles"),.) %>%
+    rbind(c("","","Counted","","","Total","","","Counted","","","Total",""),.) %>%
+    rbind(c("","","Weekdays","","","","","","Weekends","","","",""),.) %>%
+    # Adjust headers
+    merge_cells(row=1,col=3:7) %>%
+    set_bottom_border(row=1,col=3,value=1) %>%
+    merge_cells(row=1,col=9:13) %>%
+    set_bottom_border(row=1,col=9,value=1) %>%
+    set_align(row=1,col=everywhere,value="center") %>%
+    merge_cells(row=2,col=3:4) %>%
+    set_bottom_border(row=2,col=3,value=1) %>%
+    merge_cells(row=2,col=6:7) %>%
+    set_bottom_border(row=2,col=6,value=1) %>%
+    merge_cells(row=2,col=9:10) %>%
+    set_bottom_border(row=2,col=9,value=1) %>%
+    merge_cells(row=2,col=12:13) %>%
+    set_bottom_border(row=2,col=12,value=1) %>%
+    set_align(row=2,col=everywhere,value="center") %>%
+    # Sets table & column widths
+    set_width(0.9) %>%
+    set_col_width(col=c(.1,.35,.1,.1,.025,.1,.1,.075,.1,.1,.025,.1,.1)) %>%
+    iFinishTable(labelsRow=3,labelsCol=2)
+  ## Return the huxtable
+  tbl2
 }
 
 table1(pressureCount)
@@ -138,17 +150,25 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table2"))
 
-table2 <- function(pcSite) {
-  ## Prepare data.frame for huxtable
-  PC <- mutate(pcSite,pIntsInFishery=100*pIntsInFishery)
-  tmp1 <- dplyr::select(PC,-NINTS,-pIntsInFishery,-ttlVehSiteFshry)
-  tmp2 <- dplyr::select(PC,-TTLINTS,-ttlVehSite)
+table2 <- function(f) {
+  # Prepare data.frame for huxtable
+  f <- f %>%
+    ## change proportion to a percentage
+    dplyr::mutate(pIntsInFishery=100*pIntsInFishery) %>%
+    ## get rid of records for which it was not possible to observe vehicles
+    dplyr::filter(!is.na(ttlVehSite))
+  ## Just results by the site (across all fisheries)
+  tmp1 <- dplyr::select(f,-NINTS,-pIntsInFishery,-ttlVehSiteFshry)
+  ## Just the results by the fisherys (but not the total)
+  tmp2 <- dplyr::select(f,-TTLINTS,-ttlVehSite)
+  ## Split into fisheries so they can be put side-by-side
   tmp3 <- split(tmp2,tmp2$FISHERY,drop=TRUE)
   fshrys <- names(tmp3)
   numf <- length(fshrys)
   bys <- c("SURVEY","ROUTE","UNIT","MONTH","DAYTYPE","SITE")
-  tmp4 <- dplyr::full_join(tmp3[[1]],tmp3[[2]],by=bys)
-  if (numf>2) for (i in 3:numf) tmp4 <- dplyr::full_join(tmp4,tmp3[[i]],by=bys)
+  tmp4 <- tmp3[[1]]
+  if (numf>1) for (i in 2:numf) tmp4 <- dplyr::full_join(tmp4,tmp3[[i]],by=bys)
+  ## Join on total columns at end, clean up, and sort
   tbl1 <- dplyr::full_join(tmp4,tmp1,by=bys) %>%
     dplyr::select(-dplyr::starts_with("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
     dplyr::filter(!duplicated(.)) %>%
@@ -158,19 +178,21 @@ table2 <- function(pcSite) {
                                "",as.character(MONTH)),
                   DAYTYPE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="DAYTYPE"),
                                  "",as.character(DAYTYPE)))
-
+  ## Add spacing columns so that the table looks nice
   acs <- which(grepl("ttlVehSiteFshry",names(tbl1)))
   for (i in rev(acs)) {
     tbl1 <- tibble::add_column(tbl1,"",.after=i)
     names(tbl1)[i+1] <- paste0("spc",i)
   }
-
+  ## Prepare to add spaces above daytype changes
   spaceAbove <- which(tbl1$DAYTYPE!="")[-1]
 
+  ## Prepare the top label for the table
   toplbl <- c("","","")
   for (i in fshrys) toplbl <- c(toplbl,i,"","","")
   toplbl <- c(toplbl,"Total","")
 
+  ## Make the huxtable
   tbl2 <- as_hux(tbl1) %>%
     # Set all cell paddings
     set_all_padding(1) %>%
@@ -210,7 +232,7 @@ table2 <- function(pcSite) {
   tbl2  
 }
 
-table2(pcSite)
+table2(ttlEffortBySite)
 ```
 
 ```{r table3}
@@ -296,78 +318,88 @@ cat(tables("Table4"))
 
 table4 <- function(sumExpHarvSPP) {
   # Prepare data.frame for huxtable
-## Move DAYTYPEs into columns
-H <- select(sumExpHarvSPP,-SURVEY,-ROUTE,-UNIT)
-tmp1 <- dplyr::filter(H,DAYTYPE=="Weekday") %>%
-  dplyr::select(-DAYTYPE)
-tmp2 <- dplyr::filter(H,DAYTYPE=="Weekend") %>%
-  dplyr::select(-DAYTYPE)
-tmp3 <- dplyr::filter(H,DAYTYPE=="All") %>%
-  dplyr::select(-DAYTYPE)
-tbl1 <- dplyr::full_join(tmp1,tmp2,by=c("SPECIES","FISHERY","MONTH")) %>%
-  dplyr::full_join(tmp3,by=c("SPECIES","FISHERY","MONTH")) %>%
-  dplyr::filter(!is.na(SPECIES)) %>%
-  dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
-  dplyr::arrange(SPECIES,FISHERY,MONTH) %>%
-  ## Add aesthetic spacing columns (for huxtable)
-  tibble::add_column(.,spc1="",.after="ttlHarvest.x") %>%
-  tibble::add_column(.,spc2="",.after="ttlHarvest.y")
-## Drop the "All" FISHERYs for species captured in only one fishery
-## (note the use of 2 in the filter because of an "All" fishery)
-SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
-  dplyr::summarize(numFshrys=length(unique(FISHERY))) %>%
-  dplyr::filter(numFshrys==2)
-tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & FISHERY=="All"))
-## Drop the "All" MONTHs for species captured in only one month
-## (note the use of 2 in the filter because of an "All" MONTH)
-SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
-  dplyr::summarize(numMons=length(unique(MONTH))) %>%
-  dplyr::filter(numMons==2)
-tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & MONTH=="All"))
-## Remove repeated rows in SPECIES, FISHERY, MONTH variables (aesthetics in huxt)
-tbl1 <- tbl1 %>%
-        dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
-                                  "",as.character(SPECIES)),
-            ## Use of both SPECIES and FISHERY (rather than just FISHERY) guards
-            ## against cutting a FISHERY across species
-            FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","FISHERY")),
-                           "",as.character(FISHERY)),
-            MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","MONTH")),
-                         "",as.character(MONTH)))
-## Rows with a MONTH names (except first) will get extra space above
-spaceAbove <- which(tbl1$SPECIES!="")[-1]
+  ## Remove unneeded variables
+  H <- select(sumExpHarvSPP,-SURVEY,-ROUTE,-UNIT)
+  ## Split by DAYTYPEs so that they can be side-by-side
+  tmp <- split(H,H$DAYTYPE,drop=TRUE)
+  ds <- names(tmp)
+  numds <- length (ds)
+  tmp1 <- tmp[[1]]
+  if (numds>1) 
+    for (i in 2:numds)
+      tmp1 <- dplyr::full_join(tmp1,tmp[[i]],by=c("SPECIES","FISHERY","MONTH"))
 
-## Make the huxtable
-tbl2 <- as_hux(tbl1) %>%
-  # Set all cell paddings
-  set_all_padding(1) %>%
-  set_right_padding(row=everywhere,col=everywhere,value=5) %>%
-  set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
-  # Convert NAs to dashes
-  set_na_string(row=everywhere,col=-(1:3),value="--") %>%
-  # right align all but leftmost two columns
-  set_align(row=everywhere,col=-(1:3),value="right") %>%
-  # No decimals for harvest rates, four for harvest rate
-  set_number_format(row=everywhere,col=contains("Harvest"),value=0) %>%
-  set_number_format(row=everywhere,col=contains("Rate"),value=4) %>%
-  # Extra label at the top
-  rbind(c("SPECIES","FISHERY","MONTH",rep(c("Rate","Harvest",""),2),
-          "Rate","Harvest"),.) %>%
-  rbind(c("","","",rep(c("Harvest","Total",""),2),"Harvest","Total"),.) %>%
-  rbind(c("","","","Weekdays","","","Weekends","","","All",""),.) %>%
+  tbl1 <- tmp1 %>%
+    dplyr::select(-dplyr::starts_with("DAYTYPE")) %>%
+    dplyr::filter(!is.na(SPECIES)) %>%
+    dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
+    dplyr::arrange(SPECIES,FISHERY,MONTH) %>%
+    ## Add aesthetic spacing columns (for huxtable)
+    tibble::add_column(.,spc1="",.after="ttlHarvest.x")
+  ## this is needed as some routes don't have harvest on both daytypes
+  if (numds>2) tbl1 <- tibble::add_column(tbl1,spc2="",.after="ttlHarvest.y")
+  ## Drop the "All" FISHERYs for species captured in only one fishery
+  ## (note the use of 2 in the filter because of an "All" fishery)
+  SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
+    dplyr::summarize(numFshrys=length(unique(FISHERY))) %>%
+    dplyr::filter(numFshrys==2)
+  tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & FISHERY=="All"))
+  ## Drop the "All" MONTHs for species captured in only one month
+  ## (note the use of 2 in the filter because of an "All" MONTH)
+  SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
+    dplyr::summarize(numMons=length(unique(MONTH))) %>%
+    dplyr::filter(numMons==2)
+  tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & MONTH=="All"))
+  ## Remove repeated rows in SPECIES, FISHERY, MONTH variables (aesthetics in huxt)
+  tbl1 <- tbl1 %>%
+          dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
+                                    "",as.character(SPECIES)),
+              ## Use of both SPECIES and FISHERY (rather than just FISHERY) guards
+              ## against cutting a FISHERY across species
+              FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","FISHERY")),
+                             "",as.character(FISHERY)),
+              MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","MONTH")),
+                           "",as.character(MONTH)))
+  ## Rows with a MONTH names (except first) will get extra space above
+  spaceAbove <- which(tbl1$SPECIES!="")[-1]
+
+  toplbl <- c("","","")
+  for (i in ds) toplbl <- c(toplbl,i,"","")
+  toplbl <- toplbl[-length(toplbl)]
+
+  ## Make the huxtable
+  tbl2 <- as_hux(tbl1) %>%
+    # Set all cell paddings
+    set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
+    # Convert NAs to dashes
+    set_na_string(row=everywhere,col=-(1:3),value="--") %>%
+    # right align all but leftmost two columns
+    set_align(row=everywhere,col=-(1:3),value="right") %>%
+    # No decimals for harvest rates, four for harvest rate
+    set_number_format(row=everywhere,col=contains("Harvest"),value=0) %>%
+    set_number_format(row=everywhere,col=contains("Rate"),value=4) %>%
+    # Extra label at the top
+    rbind(c("SPECIES","FISHERY","MONTH",rep(c("Rate","Harvest",""),numds-1),
+            "Rate","Harvest"),.) %>%
+    rbind(c("","","",rep(c("Harvest","Total",""),numds-1),"Harvest","Total"),.) %>%
+    rbind(toplbl,.)
   # Adjust headers
-  merge_cells(row=1,col=4:5) %>%
-  set_bottom_border(row=1,col=4,value=1) %>%
-  merge_cells(row=1,col=7:8) %>%
-  set_bottom_border(row=1,col=7,value=1) %>%
-  merge_cells(row=1,col=10:11) %>%
-  set_bottom_border(row=1,col=10,value=1) %>%
-  set_align(row=1,col=everywhere,value="center") %>%
-  # Sets table & column widths
-  set_width(0.99) %>%
-  set_col_width(col=c(.2,.3,.1,.15,.1,.025,.15,.1,.025,.15,.1)) %>%
-  iFinishTable(labelsRow=3,labelsCol=3)
-tbl2
+  for (i in 1:numds) {
+    cols <- (4:5)+(i-1)*3
+    tbl2 <- merge_cells(tbl2,row=1,col=cols) %>%
+      set_bottom_border(row=1,col=cols[1],value=1)
+  }
+
+  tbl2 <- tbl2 %>%
+    set_align(row=1,col=everywhere,value="center") %>%
+    # Sets table & column widths
+    set_width(0.99) %>%
+    set_col_width(col=c(.2,.3,.1,rep(c(.15,.1,.025),numds-1),.15,.1)) %>%
+    iFinishTable(labelsRow=3,labelsCol=3)
+  ## Return huxtable
+  tbl2
 }
 
 table4(sumExpHarvSPP)

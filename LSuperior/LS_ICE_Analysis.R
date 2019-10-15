@@ -3,7 +3,16 @@
 # PROGRAM TO ANALYZE LAKE SUPERIOR ICE CREEL
 #
 # DIRECTIONS:
-#  1. Create
+#  1. Create a "LS_ICE_YEAR" folder (where YEAR is replaced with the year
+#     to be analyzed ... e.g., LS_ICE_2019) inside "LSuperior" folder.
+#  2. Use Access macro to extract interview, fdays, count, and fish data files
+#      into a "data" folder inside the folder from 1.
+#  3. Complete an information file (see example from a previous year) and save
+#     in same folder from 1.
+#  4. Source this script (and choose the information file in the dialog box).
+#  5. See resulting files in folder from 1 ... the html file is the overall
+#     report and the CSV files are intermediate data files that may be loaded
+#     into a database for future analyses.
 #
 # R VERSIONS (CONVERTED FROM EXCEL): 
 #     XXX, 2019 (version 1 - Derek O)
@@ -16,21 +25,19 @@
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
-## Allows user to choose 1 or more "information" files that correspond to a
-## specific ice route. User will need to browse to where the information files
-## are located (see directions above).
-fns <- choose.files(filters=Filters["R",])
-# Create working directory (base directory + "LSuperior" folder). This is where
-# the helper files and rmarkdown template are located.
-WDIR <- file.path(here::here(),"LSuperior")
+## Allows user to choose the appropriate "information" file from the folder
+## created in 1 in the directions above..
+fn <- choose.files(filters=Filters["R",])
+# Read user-specified information file
+source(fn)
 # Create results directory from where user-selected information file(s) are.
-RDIR <- dirname(fns[1])
+RDIR <- dirname(fn)
+# Create working directory for helper files and rmarkdown template.
+WDIR <- file.path(here::here(),"LSuperior")
 
-## Iterate through those files/routes producing the HTML report and the 
-## intermediate CSV files (see directios above)
-for (i in seq_along(fns)) {
-  # Read user-specified information file
-  source(fns[i])
+## Iterate through the routes given in the information file. Produce an HTML
+## report and intermediate CSV files (see directions above)
+for (LOCATION in ROUTE) {
   # Handle slashes in location names
   LOCATION2 <- gsub("/","",LOCATION)
   message("Creating report and data files for '",LOCATION,"' route ...",appendLF=FALSE)
@@ -38,7 +45,7 @@ for (i in seq_along(fns)) {
   OUTFILE <- paste0(LOCATION2,"_Ice_",YEAR,"_Report.html")
   # Render the markdown report file with the information from above
   rmarkdown::render(input=file.path(WDIR,"Helpers","LS_Ice_Analysis_Template.Rmd"),
-                    params=list(LOC=LOCATION,LOC2=LOCATION2,
+                    params=list(LOC=LOCATION,LOC2=LOCATION2,YR=YEAR,
                                 WDIR=WDIR,RDIR=RDIR),
                     output_dir=RDIR,output_file=OUTFILE,
                     output_format="html_document",
@@ -47,3 +54,5 @@ for (i in seq_along(fns)) {
   utils::browseURL(file.path(RDIR,OUTFILE))
   message(" Done")
 }
+
+if (COMBINE_CSV_FILES) combineCSV(RDIR,YEAR)

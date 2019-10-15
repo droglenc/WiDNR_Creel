@@ -84,7 +84,7 @@ theme_creel <- function() {
 
 
 ```{r table1}
-tables(name="Table1",
+tables(name="Table1",display=FALSE,
        caption=paste("Number of days by day type and assumed fishing day",
                      "length (h) for each month during the sampling period.",
                      "These values were used to expand sampled observations",
@@ -92,6 +92,7 @@ tables(name="Table1",
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table1"))
+
 table1 <- function(fnpre,calSum) {
   ## Prepare data.frame for huxtable
   calTbl1 <- calSum %>%
@@ -136,7 +137,7 @@ table1(fnpre,calSum)
 ```
 
 ```{r table2}
-tables(name="Table2",
+tables(name="Table2",display=FALSE,
        caption=paste("Number of interviews (N) and hours of interviewed effort",
                      "(Hrs) by state, day type, type of fishery, and month."))
 cat("<br><br>")
@@ -245,7 +246,7 @@ table2(intvs)
 ```
 
 ```{r table3}
-tables(name="Table3",
+tables(name="Table3",display=FALSE,
        caption=paste("Number of day sampled and total party-hours of pressure",
                      "by month and day type (includes non-fishing effort)."))
 cat("<br><br>")
@@ -303,7 +304,7 @@ table3(pressureCount)
 ```
 
 ```{r table4}
-tables(name="Table4",
+tables(name="Table4",display=FALSE,
        caption=paste("Total Party-hours, persons per party, total individual-hours,",
                      "mean trip length, and total number of trips by waters,",
                      "fishery type, month, and day type. 'All' results are",
@@ -382,7 +383,7 @@ table4(fnpre)
 ```
 
 ```{r table5}
-tables(name="Table5",
+tables(name="Table5",display=FALSE,
        caption=paste("Total harvest and harvest rates based on fishery-specific",
                      "angling hours by waters, fishery, species, month and",
                      "day type. 'All' results are shown only for those",
@@ -468,7 +469,7 @@ table5(fnpre)
 ```
 
 ```{r table6}
-tables(name="Table6",
+tables(name="Table6",display=FALSE,
        caption=paste("Summary statistics of all measured fish by species,",
                      "month, and whether clipped or not. 'All' results are",
                      "shown only in those months where both clipped and",
@@ -525,7 +526,7 @@ table6(lengths)
 ```
 
 ```{r table7}
-tables(name="Table7",
+tables(name="Table7",display=FALSE,
        caption=paste0("Summary statistics of measured fish by species, month,",
                       " and whether clipped or not. Only species for which some",
                       " fin-clipped fish were recorded are shown (otherwise see ",
@@ -586,7 +587,7 @@ table7(lengths)
 ```
 
 ```{r table8}
-tables(name="Table8",
+tables(name="Table8",display=FALSE,
        caption=paste("Number of fish examined for fin clips by species,",
                      "month, and clip. 'All' results are shown only for those",
                      "species where both clipped and unclipped fish were",
@@ -663,7 +664,7 @@ table8(lengths)
 ```
 
 ```{r figure1, fig.width=5, fig.height=3.5}
-figures(name="Figure1",
+figures(name="Figure1",display=FALSE,
         caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
                       "by month and day type. Errors bars are +/-1SD on total",
                       "effort across both day types. Also see Table 4."))
@@ -702,7 +703,7 @@ cat(figures("Figure1"))
 ```
 
 ```{r figure2, fig.width=5, fig.height=8}
-figures(name="Figure2",
+figures(name="Figure2",display=FALSE,
         caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
                       "by month, fishery type, and day type. Errors bars are",
                       "+/-1SD on total effort across both day types. Also",
@@ -744,7 +745,7 @@ cat(figures("Figure2"))
 ```
 
 ```{r figure3, fig.width=5, fig.height=3.5}
-figures(name="Figure3",
+figures(name="Figure3",display=FALSE,
         caption=paste("Total harvest of all species observed for WISCONSIN",
                       "waters only. Errors bars are +/-1SD on total harvest.",
                       "Also see Table 5."))
@@ -778,7 +779,7 @@ cat(figures("Figure3"))
 ```
 
 ```{r figure4, fig.width=7}
-figures(name="Figure4",
+figures(name="Figure4",display=FALSE,
         caption=paste("Total harvest of the most commonly harvested",
                       "fish separated by fishery type, day type, and month",
                       "for WISCONSIN waters only. Errors bars are +/-1SD on",
@@ -825,7 +826,7 @@ cat(figures("Figure4"))
 ```
 
 ```{r figure5, fig.width=5, fig.height=3.5}
-figures(name="Figure5",
+figures(name="Figure5",display=FALSE,
         caption=paste("Harvest rate (total harvest per angler-hour) by month",
                       "of the most commonly harvested fish for",
                       "WISCONSIN waters only. Also see Table 5."))
@@ -864,7 +865,7 @@ cat(figures("Figure5"))
 ```
 
 ```{r figure6, fig.width=7, fig.height=8}
-figures(name="Figure6",
+figures(name="Figure6",display=FALSE,
         caption=paste("Density plot of total length by month for the",
                       "most commonly measured fish. Sample size is for",
                       "combined clipped and not clipped fish. Also see",
@@ -908,7 +909,7 @@ cat(figures("Figure6"))
 
 
 ```{r table9}
-tables(name="Table9",
+tables(name="Table9",display=FALSE,
        caption="Detailed listing of all measured fish.")
 cat("<br><br>")
 cat("<hr>")

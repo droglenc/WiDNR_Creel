@@ -322,55 +322,55 @@ sumLengths <- function(f) {
   
   # Main function
   ## Summarize lengths by MONTH, FISHERY, ORIGIN
-  tmp1 <- fish %>%
+  tmp1 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES,MONTH,FISHERY,ORIGIN) %>%
     iSumLengths() %>%
     arrange(SURVEY,ROUTE,UNIT,SPECIES,MONTH,FISHERY,ORIGIN) %>%
     as.data.frame()
   ### ... and across ORIGINs
-  tmp2 <- fish %>%
+  tmp2 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES,MONTH,FISHERY) %>%
     iSumLengths() %>%
     dplyr::mutate(ORIGIN="All") %>%
     dplyr::select(names(tmp1)) %>%
     as.data.frame()
   ### ... and across FISHERYs
-  tmp3 <- fish %>%
+  tmp3 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES,MONTH,ORIGIN) %>%
     iSumLengths() %>%
     dplyr::mutate(FISHERY="All") %>%
     dplyr::select(names(tmp1)) %>%
     as.data.frame()
   ### ... and across ORIGINs and FISHERYs
-  tmp4 <- fish %>%
+  tmp4 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES,MONTH) %>%
     iSumLengths() %>%
     dplyr::mutate(FISHERY="All",ORIGIN="All") %>%
     dplyr::select(names(tmp1)) %>%
     as.data.frame()
   ### ... and across MONTHs
-  tmp5 <- fish %>%
+  tmp5 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES,FISHERY,ORIGIN) %>%
     iSumLengths() %>%
     dplyr::mutate(MONTH="All") %>%
     dplyr::select(names(tmp1)) %>%
     as.data.frame()
   ### ... and across MONTHs and ORIGINs
-  tmp6 <- fish %>%
+  tmp6 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES,FISHERY) %>%
     iSumLengths() %>%
     dplyr::mutate(MONTH="All",ORIGIN="All") %>%
     dplyr::select(names(tmp1)) %>%
     as.data.frame()
   ### ... and across MONTHs and FISHERYs
-  tmp7 <- fish %>%
+  tmp7 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES,ORIGIN) %>%
     iSumLengths() %>%
     dplyr::mutate(MONTH="All",FISHERY="All") %>%
     dplyr::select(names(tmp1)) %>%
     as.data.frame()
   ### ... and across MONTHs, FISHERYs, and ORIGINs
-  tmp8 <- fish %>%
+  tmp8 <- f %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,SPECIES) %>%
     iSumLengths() %>%
     dplyr::mutate(MONTH="All",FISHERY="All",ORIGIN="All") %>%
