@@ -2,7 +2,9 @@
 title: "LAKE SUPERIOR ICE CREEL SURVEY"
 params:
   LOC:
-    value: Ashland
+    value: ""
+  LOC2:
+    value: ""
   WDIR:
     value: ""
   RDIR:
@@ -16,6 +18,7 @@ output:
 ```{r input, echo=FALSE}
 ## Grab User's Inputs from parameters
 LOC <- params$LOC
+LOC2 <- params$LOC2
 WDIR <- params$WDIR
 RDIR <- params$RDIR
 ```
@@ -60,6 +63,7 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table1"))
 
+table1 <- function(pressureCount) {
 ## Prepare data.frame for huxtable
 PC <- dplyr::select(pressureCount,-SURVEY,-ROUTE)
 tmp1 <- dplyr::filter(PC,DAYTYPE=="Weekday") %>%
@@ -114,8 +118,11 @@ tbl2 <- as_hux(tbl1) %>%
   set_col_width(col=c(.1,.35,.1,.1,.025,.1,.1,.075,.1,.1,.025,.1,.1)) %>%
   iFinishTable(labelsRow=3,labelsCol=2)
 
-## Show the huxtable
+## Return the huxtable
 tbl2
+}
+
+table1(pressureCount)
 ```
 
 ```{r table2}
@@ -131,77 +138,79 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table2"))
 
-## Prepare data.frame for huxtable
-fshrys <- unique(pcSite$FISHERY)
-numf <- length(fshrys)
-bys <- c("SURVEY","ROUTE","UNIT","MONTH","DAYTYPE","SITE")
-PC <- mutate(pcSite,pIntsInFishery=100*pIntsInFishery)
-tmp1 <- dplyr::select(PC,-NINTS,-pIntsInFishery,-ttlVehSiteFshry)
-tmp2 <- dplyr::select(PC,-TTLINTS,-ttlVehSite)
-tmp3 <- split(tmp2,tmp2$FISHERY)
-tmp4 <- dplyr::full_join(tmp3[[1]],tmp3[[2]],by=bys)
-for (i in 3:length(tmp3)) {
-  tmp4 <- dplyr::full_join(tmp4,tmp3[[i]],by=bys)
+table2 <- function(pcSite) {
+  ## Prepare data.frame for huxtable
+  PC <- mutate(pcSite,pIntsInFishery=100*pIntsInFishery)
+  tmp1 <- dplyr::select(PC,-NINTS,-pIntsInFishery,-ttlVehSiteFshry)
+  tmp2 <- dplyr::select(PC,-TTLINTS,-ttlVehSite)
+  tmp3 <- split(tmp2,tmp2$FISHERY,drop=TRUE)
+  fshrys <- names(tmp3)
+  numf <- length(fshrys)
+  bys <- c("SURVEY","ROUTE","UNIT","MONTH","DAYTYPE","SITE")
+  tmp4 <- dplyr::full_join(tmp3[[1]],tmp3[[2]],by=bys)
+  if (numf>2) for (i in 3:numf) tmp4 <- dplyr::full_join(tmp4,tmp3[[i]],by=bys)
+  tbl1 <- dplyr::full_join(tmp4,tmp1,by=bys) %>%
+    dplyr::select(-dplyr::starts_with("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
+    dplyr::filter(!duplicated(.)) %>%
+    dplyr::arrange(MONTH,DAYTYPE,SITE) %>%
+    # Remove repeated rows in MONTH and DAYTYPE variables
+    dplyr::mutate(MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
+                               "",as.character(MONTH)),
+                  DAYTYPE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="DAYTYPE"),
+                                 "",as.character(DAYTYPE)))
+
+  acs <- which(grepl("ttlVehSiteFshry",names(tbl1)))
+  for (i in rev(acs)) {
+    tbl1 <- tibble::add_column(tbl1,"",.after=i)
+    names(tbl1)[i+1] <- paste0("spc",i)
+  }
+
+  spaceAbove <- which(tbl1$DAYTYPE!="")[-1]
+
+  toplbl <- c("","","")
+  for (i in fshrys) toplbl <- c(toplbl,i,"","","")
+  toplbl <- c(toplbl,"Total","")
+
+  tbl2 <- as_hux(tbl1) %>%
+    # Set all cell paddings
+    set_all_padding(1) %>%
+    set_right_padding(row=everywhere,col=everywhere,value=5) %>%
+    set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
+    # Convert NAs to dashes
+    set_na_string(row=everywhere,col=-(1:3),value="--") %>%
+    # right align all but leftmost three columns
+    set_align(row=everywhere,col=-(1:3),value="right") %>%
+    # No decimals for observed values and total days
+    set_number_format(row=everywhere,col=contains("INTS"),value=0) %>%
+    set_number_format(row=everywhere,col=contains("ttlVeh"),value=1) %>%
+    set_number_format(row=everywhere,col=contains("pInts"),value=0) %>%
+    # Extra label at the top
+    rbind(c("MONTH","DAYTYPE","SITE",
+            rep(c("N","P","Veh",""),numf),
+            "N","Veh"),.) %>%
+    rbind(toplbl,.)
+  # Adjust headers
+  for (i in 1:numf) {
+    cols <- (4:6)+(i-1)*4
+    tbl2 <- merge_cells(tbl2,row=1,col=cols) %>%
+      set_bottom_border(row=1,col=cols[1],value=1)
+  }
+  tbl2 <- tbl2 %>%
+    merge_cells(row=1,col=(0:1)+(numf+1)*4) %>%
+    set_bottom_border(row=1,col=(numf+1)*4,value=1) %>%
+    set_align(row=1,col=everywhere,value="center") %>%
+    # Sets table & column widths
+    set_width(0.99) %>%
+    set_col_width(col=c(.1,.1,.35,
+                        rep(c(0.1,0.1,0.1,0.025),numf),
+                        .1,.1)) %>%
+    iFinishTable(labelsRow=2,labelsCol=3)
+
+  ## Return the huxtable
+  tbl2  
 }
-tbl1 <- dplyr::full_join(tmp4,tmp1,by=bys) %>%
-  dplyr::select(-dplyr::starts_with("FISHERY"),-SURVEY,-ROUTE,-UNIT) %>%
-  dplyr::filter(!duplicated(.)) %>%
-  dplyr::arrange(MONTH,DAYTYPE,SITE) %>%
-  # Remove repeated rows in MONTH and DAYTYPE variables
-  dplyr::mutate(MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
-                             "",as.character(MONTH)),
-                DAYTYPE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="DAYTYPE"),
-                               "",as.character(DAYTYPE)))
 
-acs <- which(grepl("ttlVehSiteFshry",names(tbl1)))
-for (i in rev(acs)) {
-  tbl1 <- tibble::add_column(tbl1,"",.after=i)
-  names(tbl1)[i+1] <- paste0("spc",i)
-}
-
-spaceAbove <- which(tbl1$DAYTYPE!="")[-1]
-
-toplbl <- c("","","")
-for (i in fshrys) toplbl <- c(toplbl,i,"","","")
-toplbl <- c(toplbl,"Total","")
-
-tbl2 <- as_hux(tbl1) %>%
-  # Set all cell paddings
-  set_all_padding(1) %>%
-  set_right_padding(row=everywhere,col=everywhere,value=5) %>%
-  set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
-  # Convert NAs to dashes
-  set_na_string(row=everywhere,col=-(1:3),value="--") %>%
-  # right align all but leftmost three columns
-  set_align(row=everywhere,col=-(1:3),value="right") %>%
-  # No decimals for observed values and total days
-  set_number_format(row=everywhere,col=contains("INTS"),value=0) %>%
-  set_number_format(row=everywhere,col=contains("ttlVeh"),value=1) %>%
-  set_number_format(row=everywhere,col=contains("pInts"),value=0) %>%
-  # Extra label at the top
-  rbind(c("MONTH","DAYTYPE","SITE",
-          rep(c("N","P","Veh",""),numf),
-          "N","Veh"),.) %>%
-  rbind(toplbl,.)
-# Adjust headers
-for (i in 1:numf) {
-  cols <- (4:6)+(i-1)*4
-  tbl2 <- merge_cells(tbl2,row=1,col=cols) %>%
-    set_bottom_border(row=1,col=cols[1],value=1)
-}
-tbl2 <- tbl2 %>%
-  merge_cells(row=1,col=(0:1)+(numf+1)*4) %>%
-  set_bottom_border(row=1,col=(numf+1)*4,value=1) %>%
-  set_align(row=1,col=everywhere,value="center") %>%
-  # Sets table & column widths
-  set_width(0.99) %>%
-  set_col_width(col=c(.1,.1,.35,
-                      rep(c(0.1,0.1,0.1,0.025),numf),
-                      .1,.1)) %>%
-  iFinishTable(labelsRow=2,labelsCol=3)
-
-## Show the huxtable
-tbl2
+table2(pcSite)
 ```
 
 ```{r table3}
@@ -214,7 +223,8 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table3"))
 
-# Prepare data.frame for huxtable
+table3 <- function(sumExpHarvAll) {
+  # Prepare data.frame for huxtable
 tbl1 <- sumExpHarvAll %>%
   dplyr::select(FISHERY,MONTH,DAYTYPE,
                 ttlVehFshry,anglersPerInt,ttlAnglers,
@@ -267,6 +277,9 @@ tbl2 <- as_hux(tbl1) %>%
   set_col_width(col=c(.2,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1)) %>%
   iFinishTable(labelsRow=2,labelsCol=3)
 tbl2
+}
+
+table3(sumExpHarvAll)
 ```
 
 ```{r table4}
@@ -281,7 +294,8 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table4"))
 
-# Prepare data.frame for huxtable
+table4 <- function(sumExpHarvSPP) {
+  # Prepare data.frame for huxtable
 ## Move DAYTYPEs into columns
 H <- select(sumExpHarvSPP,-SURVEY,-ROUTE,-UNIT)
 tmp1 <- dplyr::filter(H,DAYTYPE=="Weekday") %>%
@@ -354,6 +368,9 @@ tbl2 <- as_hux(tbl1) %>%
   set_col_width(col=c(.2,.3,.1,.15,.1,.025,.15,.1,.025,.15,.1)) %>%
   iFinishTable(labelsRow=3,labelsCol=3)
 tbl2
+}
+
+table4(sumExpHarvSPP)
 ```
 
 ```{r table5}
@@ -370,16 +387,18 @@ cat("<br><br>")
 cat("<hr>")
 cat(tables("Table5"))
 
+table5 <- function(sumLen) {
 ## Prepare data.frame for huxtable
-fshrys <- unique(sumLen$FISHERY)
+tmp1 <- split(sumLen,sumLen$FISHERY,drop=TRUE)
+fshrys <- names(tmp1)
 numf <- length(fshrys)
 bys <- c("SURVEY","ROUTE","UNIT","SPECIES","MONTH","ORIGIN")
-tmp1 <- split(sumLen,sumLen$FISHERY)
 tmp2 <- dplyr::full_join(tmp1[[1]],tmp1[[2]],by=bys)
 if (numf>2) for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
 
 tbl1 <- tmp2 %>%
-  dplyr::select(SPECIES,MONTH,ORIGIN,n.x:maxLen.x,n.y:maxLen.y) %>%
+  dplyr::select(-SURVEY,-ROUTE,-UNIT,-starts_with("FISHERY")) %>%
+  dplyr::select(SPECIES,MONTH,ORIGIN,everything()) %>%
   dplyr::filter(!duplicated(.)) %>%
   dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
   dplyr::arrange(SPECIES,MONTH,ORIGIN)
@@ -450,6 +469,9 @@ tbl2 <- tbl2 %>%
                       0.1,0.1,0.1,0.1,0.1)) %>%
   iFinishTable(labelsRow=2,labelsCol=3)
 tbl2
+}
+
+table5(sumLen)
 ```
 
 

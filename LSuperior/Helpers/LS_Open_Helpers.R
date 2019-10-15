@@ -458,7 +458,7 @@ combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
     ## Get list of CSV files of that type in RDIR
     tmp <- list.files(RDIR,pattern=paste0(i,".csv"))
     ## But don't include the COMBINED TYPES
-    tmp <- tmp[!grepl("COMBINED",tmp)]
+    tmp <- tmp[!grepl("Combined",tmp)]
     for (j in seq_along(tmp)) {
       ## Read and combine the files
       fn <- file.path(RDIR,tmp[j])
@@ -466,7 +466,7 @@ combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
       else d <- rbind(d,read.csv(fn))
     }
     ## Write out the combined file
-    fn <- paste0("LS_OPEN_",YEAR,"_",i,".csv")
+    fn <- paste0("Combined_Open_",YEAR,"_",i,".csv")
     write.csv(d,file=file.path(RDIR,fn),row.names=FALSE,quote=FALSE,na="")
     ## Remove the original files
     if (removeOrigs) file.remove(file.path(RDIR,tmp))

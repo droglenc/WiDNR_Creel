@@ -16,20 +16,29 @@
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
-ROUTE2USE <- c("Ashland","Washburn/Bayfield","Saxon","Superior")[3]
-YEAR <- 2019
-# Working directory (base + "LSuperior"); where helper and rmarkdown files located.
+## Allows user to choose 1 or more "information" files that correspond to a
+## specific ice route. User will need to browse to where the information files
+## are located (see directions above).
+fns <- choose.files(filters=Filters["R",])
+# Create working directory (base directory + "LSuperior" folder). This is where
+# the helper files and rmarkdown template are located.
 WDIR <- file.path(here::here(),"LSuperior")
-RDIR <- choose.dir(WDIR)
+# Create results directory from where user-selected information file(s) are.
+RDIR <- dirname(fns[1])
 
-## Iterates through those files/locations
-for (i in seq_along(ROUTE2USE)) {
-  message("Creating report and data files for '",ROUTE2USE,"' route ...",appendLF=FALSE)
+## Iterate through those files/routes producing the HTML report and the 
+## intermediate CSV files (see directios above)
+for (i in seq_along(fns)) {
+  # Read user-specified information file
+  source(fns[i])
+  # Handle slashes in location names
+  LOCATION2 <- gsub("/","",LOCATION)
+  message("Creating report and data files for '",LOCATION,"' route ...",appendLF=FALSE)
   # Create a name for the report output file ("Analysis_" + location + year).
-  OUTFILE <- paste0("ICE_",ROUTE2USE,"_",YEAR,"_Report.html")
+  OUTFILE <- paste0(LOCATION2,"_Ice_",YEAR,"_Report.html")
   # Render the markdown report file with the information from above
   rmarkdown::render(input=file.path(WDIR,"Helpers","LS_Ice_Analysis_Template.Rmd"),
-                    params=list(LOC=ROUTE2USE,
+                    params=list(LOC=LOCATION,LOC2=LOCATION2,
                                 WDIR=WDIR,RDIR=RDIR),
                     output_dir=RDIR,output_file=OUTFILE,
                     output_format="html_document",

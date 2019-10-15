@@ -26,13 +26,15 @@ lvlsSPECIES <- c('lake trout','siscowet lake trout','splake','brook trout',
                  'white perch','All Fish')
 lvlsSPECIES <- FSA::capFirst(lvlsSPECIES)
 
+lvlsFISHERY <- c('< 60 ft - Shallow','> 60 ft - Bobbing','Pleasure',
+                 'Post LT Open-Water','Tribal','NOP Spearing')
 
 ## Main Helpers ----------------------------------------------------------------
 # Convert NAs to zeroes
 NA2zero <- function(x) ifelse(is.na(x),0,x)
 
 
-expandPressureCount <- function(pc,intvs) {
+expandPressureCount <- function(pc,intvs,pints) {
   ## Number of interviews at each SITE within MONTH, DAYTYPE, FISHERY
   tmp1 <- intvs %>%
     dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,DAYTYPE,SITE,FISHERY) %>%
@@ -41,11 +43,10 @@ expandPressureCount <- function(pc,intvs) {
   tmp2 <- tmp1 %>%
     dplyr::summarize(TTLINTS=sum(NINTS)) %>%
     as.data.frame()
-  tmp1 <- as.data.frame(tmp1)
   ## Combine last two data.frames and then compute proportion of interviews at
   ## a SITE within each FISHERY by MONTH, DAYTYPE
   obsPropIntsInFshry <- 
-    dplyr::left_join(tmp1,tmp2,
+    dplyr::left_join(as.data.frame(tmp1),tmp2,
                      by=c("SURVEY","ROUTE","UNIT","MONTH","DAYTYPE","SITE")) %>%
     dplyr::mutate(pIntsInFishery=NINTS/TTLINTS)
   
@@ -166,12 +167,7 @@ sumExpHarvestAll <- function(eh) {
     ## Make MONTH and DAYTYPE as characters to make new levels work below
     mutate(MONTH=as.character(MONTH),
            DAYTYPE=as.character(DAYTYPE))
-  
-  ## Find levels of MONTHs, FISHERYs, and DAYTYPEs
-  mlvls <- unique(eh$MONTH)
-  flvls <- unique(eh$FISHERY)
-  dlvls <- unique(eh$DAYTYPE)
-  
+
   ## Find all possible "All"s (for FISHERY, MONTH, and DAYTYPE)
   ### Sum total variables across FISHERYs
   tmp1 <- eh %>%
@@ -218,9 +214,9 @@ sumExpHarvestAll <- function(eh) {
                  as.data.frame(tmp4),as.data.frame(tmp5),as.data.frame(tmp6),
                  as.data.frame(tmp7)) %>%
     ### Add an "All" to the MONTH, FISHERY, and DAYTYPE levels
-    mutate(MONTH=factor(MONTH,levels=c(mlvls,"All")),
-           FISHERY=factor(FISHERY,levels=c(flvls,"All")),
-           DAYTYPE=factor(DAYTYPE,levels=c(dlvls,"All")),
+    mutate(MONTH=factor(MONTH,levels=c(month.abb[c(12,1:11)],"All")),
+           FISHERY=factor(FISHERY,levels=c(lvlsFISHERY,"All")),
+           DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
            ### Calculate the "rates" from the totals
            anglersPerInt=ttlAnglers/ttlVehFshry,
            avgAnglerHours=ttlAnglerHours/ttlAnglers,
@@ -240,24 +236,12 @@ sumExpHarvestAll <- function(eh) {
 ## Summarize the expected harvest for the individual species records only
 sumExpHarvestSPP <- function(eh,seha) {
   ## Isolate just the ttlAnglerHours from summary of overall harvest
-  seha <- select(seha,SURVEY:DAYTYPE,ttlAnglerHours) %>%
-    ## Make as characters to ease joining below
-    mutate(MONTH=as.character(MONTH),
-           DAYTYPE=as.character(DAYTYPE),
-           FISHERY=as.character(FISHERY))
+  seha <- select(seha,SURVEY:DAYTYPE,ttlAnglerHours)
   
   ## Isolate individual fish species and the total variables in expHarv
   eh <- eh %>%
     filter(SPECIES!="All Fish") %>%
-    select(SURVEY,ROUTE,UNIT,SPECIES,MONTH,FISHERY,DAYTYPE,ttlHarvest) %>%
-    ### Needed to make levels work properly below
-    mutate(MONTH=as.character(MONTH),
-           DAYTYPE=as.character(DAYTYPE))
-  
-  ## Find levels of MONTHs, FISHERYs, and DAYTYPEs
-  mlvls <- unique(eh$MONTH)
-  flvls <- unique(eh$FISHERY)
-  dlvls <- unique(eh$DAYTYPE)
+    select(SURVEY,ROUTE,UNIT,SPECIES,MONTH,FISHERY,DAYTYPE,ttlHarvest)
   
   ## Find all possible "All"s (for FISHERY, MONTH, and DAYTYPE)
   ### Sum total variables across FISHERYs
@@ -308,9 +292,10 @@ sumExpHarvestSPP <- function(eh,seha) {
     dplyr::full_join(seha,by=c("SURVEY","ROUTE","UNIT","MONTH",
                                  "FISHERY","DAYTYPE")) %>%
     ### Adjust the levels of MONTH, FISHERY, and DAYTYPE to include "All"
-    dplyr::mutate(MONTH=factor(MONTH,levels=c(mlvls,"All")),
-                  FISHERY=factor(FISHERY,levels=c(flvls,"All")),
+    dplyr::mutate(MONTH=factor(MONTH,levels=c(month.abb[c(12,1:11)],"All")),
+                  FISHERY=factor(FISHERY,levels=c(lvlsFISHERY,"All")),
                   DAYTYPE=factor(DAYTYPE,levels=c("Weekday","Weekend","All")),
+                  SPECIES=factor(SPECIES,levels=lvlsSPECIES),
                   ### calculate the "rates" from the totals
                   harvestRate=ttlHarvest/ttlAnglerHours) %>%
     ### Order the fields
@@ -396,7 +381,7 @@ sumLengths <- function(f) {
   tmp <- rbind(tmp1,tmp2,tmp3,tmp4,tmp5,tmp6,tmp7,tmp8) %>%
     ## Properly factor ORIGIN and FISHERY
     dplyr::mutate(ORIGIN=factor(ORIGIN,levels=c("Native","Hatchery","All")),
-                  FISHERY=factor(FISHERY,levels=c(unique(fish$FISHERY),"All"))) %>%
+                  FISHERY=factor(FISHERY,levels=c(lvlsFISHERY,"All"))) %>%
     ## Sort the rows
     dplyr::arrange(SURVEY,ROUTE,UNIT,SPECIES,MONTH,FISHERY,ORIGIN) %>%
     ## Arrange the variables to return
@@ -405,3 +390,35 @@ sumLengths <- function(f) {
   as.data.frame(tmp)
 }
 
+
+## Convenience function for making a file of the data.frame in x
+writeDF <- function(x,fnpre) {
+  x1 <- deparse(substitute(x))
+  write.csv(x,file=paste0(fnpre,x1,".csv"),
+            row.names=FALSE,quote=FALSE,na="")
+}
+
+
+## Combines the three types of CSV files in the RDIR directory that were 
+## created after sourcing the LS_Analyzer script. Essentially combines summary
+## results across routes within a year.
+combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
+  types <- c("ttlEffort","ttlHarvest","lengths")
+  for (i in types) {
+    ## Get list of CSV files of that type in RDIR
+    tmp <- list.files(RDIR,pattern=paste0(i,".csv"))
+    ## But don't include the COMBINED TYPES
+    tmp <- tmp[!grepl("COMBINED",tmp)]
+    for (j in seq_along(tmp)) {
+      ## Read and combine the files
+      fn <- file.path(RDIR,tmp[j])
+      if (j==1) d <- read.csv(fn)
+      else d <- rbind(d,read.csv(fn))
+    }
+    ## Write out the combined file
+    fn <- paste0("Combined_Ice_",YEAR,"_",i,".csv")
+    write.csv(d,file=file.path(RDIR,fn),row.names=FALSE,quote=FALSE,na="")
+    ## Remove the original files
+    if (removeOrigs) file.remove(file.path(RDIR,tmp))
+  }
+}

@@ -27,29 +27,30 @@ source(file.path(WDIR,"Helpers","LS_Ice_Helpers.R"))
 #   * SITE: Long site description
 #   * TTLDAYS: Total number of fishable days (i.e., "good ice") at that SITE,
 #              ROUTE, MONTH, DAYTYPE
-#   * < 60 FT - SHALLOW: Proportion of interviews to allocate to this fishery
-#   * > 60 FT - BOBBING: Proportion of interviews to allocate to this fishery
-#   * PLEASURE: Proportion of interviews to allocate to this fishery
-#   * POST LT OPEN-WATER: Proportion of interviews to allocate to this fishery
-#   * TRIBAL: Proportion of interviews to allocate to this fishery
-#   * NOP SPEARING: Proportion of interviews to allocate to this fishery
+#   * < 60 ft - Shallow: Proportion of interviews to allocate to this fishery
+#   * > 60 ft - Bobbing: Proportion of interviews to allocate to this fishery
+#   * Pleasure: Proportion of interviews to allocate to this fishery
+#   * Post LT Open-Water: Proportion of interviews to allocate to this fishery
+#   * Tribal: Proportion of interviews to allocate to this fishery
+#   * NOP Spearing: Proportion of interviews to allocate to this fishery
 fdays <- 
-  readxl::read_excel(file.path(RDIR,"data","qry_ice_fdays_4R.xlsx")) %>%
+  readxl::read_excel(file.path(RDIR,"data",FDAY_FILE)) %>%
   ## Filter to the route in LOC and current SURVEY year
   dplyr::filter(ROUTE==LOC,SURVEY==YEAR) %>%
-  ## Change all variable names to upper-case (easier to remember)
-  dplyr::rename_all(.funs=toupper) %>%
   ## Change FDAYS variable to TTLDAYS
-  dplyr::rename(TTLDAYS=FDAYS) %>%
+  dplyr::rename(TTLDAYS=Fdays) %>%
+  ## Change main variable names to upper-case (easier to remember)
+  dplyr::rename(MONTH=Month,YEAR=Year) %>%
   ## Convert MONTH number to name and re-level so that DEC is first
   ## Simplify DAYTYPE name and convert to factor
   ## Create combined site name
   dplyr::mutate(MONTH=factor(month.abb[MONTH],levels=month.abb[c(12,1:11)]),
                 DAYTYPE=factor(FSA::mapvalues(DAYTYPE,
-                               from="Weekend/Holiday",to="Weekend")),
-                SITE=paste0(SITE,"-",FSA::capFirst(SITEDESC))) %>%
+                               from="Weekend/Holiday",to="Weekend"),
+                               levels=c("Weekday","Weekend")),
+                SITE=paste0(SITE,"-",FSA::capFirst(SiteDesc))) %>%
   ## Remove variables that are not needed further below
-  dplyr::select(-FDAYSKEY,-SITEDESC,-COMMENTS) %>%
+  dplyr::select(-FdaysKey,-SiteDesc,-Comments) %>%
   ## Convert to data.frame (and not tibble)
   as.data.frame()
 
@@ -69,7 +70,8 @@ fdays <-
 #                     be allocated to the different FISHERYs
 pints <- 
   select(fdays,-TTLDAYS) %>%
-  tidyr::gather(key="FISHERY",value="pIntsInFishery",-(SURVEY:SITE))
+  tidyr::gather(key="FISHERY",value="pIntsInFishery",-(SURVEY:SITE)) %>%
+  mutate(FISHERY=factor(FISHERY,levels=lvlsFISHERY))
 
 
 # DESCRIPTION: This creates a data.frame of fishable days at each SITE by MONTH
@@ -89,7 +91,7 @@ fdays <- dplyr::select(fdays,SURVEY:TTLDAYS)
 #              DAYTYPE. This is expanded to represent all fishable days, not
 #              just those that were sampled. This is used in Table 1.
 # RESULT: A data.frame with ...
-#   * SURVEY, ROUTE, MONTH, DAYTYPE,SITE: as defined above.
+#   * SURVEY, ROUTE, MONTH, DAYTYPE, SITE: as defined above.
 #   * cntDays: Days that vehicles were counted at that SITE, MONTH, DAYTYPE
 #   * cntdVeh: Total number of vehicles counted at that SITE, MONTH, DAYTYPE
 #   * TTLDAYS: Total fishable days at that SITE, MONTH, DAYTYPE (from fdays)
@@ -99,7 +101,7 @@ fdays <- dplyr::select(fdays,SURVEY:TTLDAYS)
 #   * Same (with some issues and slightly different format of variables) as
 #     2019 ASHLAND ICE CREEL MONTHLY PRESSURE.XLSX
 pressureCount <-
-  readxl::read_excel(file.path(RDIR,"data","qry_ice_counts_4R.xlsx")) %>%
+  readxl::read_excel(file.path(RDIR,"data",CNTS_FILE)) %>%
   ## Filter to the route in LOC and survey year
   dplyr::filter(ROUTE==LOC,SURVEY==YEAR) %>%
   ## Change all variable names to upper-case (easier to remember)
@@ -109,7 +111,8 @@ pressureCount <-
   ## Create combined site name
   dplyr::mutate(MONTH=factor(month.abb[MONTH],levels=month.abb[c(12,1:11)]),
                 DAYTYPE=factor(FSA::mapvalues(DAYTYPE,
-                                              from="Weekend/Holiday",to="Weekend")),
+                                              from="Weekend/Holiday",to="Weekend"),
+                               levels=c("Weekday","Weekend")),
                 SITE=paste0(SITE,"-",FSA::capFirst(SITEDESC)),
                 ## Sum all vehicle counts (treat NAs as 0s so they will sum)
                 ALLVEH=NA2zero(MORNVEHR)+NA2zero(EVEVEHR)+
@@ -156,7 +159,7 @@ pressureCount <-
 #   * SPECIES: Species harvested (includs an "All fish" category)
 #   * NUM: Number of that species harested
 intvs_ORIG <- 
-  readxl::read_excel(file.path(RDIR,"data","qry_ice_interviews_4R.xlsx")) %>%
+  readxl::read_excel(file.path(RDIR,"data",INTS_FILE)) %>%
   ## Filter to the route in LOC and survey year
   dplyr::filter(ROUTE==LOC,SURVEY==YEAR) %>%
   ## Change all variable names to upper-case (easier to remember)
@@ -166,7 +169,9 @@ intvs_ORIG <-
   ## Create combined site name
   dplyr::mutate(MONTH=factor(month.abb[MONTH],levels=month.abb[c(12,1:11)]),
                 DAYTYPE=factor(FSA::mapvalues(DAYTYPE,
-                                              from="Weekend/Holiday",to="Weekend")),
+                                              from="Weekend/Holiday",to="Weekend"),
+                               levels=c("Weekday","Weekend")),
+                FISHERY=factor(FISHERY,levels=lvlsFISHERY),
                 SITE=paste0(SITE,"-",FSA::capFirst(SITEDESC)),
                 ## Capitalize all SPP and call it SPECIES (for consistency)
                 SPECIES=FSA::capFirst(SPP),
@@ -208,7 +213,7 @@ intvs_NOFISH <-
 #   * ttlVehSiteFshry: Total vehicles at the SITE in each FISHERY (this used
 #                      pIntsInFishery)
 # NOTES: This is the bulk of 2019 ASHLAND ICE CREEL EXPANDED PRESSURE.XLSX.
-pcSite <- expandPressureCount(pressureCount,intvs_NOFISH)
+pcSite <- expandPressureCount(pressureCount,intvs_NOFISH,pints)
 
 
 # DESCRIPTION: This creates a data.frame of pressure count data expanded to
@@ -265,7 +270,7 @@ pcSum <- pcSite %>%
 expHarv <- expandHarv(intvs_NOFISH,intvs_ORIG,pcSum)
 
 
-# DESCRIPTION: This creates a data.frame that ultimately contains expected
+# DESCRIPTION: This creates a data.frame that ultimately contains expanded
 #              harvest of only "All Fish") by MONTH, FISHERY, and DAYTYPE, and
 #              includes summaries across MONTHs, FISHERYs, and DAYTYPEs. See
 #              next for summaries of individual species. This is used in Table 3.
@@ -333,7 +338,7 @@ sumExpHarvSPP <- sumExpHarvestSPP(expHarv,sumExpHarvAll)
 #   * ORIGIN: Whether "Native" or from a "Hatchery"
 # NOTES: This is same as 2019ASHLANDICECATCH.XLSX
 fish <- 
-  readxl::read_excel(file.path(RDIR,"data","qry_ice_fish_4R.xlsx")) %>%
+  readxl::read_excel(file.path(RDIR,"data",FISH_FILE)) %>%
   ## Filter to the route in LOC and current SURVEY year
   dplyr::filter(ROUTE==LOC,SURVEY==YEAR) %>%
   ## Change all variable names to upper-case (easier to remember)

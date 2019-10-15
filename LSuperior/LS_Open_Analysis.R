@@ -51,7 +51,7 @@ for (i in seq_along(fns)) {
   # Extract analysis year from the START_DATE in the information file.
   YEAR <- lubridate::year(as.Date(START_DATE,"%m/%d/%Y"))
   # Create a name for the report output file.
-  OUTFILE <- paste0(LOCATION,"_OPEN_",YEAR,"_Report.html")
+  OUTFILE <- paste0(LOCATION,"_Open_",YEAR,"_Report.html")
   # Render markdown report file with the information from above
   rmarkdown::render(input=file.path(WDIR,"Helpers","LS_Open_Analysis_Template.Rmd"),
                     params=list(LOC=LOCATION,YR=YEAR,
