@@ -49,6 +49,14 @@ source(file.path(WDIR,"Helpers","LS_Open_DataPrep.R"))
 tables <- captioner::captioner(prefix="Table")
 figures <- captioner::captioner(prefix="Figure")
 
+## FISHERYs to remove from tables
+FISHERYS2remove4TABSFIGS=c("Stream","Pleasure","Shore","Tribal")
+## Make table caption suffix
+cap2 <- ""
+if (all(FISHERYS2remove4TABSFIGS!="")) 
+  cap2 <- paste0("These fishery types (",paste(FISHERYS2remove4TABSFIGS,collapse=', '),
+          ") are not shown but are represented in the 'All' fisheries category.")
+
 ## Helper to Add final characteristics to all tables
 iFinishTable <- function(h,labelsRow,labelsCol) {
   h <- h %>%
@@ -84,15 +92,6 @@ theme_creel <- function() {
 
 
 ```{r table1}
-tables(name="Table1",display=FALSE,
-       caption=paste("Number of days by day type and assumed fishing day",
-                     "length (h) for each month during the sampling period.",
-                     "These values were used to expand sampled observations",
-                     "to entire population."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table1"))
-
 table1 <- function(fnpre,calSum) {
   ## Prepare data.frame for huxtable
   calTbl1 <- calSum %>%
@@ -133,17 +132,20 @@ table1 <- function(fnpre,calSum) {
   calTbl2
 }
 
+tables(name="Table1",display=FALSE,
+       caption=paste("Number of days by day type and assumed fishing day",
+                     "length (h) for each month during the sampling period.",
+                     "These values were used to expand sampled observations",
+                     "to entire population."))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table1"))
+
 table1(fnpre,calSum)
 ```
 
 ```{r table2}
-tables(name="Table2",display=FALSE,
-       caption=paste("Number of interviews (N) and hours of interviewed effort",
-                     "(Hrs) by state, day type, type of fishery, and month."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table2"))
-table2 <- function(d) {
+table2 <- function(d,rmvFISHERYS="") {
   # Prepare data.frame for huxtable
   ## Summarizes the number of OBSERVED interviews (NINTS) and total reported
   ## hours of fishing effort (HOURS) by "strata" (!!STATE!!, DAYTYPE, FISHERY,
@@ -188,7 +190,11 @@ table2 <- function(d) {
       as.data.frame()
     tmp <- rbind(tmp,tmp1)
   }
+
+  ## Remove FISHERYs if asked to do so
+  tmp <- dplyr::filter(tmp,!FISHERY %in% rmvFISHERYS)
   
+  ## Prepare some names
   mos <- as.character(unique(tmp$MONTH))
   nms <- paste(rep(mos,each=2),c("NINTS","HOURS"),sep=".")
   
@@ -242,16 +248,17 @@ table2 <- function(d) {
   tmpTbl2
 }
 
-table2(intvs)
+tables(name="Table2",display=FALSE,
+       caption=paste("Number of interviews (N) and hours of interviewed effort (Hrs)",
+                     "by state, day type, type of fishery, and month.",cap2))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table2"))
+
+table2(intvs,FISHERYS2remove4TABSFIGS)
 ```
 
 ```{r table3}
-tables(name="Table3",display=FALSE,
-       caption=paste("Number of day sampled and total party-hours of pressure",
-                     "by month and day type (includes non-fishing effort)."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table3"))
 table3 <- function(pressureCount) {
   ## Prepare data.frame for huxtable
   tmp <- pressureCount %>%
@@ -300,21 +307,22 @@ table3 <- function(pressureCount) {
   tmpTbl2
 }
 
+tables(name="Table3",display=FALSE,
+       caption=paste("Number of day sampled and total party-hours of pressure",
+                     "by month and day type (includes non-fishing effort)."))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table3"))
+
 table3(pressureCount)
 ```
 
 ```{r table4}
-tables(name="Table4",display=FALSE,
-       caption=paste("Total Party-hours, persons per party, total individual-hours,",
-                     "mean trip length, and total number of trips by waters,",
-                     "fishery type, month, and day type. 'All' results are",
-                     "shown only for those species found in multiple months."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table4"))
-table4 <- function(fnpre) {
+table4 <- function(fnpre,rmvFISHERYS="") {
   ## Prepare data.frame for huxtable
   tmp <- read.csv(paste0(fnpre,"ttlEffort.csv")) %>%
+    ## Remove fisheries for tables
+    dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   WATERS=droplevels(factor(WATERS,
@@ -379,21 +387,23 @@ table4 <- function(fnpre) {
   tmpTbl2
 }
 
-table4(fnpre)
+tables(name="Table4",display=FALSE,
+       caption=paste("Total Party-hours, persons per party, total individual-hours,",
+                     "mean trip length, and total number of trips by waters,",
+                     "fishery type, month, and day type.",cap2))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table4"))
+
+table4(fnpre,FISHERYS2remove4TABSFIGS)
 ```
 
 ```{r table5}
-tables(name="Table5",display=FALSE,
-       caption=paste("Total harvest and harvest rates based on fishery-specific",
-                     "angling hours by waters, fishery, species, month and",
-                     "day type. 'All' results are shown only for those",
-                     "species found in multiple months."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table5"))
-table5 <- function(fnpre) {
+table5 <- function(fnpre,rmvFISHERYS) {
   ## Prepare data.frame for huxtable
   tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
+    ## Remove fisheries for tables
+    dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
     ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   WATERS=droplevels(factor(WATERS,
@@ -465,7 +475,16 @@ table5 <- function(fnpre) {
   tmpTbl2
 }
 
-table5(fnpre)
+tables(name="Table5",display=FALSE,
+       caption=paste("Total harvest and harvest rates based on fishery-specific",
+                     "angling hours by waters, fishery, species, month and",
+                     "day type. 'All' results are shown only for those",
+                     "species found in multiple months.",cap2))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table5"))
+
+table5(fnpre,FISHERYS2remove4TABSFIGS)
 ```
 
 ```{r table6}
@@ -664,12 +683,6 @@ table8(lengths)
 ```
 
 ```{r figure1, fig.width=5, fig.height=3.5}
-figures(name="Figure1",display=FALSE,
-        caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
-                      "by month and day type. Errors bars are +/-1SD on total",
-                      "effort across both day types. Also see Table 4."))
-cat("<br><br>")
-cat("<hr>")
 figure1 <- function(d) {
   tmp <- d %>%
     ## Select only variables for the figure
@@ -696,22 +709,26 @@ figure1 <- function(d) {
     theme_creel()
   p
 }
+
+figures(name="Figure1",display=FALSE,
+        caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
+                      "by month and day type. Errors bars are +/-1SD on total",
+                      "effort across both day types. Also see Table 4."))
   
+cat("<br><br>")
+cat("<hr>")
 figure1(ttlEffort)
 cat("<br>")
 cat(figures("Figure1"))
-```
-
-```{r figure2, fig.width=5, fig.height=8}
-figures(name="Figure2",display=FALSE,
-        caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
-                      "by month, fishery type, and day type. Errors bars are",
-                      "+/-1SD on total effort across both day types. Also",
-                      "see Table 4."))
 cat("<br><br>")
 cat("<hr>")
-figure2 <- function(d) {
+```
+
+```{r figure2, fig.width=5, fig.height=5}
+figure2 <- function(d,rmvFISHERYS) {
   tmp <- d %>%
+    ## Remove fisheries for figure
+    dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
     ## Select only variables for the figuree
     dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or Fisheries
@@ -734,27 +751,28 @@ figure2 <- function(d) {
     xlab("Month") +
     ylab("Total Effort (Angler-Hrs)") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
-#    scale_color_discrete(breaks=c("Weekday","Weekend")) +
     theme_creel()
   p
 }
 
-figure2(ttlEffort)
+figures(name="Figure2",display=FALSE,
+        caption=paste("Total effort (angler-hours) for WISCONSIN waters only",
+                      "by month, fishery type, and day type. Errors bars are",
+                      "+/-1SD on total effort across both day types. Also",
+                      "see Table 4."))
+figure2(ttlEffort,FISHERYS2remove4TABSFIGS)
 cat("<br>")
 cat(figures("Figure2"))
+cat("<br><br>")
+cat("<hr>")
+
 ```
 
 ```{r figure3, fig.width=5, fig.height=3.5}
-figures(name="Figure3",display=FALSE,
-        caption=paste("Total harvest of all species observed for WISCONSIN",
-                      "waters only. Errors bars are +/-1SD on total harvest.",
-                      "Also see Table 5."))
-cat("<br><br>")
-cat("<hr>")
 figure3 <- function(d) {
   tmp <- d %>%
-    ## Just WI waters
-    dplyr::filter(WATERS=="Wisconsin") %>%
+    ## Just WI waters and not "All Fish"
+    dplyr::filter(WATERS=="Wisconsin",SPECIES!="All Fish") %>%
     ## Get the total total total rows (to find topN)
     dplyr::filter(MONTH=="All",DAYTYPE=="All",FISHERY=="All")
   
@@ -773,24 +791,24 @@ figure3 <- function(d) {
   p
 }
 
+figures(name="Figure3",display=FALSE,
+        caption=paste("Total harvest of all species observed for WISCONSIN",
+                      "waters only. Errors bars are +/-1SD on total harvest.",
+                      "Also see Table 5."))
 figure3(ttlHarvest)
 cat("<br>")
 cat(figures("Figure3"))
-```
-
-```{r figure4, fig.width=7}
-figures(name="Figure4",display=FALSE,
-        caption=paste("Total harvest of the most commonly harvested",
-                      "fish separated by fishery type, day type, and month",
-                      "for WISCONSIN waters only. Errors bars are +/-1SD on",
-                      "the total harvest across both day types. Also see",
-                      "Table 5."))
 cat("<br><br>")
 cat("<hr>")
-figure4 <- function(d,topN=3) {
+```
+
+```{r figure4, fig.width=5}
+figure4 <- function(d,rmvFISHERYS="",topN=3) {
   tmp <- d %>%
-    ## Just WI waters, don't include "Pleasure"
-    dplyr::filter(WATERS=="Wisconsin",FISHERY!="Pleasure")
+    ## Remove fisheries for figure
+    dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
+    ## Just WI waters, no "All Fish", and don't include "Pleasure" (regardless of rmvFISHERYS)
+    dplyr::filter(WATERS=="Wisconsin",SPECIES!="All Fish",FISHERY!="Pleasure")
   ## Remove MONTH, DAYTYPE, and FISHERY total rows (i.e., == "All)
   tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE!="All",FISHERY!="All")
   ## Get the DAYTYPE total rows (for error bars in ggplot)
@@ -815,27 +833,28 @@ figure4 <- function(d,topN=3) {
     xlab("Month") +
     ylab("Total Harvest") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
-#    scale_color_discrete(breaks=c("Weekday","Weekend")) +
     theme_creel()
   p
 }
 
-figure4(ttlHarvest)
+figures(name="Figure4",display=FALSE,
+        caption=paste("Total harvest of the most commonly harvested",
+                      "fish separated by fishery type, day type, and month",
+                      "for WISCONSIN waters only. Errors bars are +/-1SD on",
+                      "the total harvest across both day types. Also see",
+                      "Table 5."))
+figure4(ttlHarvest,FISHERYS2remove4TABSFIGS)
 cat("<br>")
 cat(figures("Figure4"))
+cat("<br><br>")
+cat("<hr>")
 ```
 
 ```{r figure5, fig.width=5, fig.height=3.5}
-figures(name="Figure5",display=FALSE,
-        caption=paste("Harvest rate (total harvest per angler-hour) by month",
-                      "of the most commonly harvested fish for",
-                      "WISCONSIN waters only. Also see Table 5."))
-cat("<br><br>")
-cat("<hr>")
 figure5 <- function(d,topN=3) {
   tmp <- d %>%
-    ## Just WI waters
-    dplyr::filter(WATERS=="Wisconsin")
+    ## Just WI waters and not "All fish"
+    dplyr::filter(WATERS=="Wisconsin",SPECIES!="All Fish")
   ## Get the DAYTYPE nd FISHERY total rows (for error bars in ggplot)
   tmp1 <- dplyr::filter(tmp,MONTH!="All",DAYTYPE=="All",FISHERY=="All") %>%
     dplyr::mutate(DAYTYPE=NA)
@@ -859,19 +878,18 @@ figure5 <- function(d,topN=3) {
   p
 }
 
+figures(name="Figure5",display=FALSE,
+        caption=paste("Harvest rate (total harvest per angler-hour) by month",
+                      "of the most commonly harvested fish for",
+                      "WISCONSIN waters only. Also see Table 5."))
 figure5(ttlHarvest)
 cat("<br>")
 cat(figures("Figure5"))
+cat("<br><br>")
+cat("<hr>")
 ```
 
 ```{r figure6, fig.width=7, fig.height=8}
-figures(name="Figure6",display=FALSE,
-        caption=paste("Density plot of total length by month for the",
-                      "most commonly measured fish. Sample size is for",
-                      "combined clipped and not clipped fish. Also see",
-                      "Tables 6 and 9."))
-cat("<br><br>")
-cat("<hr>")
 figure6 <- function(dlen,topN=3) {
   # Sample size by species and month
   SUM <- dlen %>%
@@ -902,18 +920,20 @@ figure6 <- function(dlen,topN=3) {
   p
 }
 
+figures(name="Figure6",display=FALSE,
+        caption=paste("Histogram of total length by month for the",
+                      "most commonly measured fish. Sample size is for",
+                      "combined clipped and not clipped fish. Also see",
+                      "Tables 6 and 9."))
 figure6(lengths)
 cat("<br>")
 cat(figures("Figure6"))
+cat("<br><br>")
+cat("<hr>")
 ```
 
 
 ```{r table9}
-tables(name="Table9",display=FALSE,
-       caption="Detailed listing of all measured fish.")
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table9"))
 table9 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
@@ -939,6 +959,10 @@ table9 <- function(dlen) {
     iFinishTable(labelsRow=1,labelsCol=1)
   tmpTbl2
 }
+
+tables(name="Table9",display=FALSE,
+       caption="Detailed listing of all measured fish.")
+cat(tables("Table9"))
 
 table9(lengths)
 ```
