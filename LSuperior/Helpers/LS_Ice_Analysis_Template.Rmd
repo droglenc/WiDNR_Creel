@@ -36,6 +36,14 @@ source(file.path(WDIR,"Helpers","LS_ICE_DataPrep.R"))
 ## Make table and figure captions
 tables <- captioner::captioner(prefix="Table")
 
+## FISHERYs to remove from tables
+FISHERYS2remove4TABSFIGS=c('Pleasure','Tribal')
+## Make table caption suffix
+cap2 <- ""
+if (all(FISHERYS2remove4TABSFIGS!="")) 
+  cap2 <- paste0("These fishery types (",paste(FISHERYS2remove4TABSFIGS,collapse=', '),
+          ") are not shown but are represented in the 'All' fisheries category.")
+
 ## Helper to add final characteristics to all tables
 iFinishTable <- function(h,labelsRow,labelsCol) {
   h <- h %>%
@@ -56,16 +64,6 @@ iFinishTable <- function(h,labelsRow,labelsCol) {
 
 
 ```{r table1}
-tables(name="Table1",display=FALSE,
-       caption=paste("Number of pressure counts and number of observed",
-                     "(i.e., counted) vehicles in those counts and total",
-                     "fishable days and estimated total (i.e., expanded)",
-                     "number of vehicles at each site by month and day type.",
-                     "Compare this to 'ICE CREEL MONTHLY PRESSURE' Excel file."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table1"))
-
 table1 <- function(PC) {
   # Prepare data.frame for huxtable
   PC <- PC %>%
@@ -134,25 +132,25 @@ table1 <- function(PC) {
   tbl2
 }
 
+tables(name="Table1",display=FALSE,
+       caption=paste("Number of pressure counts and number of observed",
+                     "(i.e., counted) vehicles in those counts and total",
+                     "fishable days and estimated total (i.e., expanded)",
+                     "number of vehicles at each site by month and day type."))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table1"))
+
+# Compare this to 'ICE CREEL MONTHLY PRESSURE' Excel file.
 table1(pressureCount)
 ```
 
 ```{r table2}
-tables(name="Table2",display=FALSE,
-       caption=paste("Number of interviews (N), percent of interviews (P) at",
-                     "that site in each fishery type, and estimated total",
-                     "(i.e., expanded) number of vehicles (Veh) in each fishery",
-                     "and across all fishery types at each site by month",
-                     "and day type. Compare this to 'ICE CREEL EXPANDED",
-                     "PRESSURE' Excel file."))
-
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table2"))
-
-table2 <- function(f) {
+table2 <- function(f,rmvFISHERYS="") {
   # Prepare data.frame for huxtable
   f <- f %>%
+    ## Remove the unwanted fisheries
+    dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
     ## change proportion to a percentage
     dplyr::mutate(pIntsInFishery=100*pIntsInFishery) %>%
     ## get rid of records for which it was not possible to observe vehicles
@@ -232,22 +230,27 @@ table2 <- function(f) {
   tbl2  
 }
 
-table2(ttlEffortBySite)
-```
-
-```{r table3}
-tables(name="Table3",display=FALSE,
-       caption=paste("Total effort and harvest summary for All Fish combined",
-                     "by fishery type, month, and day type. Compare this to",
-                     "columns A-K of 'ICE CREEL HARVEST' Excel file."))
+tables(name="Table2",display=FALSE,
+       caption=paste("Number of interviews (N), percent of interviews (P) at",
+                     "that site in each fishery type, and estimated total",
+                     "(i.e., expanded) number of vehicles (Veh) in each fishery",
+                     "and across all fishery types at each site by month",
+                     "and day type.",cap2))
 
 cat("<br><br>")
 cat("<hr>")
-cat(tables("Table3"))
+cat(tables("Table2"))
 
-table3 <- function(sumExpHarvAll) {
+# Compare this to 'ICE CREEL EXPANDED PRESSURE' Excel file.
+table2(ttlEffortBySite,FISHERYS2remove4TABSFIGS)
+```
+
+```{r table3}
+table3 <- function(sumExpHarvAll,rmvFISHERYS="") {
   # Prepare data.frame for huxtable
 tbl1 <- sumExpHarvAll %>%
+  ## Remove unwanted fisheries
+  dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
   dplyr::select(FISHERY,MONTH,DAYTYPE,
                 ttlVehFshry,anglersPerInt,ttlAnglers,
                 avgAnglerHours,ttlAnglerHours,percSucc,ttlSuccAnglers,
@@ -301,25 +304,26 @@ tbl2 <- as_hux(tbl1) %>%
 tbl2
 }
 
-table3(sumExpHarvAll)
-```
-
-```{r table4}
-tables(name="Table4",display=FALSE,
-       caption=paste("Harvest rate and total harvest by species, fishery,",
-                     "month, and daytype. Note that 'All' is shown for the",
-                     "fishery only for species caught in more than one",
-                     "fishery. Compare this to columns L-AD of 'ICE CREEL",
-                     "HARVEST' Excel file."))
+tables(name="Table3",display=FALSE,
+       caption=paste("Total effort and harvest summary for All Fish combined",
+                     "by fishery type, month, and day type.",cap2))
 
 cat("<br><br>")
 cat("<hr>")
-cat(tables("Table4"))
+cat(tables("Table3"))
 
-table4 <- function(sumExpHarvSPP) {
+# Compare this to columns A-K of 'ICE CREEL HARVEST' Excel file.
+table3(sumExpHarvAll,FISHERYS2remove4TABSFIGS)
+```
+
+```{r table4}
+table4 <- function(sumExpHarvSPP,rmvFISHERYS="") {
   # Prepare data.frame for huxtable
-  ## Remove unneeded variables
-  H <- select(sumExpHarvSPP,-SURVEY,-ROUTE,-UNIT)
+  H <- sumExpHarvSPP %>%
+    ## Remove unwanted fisheries
+    dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
+    ## Remove unneeded variables
+    dplyr::select(-SURVEY,-ROUTE,-UNIT)
   ## Split by DAYTYPEs so that they can be side-by-side
   tmp <- split(H,H$DAYTYPE,drop=TRUE)
   ds <- names(tmp)
@@ -402,26 +406,26 @@ table4 <- function(sumExpHarvSPP) {
   tbl2
 }
 
-table4(sumExpHarvSPP)
-```
-
-```{r table5}
-tables(name="Table5",display=FALSE,
-       caption=paste("Number of fish measured for length and mean, standard",
-                     "deviation (SD), minimum, and maximum total length",
-                     "(in.) by species, month, origin (native or hatchery)",
-                     "and fishery type. Note that 'All' is shown only for",
-                     "months and origins where more than one month or origin",
-                     "was observed. Compare this to 'ICE CREEL CATCH AVE'",
-                     "Excel file."))
+tables(name="Table4",display=FALSE,
+       caption=paste("Harvest rate and total harvest by species, fishery,",
+                     "month, and daytype. Note that 'All' is shown for the",
+                     "fishery only for species caught in more than one",
+                     "fishery.",cap2))
 
 cat("<br><br>")
 cat("<hr>")
-cat(tables("Table5"))
+cat(tables("Table4"))
 
-table5 <- function(sumLen) {
-## Prepare data.frame for huxtable
-tmp1 <- split(sumLen,sumLen$FISHERY,drop=TRUE)
+#  Compare this to columns L-AD of 'ICE CREEL HARVEST' Excel file.
+table4(sumExpHarvSPP,FISHERYS2remove4TABSFIGS)
+```
+
+```{r table5}
+table5 <- function(sumLen,rmvFISHERYS="") {
+  # Prepare data.frame for huxtable
+  ## Remove unwanted fisheries
+  sumLen <- dplyr::filter(sumLen,!FISHERY %in% rmvFISHERYS)
+  tmp1 <- split(sumLen,sumLen$FISHERY,drop=TRUE)
 fshrys <- names(tmp1)
 numf <- length(fshrys)
 bys <- c("SURVEY","ROUTE","UNIT","SPECIES","MONTH","ORIGIN")
@@ -503,9 +507,21 @@ tbl2 <- tbl2 %>%
 tbl2
 }
 
-table5(sumLen)
-```
+tables(name="Table5",display=FALSE,
+       caption=paste("Number of fish measured for length and mean, standard",
+                     "deviation (SD), minimum, and maximum total length",
+                     "(in.) by species, month, origin (native or hatchery)",
+                     "and fishery type. Note that 'All' is shown only for",
+                     "months and origins where more than one month or origin",
+                     "was observed.",cap2))
 
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table5"))
+
+#  Compare this to 'ICE CREEL CATCH AVE' Excel file.
+table5(sumLen,FISHERYS2remove4TABSFIGS)
+```
 
 
 ```{r}
