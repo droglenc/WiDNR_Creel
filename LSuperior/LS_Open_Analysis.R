@@ -9,16 +9,18 @@
 #  2. Use Access macro to extract interview, count, and fish data files into a
 #     "data" folder inside the folder from 1.
 #  3. Put length-weight regression Excel file in the "data" folder from 2.
-#  4. Complete an information file (see example from a previous year) and save
-#     in same folder from 1.
+#  4. Complete an information file for each route (see example from a previous
+#     year; e.g., Ashland_Open_2014_info.R) and save in same folder from 1.
 #  5. Source this script (and choose the information file(s) in the dialog box).
+#     The figures and Table 9 can be excluded by setting both below to FALSE.
+MAKE_FIGURES <- FALSE
+MAKE_TABLE9 <- FALSE
 #  6. See resulting files in folder from 1 ... the html file is the overall
 #     report and the CSV files are intermediate data files that may be loaded
 #     into a database for future analyses.
-#  7. OPTIONALLY, combine CSV files across routes by running the following code
-#     AFTER sourcing this script ... best run after the information files from
-#     all routes of interested have been run ==>  combineCSV(RDIR,YEAR)
-#
+#  7. Combine CSV files across routes by setting the following to TRUE
+COMBINE_CSV_FILES <- TRUE
+
 # R VERSIONS (CONVERTED FROM SAS): 
 #     XXXX, 2019 (version 3 - Derek O)
 #     SEPTEMBER, 2019 (version 2 - Derek O)
@@ -28,13 +30,15 @@
 
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 #
-# DO NOT CHANGE ANYTHING BENEATH HERE
+# DO NOT CHANGE ANYTHING BENEATH HERE (unless you know what you are doing)!!!
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
 ## Allows user to choose 1 or more "information" files that correspond to a
 ## specific open-water route. User will need to browse to where the information
 ## files are located (see directions above).
+message("!! Choose 'information' file(s) in the dialog box",
+        " (may be behind other windows) !!")
 fns <- choose.files(filters=Filters["R",])
 # Create working directory (base directory + "LSuperior" folder). This is where
 # the helper files and rmarkdown template are located.
@@ -58,7 +62,8 @@ for (i in seq_along(fns)) {
                                 SDATE=START_DATE,FDATE=END_DATE,
                                 DAY_LENGTH=DAY_LENGTH,
                                 CNTS_FILE=CNTS_FILE,INTS_FILE=INTS_FILE,
-                                WDIR=WDIR,RDIR=RDIR),
+                                WDIR=WDIR,RDIR=RDIR,
+                                MAKE_FIGURES=MAKE_FIGURES,MAKE_TABLE9=MAKE_TABLE9),
                     output_dir=RDIR,output_file=OUTFILE,
                     output_format="html_document",
                     clean=TRUE,quiet=TRUE)
@@ -66,3 +71,5 @@ for (i in seq_along(fns)) {
   utils::browseURL(file.path(RDIR,OUTFILE))
   message(" Done")
 }
+
+if (COMBINE_CSV_FILES) combineCSV(RDIR,YEAR)
