@@ -1,6 +1,6 @@
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 #
-# DO NOT CHANGE ANYTHING BENEATH HERE
+# DO NOT CHANGE ANYTHING BENEATH HERE (unless you know what you are doing)!!!
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
@@ -365,7 +365,8 @@ lengths <-
   dplyr::mutate(SPECIES=FSA::capFirst(SPP),
                 ORIGIN=ifelse(is.na(CLIP)|CLIP=="Native","Native","Hatchery")) %>%
   ## Join on the interview specific information
-  dplyr::left_join(dplyr::select(intvs_NOFISH,-SURVEY,-ROUTE,-STATUS,-PERSONS,-SUCCESS,-HOURS),
+  dplyr::left_join(dplyr::select(intvs_NOFISH,-SURVEY,-ROUTE,-STATUS,
+                                 -PERSONS,-SUCCESS,-HOURS),
                    by="INTERVIEW")  %>%
   ## Isolate and rearrange the variables
   dplyr::select(SURVEY,ROUTE,UNIT,FISHERY,MONTH,DATE,SITE,SPECIES,CLIP,ORIGIN,LENGTH) %>%
@@ -386,3 +387,4 @@ writeDF(lengths,fnpre)
 #   * minLen: Minimum length
 #   * maxLen: Maximum length
 sumLen <- sumLengths(lengths)
+

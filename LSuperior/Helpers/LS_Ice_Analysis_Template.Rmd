@@ -14,7 +14,7 @@ params:
 output:
   html_document:
     theme: sandstone
-    css: LS_Open_Analysis.css
+    css: LS_Analysis_Reports.css
 ---
 
 ```{r input, echo=FALSE}
@@ -42,10 +42,17 @@ FISHERYS2remove4TABSFIGS=c('Pleasure','Tribal')
 cap2 <- ""
 if (all(FISHERYS2remove4TABSFIGS!="")) 
   cap2 <- paste0("These fishery types (",paste(FISHERYS2remove4TABSFIGS,collapse=', '),
-          ") are not shown but are represented in the 'All' fisheries category.")
+          ") are not shown but may be represented in the 'All' fisheries category.")
+
+## Helper function to remove repeat labels in a variable ... used to help the
+## aesthetics of huxtables
+iRemoveRepeatLabels <- function(data,var,other_vars="") {
+  ifelse(!FSA::repeatedRows2Keep(data,cols2use=c(var,other_vars)),"",
+         as.character(data[,var]))
+}
 
 ## Helper to add final characteristics to all tables
-iFinishTable <- function(h,labelsRow,labelsCol) {
+iFinishTable <- function(h,labelsRow,labelsCol,tableWidth) {
   h <- h %>%
     # Line above top and below bottom of table
     set_top_border(row=1,col=everywhere,2) %>%
@@ -54,7 +61,9 @@ iFinishTable <- function(h,labelsRow,labelsCol) {
     set_bottom_border(row=labelsRow,col=everywhere,1) %>%
     # Bold rows and columns of labels
     set_bold(row=1:labelsRow,col=everywhere,TRUE) %>%
-    set_bold(row=everywhere,col=1:labelsCol,TRUE)
+    set_bold(row=everywhere,col=1:labelsCol,TRUE) %>%
+    # Set table width
+    set_width(tableWidth)
   h
 }
 ```
@@ -83,8 +92,7 @@ table1 <- function(PC) {
     dplyr::arrange(MONTH,SITE) %>%
     dplyr::mutate(
       # Remove repeated rows in MONTH variable
-      MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
-                   "",as.character(MONTH))) %>%
+      MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
     ## Add spacer columns to make table look nice
     tibble::add_column(.,spc1="",.after="cntdVeh.x") %>%
     tibble::add_column(.,spc2="",.after="cntdVeh.y") %>%
@@ -125,9 +133,8 @@ table1 <- function(PC) {
     set_bottom_border(row=2,col=12,value=1) %>%
     set_align(row=2,col=everywhere,value="center") %>%
     # Sets table & column widths
-    set_width(0.9) %>%
     set_col_width(col=c(.1,.35,.1,.1,.025,.1,.1,.075,.1,.1,.025,.1,.1)) %>%
-    iFinishTable(labelsRow=3,labelsCol=2)
+    iFinishTable(labelsRow=3,labelsCol=2,tableWidth=0.9)
   ## Return the huxtable
   tbl2
 }
@@ -172,10 +179,8 @@ table2 <- function(f,rmvFISHERYS="") {
     dplyr::filter(!duplicated(.)) %>%
     dplyr::arrange(MONTH,DAYTYPE,SITE) %>%
     # Remove repeated rows in MONTH and DAYTYPE variables
-    dplyr::mutate(MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
-                               "",as.character(MONTH)),
-                  DAYTYPE=ifelse(!FSA::repeatedRows2Keep(.,cols2use="DAYTYPE"),
-                                 "",as.character(DAYTYPE)))
+    dplyr::mutate(MONTH=iRemoveRepeatLabels(.,"MONTH"),
+                  DAYTYPE=iRemoveRepeatLabels(.,"DAYTYPE","MONTH"))
   ## Add spacing columns so that the table looks nice
   acs <- which(grepl("ttlVehSiteFshry",names(tbl1)))
   for (i in rev(acs)) {
@@ -219,12 +224,11 @@ table2 <- function(f,rmvFISHERYS="") {
     merge_cells(row=1,col=(0:1)+(numf+1)*4) %>%
     set_bottom_border(row=1,col=(numf+1)*4,value=1) %>%
     set_align(row=1,col=everywhere,value="center") %>%
-    # Sets table & column widths
-    set_width(0.99) %>%
+    # Sets column widths
     set_col_width(col=c(.1,.1,.35,
                         rep(c(0.1,0.1,0.1,0.025),numf),
                         .1,.1)) %>%
-    iFinishTable(labelsRow=2,labelsCol=3)
+    iFinishTable(labelsRow=2,labelsCol=3,tableWidth=0.99)
 
   ## Return the huxtable
   tbl2  
@@ -251,24 +255,21 @@ table3 <- function(sumExpHarvAll,rmvFISHERYS="") {
 tbl1 <- sumExpHarvAll %>%
   ## Remove unwanted fisheries
   dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
-  dplyr::select(FISHERY,MONTH,DAYTYPE,
+  dplyr::select(UNIT,FISHERY,MONTH,DAYTYPE,
                 ttlVehFshry,anglersPerInt,ttlAnglers,
                 avgAnglerHours,ttlAnglerHours,percSucc,ttlSuccAnglers,
                 harvestRate,ttlHarvest) %>%
-  dplyr::arrange(FISHERY,MONTH,DAYTYPE) %>%
+  dplyr::arrange(UNIT,FISHERY,MONTH,DAYTYPE) %>%
   # Remove repeated rows in MONTH and FISHERY variables
-  dplyr::mutate(
-    MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use="MONTH"),
-                 "",as.character(MONTH)),
-    FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use="FISHERY"),
-                 "",as.character(FISHERY))) %>%
+  dplyr::mutate(UNIT=iRemoveRepeatLabels(.,"UNIT"),
+                FISHERY=iRemoveRepeatLabels(.,"FISHERY"),
+                MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
   ## Remove rows that are repeats (for the numerics) of the row above it and
   ## if DAYTYPE=="All" (i.e., "All" is just for one daytype).
   dplyr::filter(!(!FSA::repeatedRows2Keep(.,
-                            cols2ignore=c("FISHERY","MONTH","DAYTYPE")) &
+                            cols2ignore=c("UNIT","FISHERY","MONTH","DAYTYPE")) &
                 DAYTYPE=="All"))
 
-    
 ## Rows with a FISHERY names (except first) will get extra space above
 spaceAbove <- which(tbl1$FISHERY!="")[-1]
 ## Rows with a DAYTYPE=="All" (except lasst) will get extra space below
@@ -283,30 +284,29 @@ tbl2 <- as_hux(tbl1) %>%
   set_top_padding(row=spaceAbove,col=everywhere,value=25) %>%
   set_bottom_padding(row=spaceBelow,col=everywhere,value=5) %>%
   # Convert NAs to dashes
-  set_na_string(row=everywhere,col=-(1:3),value="--") %>%
+  set_na_string(row=everywhere,col=-(1:4),value="--") %>%
   # right align all but leftmost thre columns
-  set_align(row=everywhere,col=-(1:3),value="right") %>%
+  set_align(row=everywhere,col=-(1:4),value="right") %>%
   # contol decimals
-  set_number_format(row=everywhere,col=c(4,6,8,10,12),value=0) %>%
-  set_number_format(row=everywhere,col=9,value=1) %>%
-  set_number_format(row=everywhere,col=c(5,7),value=2) %>%
-  set_number_format(row=everywhere,col=11,value=4) %>%
+  set_number_format(row=everywhere,col=c(5,7,9,11,13),value=0) %>%
+  set_number_format(row=everywhere,col=10,value=1) %>%
+  set_number_format(row=everywhere,col=c(6,8),value=2) %>%
+  set_number_format(row=everywhere,col=12,value=4) %>%
   # Extra label at the top
-  rbind(c("FISHERY","MONTH","DAYTYPE","Vehicles","per Int","Anglers",
+  rbind(c("UNIT","FISHERY","MONTH","DAYTYPE","Vehicles","per Int","Anglers",
           "Hours","Angler Hrs","Success","Anglers","Rate","Harvest"),.) %>%
-  rbind(c("","","","Total","Angler","Total",
+  rbind(c("","","","","Total","Angler","Total",
           "Avg","Total","Perc","Success","Harvest","Total"),.) %>%
   set_align(row=1:2,col=everywhere,value="center") %>%
-  # Sets table & column widths
-  set_width(0.9) %>%
-  set_col_width(col=c(.2,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1)) %>%
-  iFinishTable(labelsRow=2,labelsCol=3)
+  # Set column widths
+  set_col_width(col=c(.1,.2,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1,.1)) %>%
+  iFinishTable(labelsRow=2,labelsCol=4,tableWidth=0.9)
 tbl2
 }
 
 tables(name="Table3",display=FALSE,
        caption=paste("Total effort and harvest summary for All Fish combined",
-                     "by fishery type, month, and day type.",cap2))
+                     "by unit, fishery type, month, and day type.",cap2))
 
 cat("<br><br>")
 cat("<hr>")
@@ -323,7 +323,7 @@ table4 <- function(sumExpHarvSPP,rmvFISHERYS="") {
     ## Remove unwanted fisheries
     dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
     ## Remove unneeded variables
-    dplyr::select(-SURVEY,-ROUTE,-UNIT)
+    dplyr::select(-SURVEY,-ROUTE)
   ## Split by DAYTYPEs so that they can be side-by-side
   tmp <- split(H,H$DAYTYPE,drop=TRUE)
   ds <- names(tmp)
@@ -331,7 +331,7 @@ table4 <- function(sumExpHarvSPP,rmvFISHERYS="") {
   tmp1 <- tmp[[1]]
   if (numds>1) 
     for (i in 2:numds)
-      tmp1 <- dplyr::full_join(tmp1,tmp[[i]],by=c("SPECIES","FISHERY","MONTH"))
+      tmp1 <- dplyr::full_join(tmp1,tmp[[i]],by=c("UNIT","SPECIES","FISHERY","MONTH"))
 
   tbl1 <- tmp1 %>%
     dplyr::select(-dplyr::starts_with("DAYTYPE")) %>%
@@ -342,32 +342,35 @@ table4 <- function(sumExpHarvSPP,rmvFISHERYS="") {
     tibble::add_column(.,spc1="",.after="ttlHarvest.x")
   ## this is needed as some routes don't have harvest on both daytypes
   if (numds>2) tbl1 <- tibble::add_column(tbl1,spc2="",.after="ttlHarvest.y")
-  ## Drop the "All" FISHERYs for species captured in only one fishery
+  ## Drop the "All" FISHERYs for species in a unit captured in only one fishery
   ## (note the use of 2 in the filter because of an "All" fishery)
-  SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
+  SPP2dropAll <- dplyr::group_by(tbl1,UNIT,SPECIES) %>%
     dplyr::summarize(numFshrys=length(unique(FISHERY))) %>%
     dplyr::filter(numFshrys==2)
-  tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & FISHERY=="All"))
-  ## Drop the "All" MONTHs for species captured in only one month
+  tbl1 <- dplyr::filter(tbl1,!(UNIT %in% SPP2dropAll$UNIT &
+                                 SPECIES %in% SPP2dropAll$SPECIES &
+                                 FISHERY=="All"))
+  ## Drop the "All" MONTHs for species in a unit captured in only one month
   ## (note the use of 2 in the filter because of an "All" MONTH)
-  SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
+  SPP2dropAll <- dplyr::group_by(tbl1,UNIT,SPECIES) %>%
     dplyr::summarize(numMons=length(unique(MONTH))) %>%
     dplyr::filter(numMons==2)
-  tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & MONTH=="All"))
-  ## Remove repeated rows in SPECIES, FISHERY, MONTH variables (aesthetics in huxt)
+  tbl1 <- dplyr::filter(tbl1,!(UNIT %in% SPP2dropAll$UNIT &
+                                 SPECIES %in% SPP2dropAll$SPECIES &
+                                 MONTH=="All"))
+  ## Remove repeated rows in UNIT, SPECIES, FISHERY, MONTH variables
+  ##   This makes the table look nicer
   tbl1 <- tbl1 %>%
-          dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
-                                    "",as.character(SPECIES)),
-              ## Use of both SPECIES and FISHERY (rather than just FISHERY) guards
+          dplyr::mutate(UNIT=iRemoveRepeatLabels(.,"UNIT"),
+                        SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
+              ## Use of UNIT, SPECIES and FISHERY (rather than just FISHERY) guards
               ## against cutting a FISHERY across species
-              FISHERY=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","FISHERY")),
-                             "",as.character(FISHERY)),
-              MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","MONTH")),
-                           "",as.character(MONTH)))
-  ## Rows with a MONTH names (except first) will get extra space above
+              FISHERY=iRemoveRepeatLabels(.,"FISHERY",c("UNIT","SPECIES")),
+              MONTH=iRemoveRepeatLabels(.,"MONTH",c("UNIT","SPECIES")))
+  ## Rows with a SPECIES name (except first) will get extra space above
   spaceAbove <- which(tbl1$SPECIES!="")[-1]
 
-  toplbl <- c("","","")
+  toplbl <- c("","","","")
   for (i in ds) toplbl <- c(toplbl,i,"","")
   toplbl <- toplbl[-length(toplbl)]
 
@@ -378,36 +381,35 @@ table4 <- function(sumExpHarvSPP,rmvFISHERYS="") {
     set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
     # Convert NAs to dashes
-    set_na_string(row=everywhere,col=-(1:3),value="--") %>%
+    set_na_string(row=everywhere,col=-(1:4),value="--") %>%
     # right align all but leftmost two columns
-    set_align(row=everywhere,col=-(1:3),value="right") %>%
+    set_align(row=everywhere,col=-(1:4),value="right") %>%
     # No decimals for harvest rates, four for harvest rate
     set_number_format(row=everywhere,col=contains("Harvest"),value=0) %>%
     set_number_format(row=everywhere,col=contains("Rate"),value=4) %>%
     # Extra label at the top
-    rbind(c("SPECIES","FISHERY","MONTH",rep(c("Rate","Harvest",""),numds-1),
+    rbind(c("UNIT","SPECIES","FISHERY","MONTH",rep(c("Rate","Harvest",""),numds-1),
             "Rate","Harvest"),.) %>%
-    rbind(c("","","",rep(c("Harvest","Total",""),numds-1),"Harvest","Total"),.) %>%
+    rbind(c("","","","",rep(c("Harvest","Total",""),numds-1),"Harvest","Total"),.) %>%
     rbind(toplbl,.)
   # Adjust headers
   for (i in 1:numds) {
-    cols <- (4:5)+(i-1)*3
+    cols <- (5:6)+(i-1)*3
     tbl2 <- merge_cells(tbl2,row=1,col=cols) %>%
       set_bottom_border(row=1,col=cols[1],value=1)
   }
 
   tbl2 <- tbl2 %>%
     set_align(row=1,col=everywhere,value="center") %>%
-    # Sets table & column widths
-    set_width(0.99) %>%
-    set_col_width(col=c(.2,.3,.1,rep(c(.15,.1,.025),numds-1),.15,.1)) %>%
-    iFinishTable(labelsRow=3,labelsCol=3)
+    # Set column widths
+    set_col_width(col=c(.1,.2,.3,.1,rep(c(.15,.1,.025),numds-1),.15,.1)) %>%
+    iFinishTable(labelsRow=3,labelsCol=4,tableWidth=0.99)
   ## Return huxtable
   tbl2
 }
 
 tables(name="Table4",display=FALSE,
-       caption=paste("Harvest rate and total harvest by species, fishery,",
+       caption=paste("Harvest rate and total harvest by unit,species, fishery,",
                      "month, and daytype. Note that 'All' is shown for the",
                      "fishery only for species caught in more than one",
                      "fishery.",cap2))
@@ -426,39 +428,42 @@ table5 <- function(sumLen,rmvFISHERYS="") {
   ## Remove unwanted fisheries
   sumLen <- dplyr::filter(sumLen,!FISHERY %in% rmvFISHERYS)
   tmp1 <- split(sumLen,sumLen$FISHERY,drop=TRUE)
-fshrys <- names(tmp1)
-numf <- length(fshrys)
-bys <- c("SURVEY","ROUTE","UNIT","SPECIES","MONTH","ORIGIN")
-tmp2 <- dplyr::full_join(tmp1[[1]],tmp1[[2]],by=bys)
-if (numf>2) for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
+  fshrys <- names(tmp1)
+  numf <- length(fshrys)
+  bys <- c("SURVEY","ROUTE","UNIT","SPECIES","MONTH","ORIGIN")
+  tmp2 <- dplyr::full_join(tmp1[[1]],tmp1[[2]],by=bys)
+  if (numf>2) for (i in 3:numf) tmp2 <- dplyr::full_join(tmp2,tmp1[[i]],by=bys)
 
-tbl1 <- tmp2 %>%
-  dplyr::select(-SURVEY,-ROUTE,-UNIT,-starts_with("FISHERY")) %>%
-  dplyr::select(SPECIES,MONTH,ORIGIN,everything()) %>%
-  dplyr::filter(!duplicated(.)) %>%
-  dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
-  dplyr::arrange(SPECIES,MONTH,ORIGIN)
+  tbl1 <- tmp2 %>%
+    dplyr::select(-SURVEY,-ROUTE,-starts_with("FISHERY")) %>%
+    dplyr::select(UNIT,SPECIES,MONTH,ORIGIN,everything()) %>%
+    dplyr::filter(!duplicated(.)) %>%
+    dplyr::mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
+    dplyr::arrange(UNIT,SPECIES,MONTH,ORIGIN)
 
-## Drop the "All" ORIGINs for species have only one ORIGIN
-## (note the use of 2 in the filter because of an "All" ORIGIN)
-SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
-  dplyr::summarize(numOrigins=length(unique(ORIGIN))) %>%
-  dplyr::filter(numOrigins==2)
-tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & ORIGIN=="All"))
+  ## Drop the "All" ORIGINs for species have only one ORIGIN
+  ## (note the use of 2 in the filter because of an "All" ORIGIN)
+  SPP2dropAll <- dplyr::group_by(tbl1,UNIT,SPECIES) %>%
+    dplyr::summarize(numOrigins=length(unique(ORIGIN))) %>%
+    dplyr::filter(numOrigins==2)
+  tbl1 <- dplyr::filter(tbl1,!(UNIT %in% SPP2dropAll$UNIT &
+                                 SPECIES %in% SPP2dropAll$SPECIES &
+                                 ORIGIN=="All"))
 
-## Drop the "All" MONTHs for species have only one MONTH
-## (note the use of 2 in the filter because of an "All" MONTH)
-SPP2dropAll <- dplyr::group_by(tbl1,SPECIES) %>%
-  dplyr::summarize(numMons=length(unique(MONTH))) %>%
-  dplyr::filter(numMons==2)
-tbl1 <- filter(tbl1,!(SPECIES %in% SPP2dropAll$SPECIES & MONTH=="All"))
+  ## Drop the "All" MONTHs for species have only one MONTH
+  ## (note the use of 2 in the filter because of an "All" MONTH)
+  SPP2dropAll <- dplyr::group_by(tbl1,UNIT,SPECIES) %>%
+    dplyr::summarize(numMons=length(unique(MONTH))) %>%
+    dplyr::filter(numMons==2)
+  tbl1 <- dplyr::filter(tbl1,!(UNIT %in% SPP2dropAll$UNIT &
+                                 SPECIES %in% SPP2dropAll$SPECIES &
+                                 MONTH=="All"))
 
-## Remove repeated rows in SPECIES, MONTH and ORIGIN variables
+## Remove repeated rows in UNIT, SPECIES, MONTH and ORIGIN variables
 tbl1 <- tbl1 %>%
-  dplyr::mutate(SPECIES=ifelse(!FSA::repeatedRows2Keep(.,cols2use="SPECIES"),
-                           "",as.character(SPECIES)),
-                MONTH=ifelse(!FSA::repeatedRows2Keep(.,cols2use=c("SPECIES","MONTH")),
-                             "",as.character(MONTH)))
+  dplyr::mutate(UNIT=iRemoveRepeatLabels(.,"UNIT"),
+                SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
+                MONTH=iRemoveRepeatLabels(.,"MONTH",c("UNIT","SPECIES")))
 
 ## Add extra columns for aesthetics in huxtable
 acs <- which(grepl("maxLen",names(tbl1)))
@@ -469,7 +474,7 @@ for (i in rev(acs[-length(acs)])) {
 
 spaceAbove <- which(tbl1$SPECIES!="")[-1]
 
-toplbl <- c("","","")
+toplbl <- c("","","","")
 for (i in fshrys) toplbl <- c(toplbl,i,"","","","","")
 toplbl <- toplbl[-length(toplbl)]
 
@@ -479,38 +484,37 @@ tbl2 <- as_hux(tbl1) %>%
   set_right_padding(row=everywhere,col=everywhere,value=5) %>%
   set_top_padding(row=spaceAbove,col=everywhere,value=15) %>%
   # Convert NAs to dashes
-  set_na_string(row=everywhere,col=-(1:3),value="--") %>%
+  set_na_string(row=everywhere,col=-(1:4),value="--") %>%
   # right align all but leftmost three columns
-  set_align(row=everywhere,col=-(1:3),value="right") %>%
+  set_align(row=everywhere,col=-(1:4),value="right") %>%
   # Set decimals
   set_number_format(row=everywhere,col=starts_with("n"),value=0) %>%
   set_number_format(row=everywhere,col=contains("Len"),value=1) %>%
   # Extra label at the top
-  rbind(c("SPECIES","MONTH","ORIGIN",
+  rbind(c("UNIT","SPECIES","MONTH","ORIGIN",
           rep(c("n","Mean","SD","Min","Max",""),numf-1),
           "n","Mean","SD","Min","Max"),.) %>%
   rbind(toplbl,.)
 # Adjust headers
 for (i in 1:numf) {
-  cols <- (4:8)+(i-1)*6
+  cols <- (5:9)+(i-1)*6
   tbl2 <- merge_cells(tbl2,row=1,col=cols) %>%
     set_bottom_border(row=1,col=cols[1],value=1)
 }
 tbl2 <- tbl2 %>%
   set_align(row=1,col=everywhere,value="center") %>%
-  # Sets table & column widths
-  set_width(0.99) %>%
-  set_col_width(col=c(.2,.1,.1,
+  # Set column widths
+  set_col_width(col=c(.1,.2,.1,.1,
                       rep(c(0.1,0.1,0.1,0.1,0.1,0.025),numf-1),
                       0.1,0.1,0.1,0.1,0.1)) %>%
-  iFinishTable(labelsRow=2,labelsCol=3)
+  iFinishTable(labelsRow=2,labelsCol=4,tableWidth=0.99)
 tbl2
 }
 
 tables(name="Table5",display=FALSE,
        caption=paste("Number of fish measured for length and mean, standard",
                      "deviation (SD), minimum, and maximum total length",
-                     "(in.) by species, month, origin (native or hatchery)",
+                     "(in.) by unit, species, month, origin (native or hatchery)",
                      "and fishery type. Note that 'All' is shown only for",
                      "months and origins where more than one month or origin",
                      "was observed.",cap2))

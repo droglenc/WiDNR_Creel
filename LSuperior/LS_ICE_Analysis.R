@@ -7,8 +7,8 @@
 #     to be analyzed ... e.g., LS_ICE_2019) inside "LSuperior" folder.
 #  2. Use Access macro to extract interview, fdays, count, and fish data files
 #      into a "data" folder inside the folder from 1.
-#  3. Complete an information file (see example from a previous year) and save
-#     in same folder from 1.
+#  3. Complete an information file (see example from a previous year; e.g,
+#      Ice_2019_info.R) and save in same folder from 1.
 #  4. Source this script (and choose the information file in the dialog box).
 #  5. See resulting files in folder from 1 ... the html file is the overall
 #     report and the CSV files are intermediate data files that may be loaded
@@ -19,14 +19,18 @@
 #
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
+
+
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 #
-# DO NOT CHANGE ANYTHING BENEATH HERE
+# DO NOT CHANGE ANYTHING BENEATH HERE (unless you know what you are doing)!!!
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
 ## Allows user to choose the appropriate "information" file from the folder
-## created in 1 in the directions above..
+## created in 1 in the directions above.
+message("!! Choose 'information' file in the dialog box",
+        " (may be behind other windows) !!")
 fn <- choose.files(filters=Filters["R",])
 # Read user-specified information file
 source(fn)
@@ -40,7 +44,8 @@ WDIR <- file.path(here::here(),"LSuperior")
 for (LOCATION in ROUTE) {
   # Handle slashes in location names
   LOCATION2 <- gsub("/","",LOCATION)
-  message("Creating report and data files for '",LOCATION,"' route ...",appendLF=FALSE)
+  message("Creating report and data files for '",LOCATION,
+          "' route ...",appendLF=FALSE)
   # Create a name for the report output file ("Analysis_" + location + year).
   OUTFILE <- paste0(LOCATION2,"_Ice_",YEAR,"_Report.html")
   # Render the markdown report file with the information from above

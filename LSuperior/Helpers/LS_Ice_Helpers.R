@@ -1,6 +1,6 @@
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 #
-# DO NOT CHANGE ANYTHING BENEATH HERE
+# DO NOT CHANGE ANYTHING BENEATH HERE (unless you know what you are doing)!!!
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
@@ -408,7 +408,7 @@ combineCSV <- function(RDIR,YEAR,removeOrigs=TRUE) {
     ## Get list of CSV files of that type in RDIR
     tmp <- list.files(RDIR,pattern=paste0(i,".csv"))
     ## But don't include the COMBINED TYPES
-    tmp <- tmp[!grepl("COMBINED",tmp)]
+    tmp <- tmp[!grepl("Combined",tmp)]
     for (j in seq_along(tmp)) {
       ## Read and combine the files
       fn <- file.path(RDIR,tmp[j])
