@@ -153,7 +153,6 @@ tables(name="Table1",display=FALSE,
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table1"))
-
 table1(fnpre,calSum)
 ```
 
@@ -325,7 +324,6 @@ tables(name="Table3",display=FALSE,
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table3"))
-
 table3(pressureCount)
 ```
 
@@ -403,7 +401,6 @@ tables(name="Table4",display=FALSE,
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table4"))
-
 table4(fnpre,FISHERYS2remove4TABSFIGS)
 ```
 
@@ -413,10 +410,10 @@ table5 <- function(fnpre,rmvFISHERYS) {
   tmp <- read.csv(paste0(fnpre,"ttlHarvest.csv")) %>%
     ## Remove fisheries for tables
     dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
-    ## Make proper order of MONTHs, WATERS, FISHERYs, and SPECIES
+    ## Make proper order of MONTHs, MUNIT, FISHERYs, and SPECIES
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
-                  WATERS=droplevels(factor(WATERS,
-                                    levels=c("Wisconsin","Non-Wisconsin","All"))),
+                  MUNIT=droplevels(factor(MUNIT,
+                                    levels=c("WI-1","WI-2","MI","MN"))),
                   FISHERY=droplevels(factor(FISHERY,
                                     levels=c(lvlsFISHERY,"All"))),
                   DAYTYPE=droplevels(factor(DAYTYPE,
@@ -424,23 +421,23 @@ table5 <- function(fnpre,rmvFISHERYS) {
                   SPECIES=FSA::capFirst(SPECIES),
                   SPECIES=droplevels(factor(SPECIES,levels=lvlsSPECIES))) %>%
     ## Select only variables for the table
-    dplyr::select(WATERS,FISHERY,SPECIES,MONTH,DAYTYPE,HARVEST,SDHARVEST,HRATE) %>%
+    dplyr::select(MUNIT,FISHERY,SPECIES,MONTH,DAYTYPE,HARVEST,SDHARVEST,HRATE) %>%
     ## Convert to wide format
     tidyr::gather(temp,value,HARVEST:HRATE) %>%
     tidyr::unite(temp1,DAYTYPE,temp,sep=".") %>%
     tidyr::spread(temp1,value) %>%
-    dplyr::select(WATERS,FISHERY,SPECIES,MONTH,
+    dplyr::select(MUNIT,FISHERY,SPECIES,MONTH,
                   Weekday.HARVEST,Weekday.SDHARVEST,Weekday.HRATE,
                   Weekend.HARVEST,Weekend.SDHARVEST,Weekend.HRATE,
                   All.HARVEST,All.SDHARVEST,All.HRATE,) %>%
-    dplyr::arrange(WATERS,FISHERY,SPECIES,MONTH) %>%
+    dplyr::arrange(MUNIT,FISHERY,SPECIES,MONTH) %>%
     ## Remove repeated items in the first three variables
-    dplyr::mutate(WATERS=iRemoveRepeatLabels(.,"WATERS"),
+    dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
                   FISHERY=iRemoveRepeatLabels(.,"FISHERY"),
                   SPECIES=iRemoveRepeatLabels(.,"SPECIES")) %>%
     ## Remove rows that are repeats (for the numeric variables) of the row above
     ## it, which happens if the species was captured in only one month
-    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("WATERS","FISHERY",
+    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("MUNIT","FISHERY",
                                                          "SPECIES","MONTH")))
   
   ## Rows with a SPECIES name (except first) get extra space above
@@ -462,7 +459,7 @@ table5 <- function(fnpre,rmvFISHERYS) {
     set_number_format(row=everywhere,col=ends_with(".SDHARVEST"),value=1) %>%
     set_number_format(row=everywhere,col=ends_with(".HRATE"),value=4) %>%
     # Create nice column headers
-    rbind(c("WATERS","FISHERY","SPECIES","MONTH","Number","SD","Angler-Hr",
+    rbind(c("UNIT","FISHERY","SPECIES","MONTH","Number","SD","Angler-Hr",
             "Number","SD","Angler-Hr","Number","SD","Angler-Hr"),.) %>%
     rbind(c("","","","","Harvest","","Harvest/","Harvest","","Harvest/",
             "Harvest","","Harvest/"),.) %>%
@@ -483,25 +480,16 @@ table5 <- function(fnpre,rmvFISHERYS) {
 
 tables(name="Table5",display=FALSE,
        caption=paste("Total harvest and harvest rates based on fishery-specific",
-                     "angling hours by waters, fishery, species, month and",
+                     "angling hours by units, fishery, species, month and",
                      "day type. 'All' results are shown only for those",
                      "species found in multiple months.",cap2))
 cat("<br><br>")
 cat("<hr>")
 cat(tables("Table5"))
-
 table5(fnpre,FISHERYS2remove4TABSFIGS)
 ```
 
 ```{r table6}
-tables(name="Table6",display=FALSE,
-       caption=paste("Summary statistics of all measured fish by species,",
-                     "month, and whether clipped or not. 'All' results are",
-                     "shown only in those months where both clipped and",
-                     "unclipped fish were observed."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table6"))
 table6 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
@@ -511,12 +499,11 @@ table6 <- function(dlen) {
     sumLengths(CLIPPED) %>%
     droplevels() %>%
     ## Remove repeated items in the first three variables
-    dplyr::mutate(SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
-                  MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
-    ##   Remove the YEAR variable
-    dplyr::select(-YEAR)
+    dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
+                  SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
+                  MONTH=iRemoveRepeatLabels(.,"MONTH"))
 
-  ## Add some more space above where SPECIES & MONTY name is (except for first)
+  ## Add some more space above where SPECIES & MONTH name is (except for first)
   breakRows1 <- which(tmp$MONTH!="")[-1]
   breakRows2 <- which(tmp$SPECIES!="")[-1]
   
@@ -534,31 +521,29 @@ table6 <- function(dlen) {
     set_number_format(row=everywhere,col=c("mnLen","sdLen","seLen"),2) %>%
     set_number_format(row=everywhere,col=c("minLen","maxLen"),1) %>%
     # Add column labels
-    rbind(c("SPECIES","MONTH","Clipped?","N","Mean","SD","SE","Min","Max"),.) %>%
-    rbind(c("","","","Length (in.)","","","","",""),.) %>%
-    # Top label should extend across 4-9 columns with line underneath
-    merge_cells(row=1,col=4:9) %>%
-    set_bottom_border(row=1,col=4,1) %>%
+    rbind(c("UNIT","SPECIES","MONTH","Clipped?","N","Mean","SD","SE","Min","Max"),.) %>%
+    rbind(c("","","","","Length (in.)","","","","",""),.) %>%
+    # Top label should extend across 5-10 columns with line underneath
+    merge_cells(row=1,col=5:10) %>%
+    set_bottom_border(row=1,col=5,1) %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.5) %>%
-    iFinishTable(labelsRow=2,labelsCol=3)
+    iFinishTable(labelsRow=2,labelsCol=4)
   tmpTbl2
 }
 
+tables(name="Table6",display=FALSE,
+       caption=paste("Summary statistics of all measured fish by unit, species,",
+                     "month, and whether clipped or not. 'All' results are",
+                     "shown only in those months where both clipped and",
+                     "unclipped fish were observed."))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table6"))
 table6(lengths)
 ```
 
 ```{r table7}
-tables(name="Table7",display=FALSE,
-       caption=paste0("Summary statistics of measured fish by species, month,",
-                      " and whether clipped or not. Only species for which some",
-                      " fin-clipped fish were recorded are shown (otherwise see ",
-                      tables('Table6',display='cite'),"). 'All' results are",
-                      " shown only in those months where both clipped and",
-                      " unclipped fish were observed."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table7"))
 table7 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
@@ -570,10 +555,9 @@ table7 <- function(dlen) {
   tmp <- sumLengths(filter(tmp,SPECIES %in% specClipped),CLIP) %>%
     droplevels() %>%
     ## Remove repeated items in the first three variables
-    dplyr::mutate(SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
-                  MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
-    ##   Remove the YEAR variable
-    dplyr::select(-YEAR)
+    dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
+                  SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
+                  MONTH=iRemoveRepeatLabels(.,"MONTH"))
 
   ## Which rows to add some more space above
   breakRows1 <- which(tmp$MONTH!="")[-1]
@@ -587,57 +571,59 @@ table7 <- function(dlen) {
     set_top_padding(row=breakRows1,col=everywhere,value=10) %>%
     set_top_padding(row=breakRows2,col=everywhere,value=25) %>%
     # Change NAs to dashes
-    set_na_string(row=everywhere,col=-(1:4),value="--") %>%
+    set_na_string(row=everywhere,col=-(1:5),value="--") %>%
     # Round n to 0; mean, SE, and VAR to 2; and Min and Max to 1 decimal
     set_number_format(row=everywhere,col="n",value=0) %>%
     set_number_format(row=everywhere,col=c("mnLen","sdLen","seLen"),value=2) %>%
     set_number_format(row=everywhere,col=c("minLen","maxLen"),1) %>%
     # Add column labels
-    rbind(c("SPECIES","MONTH","Clip","N","Mean","SD","SE","Min","Max"),.) %>%
-    rbind(c("","","","Length (in.)","","","","",""),.) %>%
-    # Top label should extend across 4-9 columns with line underneath
-    merge_cells(row=1,col=4:9) %>%
-    set_bottom_border(row=1,col=4,value=1) %>%
+    rbind(c("UNIT","SPECIES","MONTH","Clip","N","Mean","SD","SE","Min","Max"),.) %>%
+    rbind(c("","","","","Length (in.)","","","","",""),.) %>%
+    # Top label should extend across 5-10 columns with line underneath
+    merge_cells(row=1,col=5:10) %>%
+    set_bottom_border(row=1,col=5,value=1) %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.4) %>%
-    iFinishTable(labelsRow=2,labelsCol=3)
+    iFinishTable(labelsRow=2,labelsCol=4)
   tmpTbl2
 }
 
+tables(name="Table7",display=FALSE,
+       caption=paste0("Summary statistics of measured fish by unit, species, month,",
+                      " and whether clipped or not. Only species for which some",
+                      " fin-clipped fish were recorded are shown (otherwise see ",
+                      tables('Table6',display='cite'),"). 'All' results are",
+                      " shown only in those months where both clipped and",
+                      " unclipped fish were observed."))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table7"))
 table7(lengths)
 ```
 
 ```{r table8}
-tables(name="Table8",display=FALSE,
-       caption=paste("Number of fish examined for fin clips by species,",
-                     "month, and clip. 'All' results are shown only for those",
-                     "species where both clipped and unclipped fish were",
-                     "observed."))
-cat("<br><br>")
-cat("<hr>")
-cat(tables("Table8"))
 table8 <- function(dlen) {
   ## Prepare data.frame for huxtable
   tmp <- dlen %>%
     ## Remove fish that were not checked for clips
     dplyr::filter(!is.na(CLIP)) %>%
     ## Reduce to only variables needed for the table
-    dplyr::select(MONTH,SPECIES,CLIP) %>%
+    dplyr::select(MONTH,MUNIT,SPECIES,CLIP) %>%
     ##   drop unused levels
     droplevels() %>%
-    group_by(SPECIES,CLIP,MONTH) %>%
+    group_by(MUNIT,SPECIES,CLIP,MONTH) %>%
     summarize(n=n()) %>%
     as.data.frame()
   
   ## Summarize across months
-  tmp1 <- group_by(tmp,SPECIES,CLIP) %>%
+  tmp1 <- group_by(tmp,MUNIT,SPECIES,CLIP) %>%
     summarize(n=sum(n)) %>%
     mutate(MONTH="All") %>%
     select(names(tmp)) %>%
     as.data.frame()
   tmp <- rbind(tmp,tmp1)
   ## Summarize across clips
-  tmp1 <- group_by(tmp,SPECIES,MONTH) %>%
+  tmp1 <- group_by(tmp,MUNIT,SPECIES,MONTH) %>%
     summarize(n=sum(n)) %>%
     mutate(CLIP="All") %>%
     select(names(tmp)) %>%
@@ -650,11 +636,12 @@ table8 <- function(dlen) {
   ## Convert to wide format
   tmpTbl1 <- tmp %>%
     tidyr::spread(MONTH,n) %>%
-    arrange(SPECIES,CLIP) %>%
-    ## Remove repeated items in the species variables
-    dplyr::mutate(SPECIES=iRemoveRepeatLabels(.,"SPECIES")) %>%
+    arrange(MUNIT,SPECIES,CLIP) %>%
+    ## Remove repeated items in the munit and species variables
+    dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
+                  SPECIES=iRemoveRepeatLabels(.,"SPECIES")) %>%
     ## Remove repeated rows (for numeric variables)
-    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("SPECIES","CLIP")))
+    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("MUNIT","SPECIES","CLIP")))
   
   ## Find rows that need more space
   breakRows <- which(tmpTbl1$SPECIES!="")[-1]
@@ -666,20 +653,28 @@ table8 <- function(dlen) {
     set_right_padding(row=everywhere,col=everywhere,value=5) %>%
     set_top_padding(row=breakRows,col=everywhere,value=15) %>%
     # Change NAs to dashes
-    set_na_string(row=everywhere,col=-(1:2),value="--") %>%
+    set_na_string(row=everywhere,col=-(1:3),value="--") %>%
     # Add column labels
     rbind(names(tmpTbl1),.) %>%
-    rbind(c("","","MONTH",rep("",mos-1)),.) %>%
+    rbind(c("","","","MONTH",rep("",mos-1)),.) %>%
     # Top label should extend across MONTHs columns with line underneath
-    merge_cells(row=1,col=3:(mos+2)) %>%
-    set_bottom_border(row=1,col=3,value=1) %>%
-    set_align(row=everywhere,col=3:(mos+2),value="right") %>%
+    merge_cells(row=1,col=4:(mos+2)) %>%
+    set_bottom_border(row=1,col=4,value=1) %>%
+    set_align(row=everywhere,col=4:(mos+2),value="right") %>%
     set_align(row=1,col=everywhere,value="center") %>%
     set_width(0.35) %>%
-    iFinishTable(labelsRow=2,labelsCol=2)
+    iFinishTable(labelsRow=2,labelsCol=3)
   tmpTbl2
 }
 
+tables(name="Table8",display=FALSE,
+       caption=paste("Number of fish examined for fin clips by species,",
+                     "month, and clip. 'All' results are shown only for those",
+                     "species where both clipped and unclipped fish were",
+                     "observed."))
+cat("<br><br>")
+cat("<hr>")
+cat(tables("Table8"))
 table8(lengths)
 ```
 

@@ -379,20 +379,20 @@ sumHarvestEffort <- function(h,f) {
 ## Note that this is generalized so that var can be either CLIPPED or CLIP
 sumLengths <- function(d,var) {
   tmp <- rlang::quo_name(rlang::enquo(var))
-  ## summarize by YEAR, SPECIES, MONTH, and "clip"
-  lenSum1 <- dplyr::group_by(d,YEAR,SPECIES,MONTH,!!rlang::enquo(var)) %>%
+  ## summarize by MUNIT, SPECIES, MONTH, and "clip"
+  lenSum1 <- dplyr::group_by(d,MUNIT,SPECIES,MONTH,!!rlang::enquo(var)) %>%
     iSumLen()
-  ## summarize by YEAR, SPECIES, and MONTH (across all "clip"s)
-  lenSum2 <- dplyr::group_by(d,YEAR,SPECIES,MONTH) %>% iSumLen() %>%
+  ## summarize by MUNIT, SPECIES, and MONTH (across all "clip"s)
+  lenSum2 <- dplyr::group_by(d,MUNIT,SPECIES,MONTH) %>% iSumLen() %>%
     dplyr::mutate(TMP="All")
   names(lenSum2)[length(names(lenSum2))] <- tmp
   lenSum2 <- dplyr::select(lenSum2,names(lenSum1))
-  ## summarize by YEAR, SPECIES, and "clip" (across all MONTHs)
-  lenSum3 <- dplyr::group_by(d,YEAR,SPECIES,!!enquo(var)) %>% iSumLen() %>%
+  ## summarize by MUNIT, SPECIES, and "clip" (across all MONTHs)
+  lenSum3 <- dplyr::group_by(d,MUNIT,SPECIES,!!enquo(var)) %>% iSumLen() %>%
     dplyr::mutate(MONTH="All") %>%
     dplyr::select(names(lenSum1))
-  ## summarize by YEAR and SPECIES (across all MONTHs and "clip"s)
-  lenSum4 <- dplyr::group_by(d,YEAR,SPECIES) %>% iSumLen() %>%
+  ## summarize by MUNIT and SPECIES (across all MONTHs and "clip"s)
+  lenSum4 <- dplyr::group_by(d,MUNIT,SPECIES) %>% iSumLen() %>%
     dplyr::mutate(MONTH="All",TMP="All")
   names(lenSum4)[length(names(lenSum4))] <- tmp
   lenSum4 <- dplyr::select(lenSum4,names(lenSum1))
@@ -403,11 +403,11 @@ sumLengths <- function(d,var) {
   if (tmp=="CLIPPED") {
     lenSum %<>%
       dplyr::mutate(CLIPPED=factor(CLIPPED,levels=c("No Clip","Clip","All"))) %>%
-      dplyr::arrange(YEAR,SPECIES,MONTH,CLIPPED)
+      dplyr::arrange(MUNIT,SPECIES,MONTH,CLIPPED)
   } else {
     lenSum %<>% 
       dplyr::mutate(CLIP=droplevels(factor(CLIP,levels=c(lvlsCLIP,"All")))) %>%
-      dplyr::arrange(YEAR,SPECIES,MONTH,CLIP)
+      dplyr::arrange(MUNIT,SPECIES,MONTH,CLIP)
   }
   ## Remove rows that are duplicates of a previous row for just the summary vars
   lenSum %<>% filter(FSA::repeatedRows2Keep(.,
