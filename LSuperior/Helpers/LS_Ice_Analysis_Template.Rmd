@@ -90,9 +90,8 @@ table1 <- function(PC) {
   tbl1 <- tmp %>%
     dplyr::select(-dplyr::starts_with("DAYTYPE")) %>%
     dplyr::arrange(MONTH,SITE) %>%
-    dplyr::mutate(
-      # Remove repeated rows in MONTH variable
-      MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
+    # Remove repeated rows in MONTH variable
+    dplyr::mutate(MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
     ## Add spacer columns to make table look nice
     tibble::add_column(.,spc1="",.after="cntdVeh.x") %>%
     tibble::add_column(.,spc2="",.after="cntdVeh.y") %>%
