@@ -3,31 +3,43 @@
 #     XXXX, 201X (version 1 - Derek O)
 #
 #  DIRECTIONS:
-#   * Put up-to-date LS_Scheuler_info.xlsx file in LS_Schedules_YEAR folder.
-#   * Follow directions after DIRECTIONS >>> items below.
-#   * See resulting files in LS_Schedules_YEAR folder (replace YEAR with #).
-#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
+#  1. Create a "LS_SCHEDULES_OPEN_YEAR" folder (where YEAR is replaced with the
+#     year for which schedules will be created; e.g., LS_SCEDULES_OPEN_2019)
+#     inside the "LSuperior" folder.
+#  2. Put up-to-date LS_Schedules_Open_info.xlsx file in folder from 1.
+#  3. Change these items as needed (make sure to run each line).
 
-## DIRECTIONS >>> Change these items as needed (make sure to run each line).
 START_DATE <- "05/16/2019" # Starting date for schedule
 END_DATE <- "09/30/2019"   # Ending date for schedule
-CLERK <- "B"               # A (Ash-Wash), B (B/RC/LSB & Corny/PW), C (Saxon), D (Superior)
+CLERK <- "A"               # A (Ash-Wash), B (B/RC/LSB & Corny/PW), C (Saxon), D (Superior)
 SEED <- NULL               # Enter number for repeatability, otherwise NULL
 LAKE <- "SUPERIOR"
 
-## DIRECTIONS >>> Run everything below here but don't change anything
-INFO <- file.choose()   # Choose LS_Scheduler_info.xlsx file to use
+#  4. Run below here but don't change anything.
+
+message("Choose the information file in the dialog box",
+        " (may be behind other windows).")
+INFO <- file.choose()
 WDIR <- file.path(here::here(),"LSuperior")
 source(file.path(WDIR,"Helpers","LS_Scheduler_Helpers.R"))
 
-## DIRECTIONS >>> Run makeSchedule() below to create a preliminary schedule.
-## DIRECTIONS >>> Examine the summaries and calendars. If manual changes
-## DIRECTIONS >>> are needed then open the CSV file in the LS_Schedules_YEAR
-## DIRECTIONS >>> folder in Excel, modify the results, and save. Optionally, run
-## DIRECTIONS >>> following to examine schedule (before or after manual changes).
-## DIRECTIONS >>>   readSchedule(SCHED,WDIR,show_summary=TRUE,show_calendars=TRUE)
-SCHED <- makeSchedule(LAKE,CLERK,START_DATE,END_DATE,SEED,INFO,WDIR,
-                      show_summary=TRUE,show_calendars=FALSE)
+#  5. Run below to create a preliminary schedule.
 
-## DIRECTIONS >>> Run below to create printable PDF of calendar and bus routes
+SCHED <- makeSchedule(LAKE,CLERK,START_DATE,END_DATE,SEED,INFO,WDIR,
+                      show_summary=TRUE,show_calendars=TRUE)
+
+#  6. Examine the summaries and calendars (can PgUp or PgDn to move through
+#     calendars in the separate window). If manual changes are needed then
+#     open ( in Excel) the CSV file in the folder from 1, modify the results,
+#     and save. If you make manual changes then you can run the code below to
+#     examine the modified schedule.
+
+readSchedule(SCHED,WDIR,show_summary=TRUE,show_calendars=TRUE)
+
+#  7. Run below to create printable PDF of calendar and bus routes that will be
+#     in the folder from 1.
+
 printForClerk(LAKE,START_DATE,CLERK,SEED,INFO,WDIR,SCHED)
+
+#
+#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
