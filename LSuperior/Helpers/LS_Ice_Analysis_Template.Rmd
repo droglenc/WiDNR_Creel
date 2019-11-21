@@ -78,12 +78,15 @@ table1 <- function(PC) {
   PC <- PC %>%
     ## Remove unneeded variables from pressureCount
     dplyr::select(-SURVEY,-ROUTE) %>%
-    ## Remove records where there wre no fishable days
-    dplyr::filter(TTLDAYS>0)
-  ## Separate into weekdays and seekends
+    ## Remove records where there were no fishable days
+    dplyr::filter(TTLDAYS>0) %>%
+    dplyr::rename(ttlDays=TTLDAYS)
+  
+  ## Separate into weekdays and weekends
   tmp <- split(PC,PC$DAYTYPE,drop=TRUE)
-  ## Join so daytypes are side-by-side
-  if (length(tmp)>1) {
+  dts <- names(tmp)
+  numdts <- length(dts)
+  if (numdts>1) { 
     tmp <- dplyr::full_join(tmp[[1]],tmp[[2]],by=c("MONTH","SITE"))
   } else tmp <- tmp[[1]]
   ## So that they can be put side-by-side for the table
@@ -91,11 +94,15 @@ table1 <- function(PC) {
     dplyr::select(-dplyr::starts_with("DAYTYPE")) %>%
     dplyr::arrange(MONTH,SITE) %>%
     # Remove repeated rows in MONTH variable
-    dplyr::mutate(MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
-    ## Add spacer columns to make table look nice
-    tibble::add_column(.,spc1="",.after="cntdVeh.x") %>%
+    dplyr::mutate(MONTH=iRemoveRepeatLabels(.,"MONTH"))
+  ## Add spacer columns to make table look nice
+  tbl1 <- tibble::add_column(tbl1,spc1="",
+                      .after=which(names(tbl1) %in% c("cntdVeh","cntdVeh.x")))
+  if ("cntdVeh.y" %in% names(tbl1)) {
+    tbl1 <- tbl1 %>%
     tibble::add_column(.,spc2="",.after="cntdVeh.y") %>%
     tibble::add_column(.,spc3="",.after="ttlVeh.x")
+  }
   ## Rows with a MONTH names (except first) will get extra space above
   spaceAbove <- which(tbl1$MONTH!="")[-1]
 
@@ -110,29 +117,39 @@ table1 <- function(PC) {
     # right align all but leftmost two columns
     set_align(row=everywhere,col=-(1:2),value="right") %>%
     # No decimals for observed values and total days
-    set_number_format(row=everywhere,col=c(3:4,6,9:10,12),value=0) %>%
-    set_number_format(row=everywhere,col=c(7,13),value=1) %>%
-    # Extra label at the top
-    rbind(c("MONTH","SITE",rep(c("Days","Vehicles",""),3),"Days","Vehicles"),.) %>%
-    rbind(c("","","Counted","","","Total","","","Counted","","","Total",""),.) %>%
-    rbind(c("","","Weekdays","","","","","","Weekends","","","",""),.) %>%
-    # Adjust headers
-    merge_cells(row=1,col=3:7) %>%
-    set_bottom_border(row=1,col=3,value=1) %>%
-    merge_cells(row=1,col=9:13) %>%
-    set_bottom_border(row=1,col=9,value=1) %>%
+    set_number_format(row=everywhere,col=contains("Days"),value=0) %>%
+    set_number_format(row=everywhere,col=contains("cntdVeh"),value=0) %>%
+    set_number_format(row=everywhere,col=contains("ttlVeh"),value=1)
+  # Extra label at the top
+  if (numdts==1) {
+    tbl2 <- tbl2 %>%
+      rbind(c("MONTH","SITE","Days","Vehicles","","Days","Vehicles"),.) %>%
+      rbind(c("","","Counted","","","Total",""),.) %>%
+      rbind(c("","",unique(as.character(PC$DAYTYPE)),"","","",""),.)
+  } else {
+    tbl2 <- tbl2 %>%
+      rbind(c("MONTH","SITE","Days","Vehicles","","Days","Vehicles","",
+              "Days","Vehicles","","Days","Vehicles"),.) %>%
+      rbind(c("","","Counted","","","Total","","","Counted","","","Total",""),.) %>%
+      rbind(c("","","Weekdays","","","","","","Weekends","","","",""),.)
+  }
+  # Adjust headers
+  for (i in 1:numdts) {
+    cols <- (3:7)+(i-1)*6
+    tbl2 <- merge_cells(tbl2,row=1,col=cols) %>%
+      set_bottom_border(row=1,col=cols[1],value=1) %>%
+      merge_cells(row=2,col=cols[1:2]) %>%
+      set_bottom_border(row=2,col=cols[1],value=1) %>%
+      merge_cells(row=2,col=cols[4:5]) %>%
+      set_bottom_border(row=2,col=cols[4],value=1)
+  }
+  tbl2 <- tbl2 %>%
     set_align(row=1,col=everywhere,value="center") %>%
-    merge_cells(row=2,col=3:4) %>%
-    set_bottom_border(row=2,col=3,value=1) %>%
-    merge_cells(row=2,col=6:7) %>%
-    set_bottom_border(row=2,col=6,value=1) %>%
-    merge_cells(row=2,col=9:10) %>%
-    set_bottom_border(row=2,col=9,value=1) %>%
-    merge_cells(row=2,col=12:13) %>%
-    set_bottom_border(row=2,col=12,value=1) %>%
-    set_align(row=2,col=everywhere,value="center") %>%
-    # Sets table & column widths
-    set_col_width(col=c(.1,.35,.1,.1,.025,.1,.1,.075,.1,.1,.025,.1,.1)) %>%
+    set_align(row=2,col=everywhere,value="center")
+  # Sets table & column widths
+  cw <- c(.1,.35,.1,.1,.025,.1,.1)
+  if (numdts>1) cw <- c(cw,.075,.1,.1,.025,.1,.1)
+  tbl2 <- set_col_width(tbl2,col=cw) %>%
     iFinishTable(labelsRow=3,labelsCol=2,tableWidth=0.9)
   ## Return the huxtable
   tbl2
