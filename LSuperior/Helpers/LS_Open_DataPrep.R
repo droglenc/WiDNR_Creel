@@ -373,7 +373,8 @@ intvs_FISH <- intvs_ORIG %>%
 #   * WEIGHT: Weight (g) predicted from length and weight-length regression
 #             equations given in external file.
 lengths <- 
-  dplyr::right_join(intvs_FISH,fish,by="INTERVIEW") %>%
+  dplyr::left_join(intvs_FISH,fish,by="INTERVIEW") %>%
+  dplyr::filter(SPECIES!="") %>%
   dplyr::mutate(
     ROUTE=LOC,
     WATERS=ifelse(MUNIT %in% c("MN","MI"),"Non-Wisconsin","Wisconsin"),

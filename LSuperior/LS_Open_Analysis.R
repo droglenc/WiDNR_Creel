@@ -13,7 +13,7 @@
 #     year; e.g., Ashland_Open_2014_info.R) and save in same folder from 1.
 #  5. Source this script (and choose the information file(s) in the dialog box).
 #     The figures and Table 9 can be excluded by setting both below to FALSE.
-MAKE_FIGURES <- FALSE
+MAKE_FIGURES <- TRUE
 MAKE_TABLE9 <- FALSE
 #  6. See resulting files in folder from 1 ... the html file is the overall
 #     report and the CSV files are intermediate data files that may be loaded

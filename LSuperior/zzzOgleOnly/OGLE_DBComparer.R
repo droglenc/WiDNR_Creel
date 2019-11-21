@@ -4,16 +4,17 @@
 ## based on the same data (if this returns all TRUEs)
 
 ## Set some directories and get list of CSV in the matching directory
-WDIR <- file.path(here::here(),"LSuperior","LS_Analysis_2014")
-RDIR <- file.path(WDIR,"data")
-MDIR <- file.path(WDIR,"R_RESULTS_KNOWN_TO_MATCH_SAS")
-FNs <- list.files(MDIR,pattern = "\\.csv$")
+WDIR <- file.path(here::here(),"LSuperior","LS_OPEN_2014")
+RFNs <- list.files(WDIR,pattern = "\\.csv$")
+MDIR <- file.path(WDIR,"R_RESULTS_PRIOR_TO_CHANGING_TO_HANDLE_ONE_MONTH")
+MFNs <- list.files(MDIR,pattern = "\\.csv$")
+FNs <- MFNs[MFNs %in% RFNs]
 
 ## Compare the files in results and matching directory
 cat("\014")
 for (i in seq_along(FNs)) {
   cat("Comparing",FNs[i],"\n")
-  Rdf <- read.csv(file.path(RDIR,FNs[i]),stringsAsFactors=FALSE)
+  Rdf <- read.csv(file.path(WDIR,FNs[i]),stringsAsFactors=FALSE)
   Mdf <- read.csv(file.path(MDIR,FNs[i]),stringsAsFactors=FALSE)
   res <- dplyr::all_equal(Rdf,Mdf)
   cat("  Results from dplyr::all_equal():")
