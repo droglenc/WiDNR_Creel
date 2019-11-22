@@ -1,0 +1,11 @@
+SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE,NINTS,ttlVehFshry
+2019,Ashland,WI-2,Dec,< 60 ft - Shallow,Weekday,10,51.6666666666667
+2019,Ashland,WI-2,Dec,< 60 ft - Shallow,Weekend,42,212.25
+2019,Ashland,WI-2,Dec,> 60 ft - Bobbing,Weekday,0,0
+2019,Ashland,WI-2,Dec,Tribal,Weekend,1,4.08333333333333
+2019,Washburn/Bayfield,WI-2,Dec,< 60 ft - Shallow,Weekday,0,0
+2019,Washburn/Bayfield,WI-2,Dec,< 60 ft - Shallow,Weekend,11,12
+2019,Washburn/Bayfield,WI-2,Dec,> 60 ft - Bobbing,Weekday,0,0
+2019,Washburn/Bayfield,WI-2,Dec,> 60 ft - Bobbing,Weekend,0,0
+2019,Washburn/Bayfield,WI-2,Dec,Tribal,Weekday,0,0
+2019,Washburn/Bayfield,WI-2,Dec,Tribal,Weekend,0,0
