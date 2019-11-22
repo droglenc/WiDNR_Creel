@@ -7,10 +7,12 @@
 #     to be analyzed ... e.g., LS_ICE_2019) inside "LSuperior" folder.
 #  2. Use Access macro to extract interview, fdays, count, and fish data files
 #      into a "data" folder inside the folder from 1.
-#  3. Complete an information file (see example from a previous year; e.g,
-#      Ice_2019_info.R) and save in same folder from 1.
-#  4. Source this script (and choose the information file in the dialog box).
-#  5. See resulting files in folder from 1 ... the html file is the overall
+#  3. Enter the year for the analysis here.
+YEAR <- 2019
+#  4. Make TRUE below to combine resultant CSV files for all routes to one file.
+COMBINE_CSV_FILES <- TRUE
+#  5. Source this script (and choose the information file in the dialog box).
+#  6. See resulting files in folder from 1 ... the html file is the overall
 #     report and the CSV files are intermediate data files that may be loaded
 #     into a database for future analyses.
 #
@@ -20,6 +22,17 @@
 #=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=#=-=
 
 
+#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
+#
+# DO NOT CHANGE THESE UNLESS THE ACCESS DATABASE MACRO HAS CHANGED!!!
+#
+#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
+
+CNTS_FILE <- "qry_ice_counts_4R.xlsx"
+FDAY_FILE <- "qry_ice_fdays_4R.xlsx"
+INTS_FILE <- "qry_ice_interviews_4R.xlsx"
+FISH_FILE <- "qry_ice_fish_4R.xlsx"
+
 
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 #
@@ -27,20 +40,19 @@
 #
 #!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!#!-!
 
-## Allows user to choose the appropriate "information" file from the folder
-## created in 1 in the directions above.
-message("!! Choose 'information' file in the dialog box",
-        " (may be behind other windows) !!")
-fn <- choose.files(filters=Filters["R",])
-# Read user-specified information file
-source(fn)
-# Create results directory from where user-selected information file(s) are.
-RDIR <- dirname(fn)
 # Create working directory for helper files and rmarkdown template.
 WDIR <- file.path(here::here(),"LSuperior")
+## Allows user to choose the appropriate folder created in 1 above.
+message("!! Choose YEAR folder file in the dialog box (may be behind other windows) !!")
+RDIR <- choose.dir(default=WDIR)
 
-## Iterate through the routes given in the information file. Produce an HTML
-## report and intermediate CSV files (see directions above)
+# Open the interviews file to find ROUTEs with interviews
+intvs <- readxl::read_excel(file.path(RDIR,"data",INTS_FILE)) %>%
+  dplyr::arrange(ROUTE)
+ROUTE <- unique(intvs$ROUTE)
+  
+
+## Iterate through the routes, produce an HTML report and intermediate CSV files
 for (LOCATION in ROUTE) {
   # Handle slashes in location names
   LOCATION2 <- gsub("/","",LOCATION)
