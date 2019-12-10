@@ -47,8 +47,7 @@ message("!! Choose YEAR folder file in the dialog box (may be behind other windo
 RDIR <- choose.dir(default=WDIR)
 
 # Open the interviews file to find ROUTEs with interviews
-intvs <- readxl::read_excel(file.path(RDIR,"data",INTS_FILE)) %>%
-  dplyr::arrange(ROUTE)
+intvs <- readxl::read_excel(file.path(RDIR,"data",INTS_FILE))
 ROUTE <- unique(intvs$ROUTE)
   
 

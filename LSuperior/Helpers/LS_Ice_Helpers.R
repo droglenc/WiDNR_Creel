@@ -84,6 +84,107 @@ expandPressureCount <- function(pc,intvs,pints) {
 
 
 
+sumInterviewedEffort <- function(dints) {
+  fsum <- dints %>%
+    ### Compute people-hours of fishing effort (in INDHRS) ... only used to find
+    ###   mean party size (in PARTY) below
+    dplyr::mutate(INDHRS=PERSONS*HOURS) %>%
+    ## Summarize interviewed effort data by MUNIT, DAYTPE, FISHERY, MONTH
+    ##   across all interviews, sites, and days
+    dplyr::group_by(SURVEY,ROUTE,UNIT,FISHERY,DAYTYPE,MONTH) %>%
+    dplyr::summarize(NINTS=dplyr::n(),
+                     MTRIP=mean(HOURS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     USSHOURS=sum(HOURS^2,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    ## !! This was how PARTY was calculated in the SAS OW code ... it is NOT the same
+    ## !! as calculating the mean of PERSONS ... not clear why computed this way.
+    ## !! Note that USSHours is the uncorrected SS of HOURS ... this is used later
+    ## !! to find the variance of the HOURS
+    dplyr::mutate(PARTY=INDHRS/HOURS) %>%
+    as.data.frame()
+
+  ## Find total interviewed hours by MONTH and DAYTYPE (nints in SAS OW code)
+  fsum2 <- dints %>%
+    dplyr::group_by(MONTH,DAYTYPE) %>%
+    dplyr::summarize(THOURS_MD=sum(HOURS,na.rm=TRUE)) %>%
+    as.data.frame()
+
+  ## Combine the summarized effort with fsum2 to compute PROP
+  f <- merge(fsum,fsum2,by=c("MONTH","DAYTYPE")) %>%
+    dplyr::mutate(PROP=HOURS/THOURS_MD) %>%
+    dplyr::select(SURVEY,ROUTE,UNIT,FISHERY,DAYTYPE,MONTH,
+                  NINTS,HOURS,USSHOURS,MTRIP,PROP,PARTY) %>%
+    dplyr::arrange(SURVEY,ROUTE,UNIT,FISHERY,DAYTYPE,MONTH)
+  ## Return data.frame (not a tibble)
+  as.data.frame(f)
+}
+
+
+## Summarized total fishing effort by strata
+sumEffort <- function(ieff,pct) {
+  # Combine interview effort and pressure counts with new calculations ...
+  eff <- merge(ieff,pct,by=c("SURVEY","ROUTE","UNIT","MONTH","FISHERY","DAYTYPE")) %>%
+    dplyr::mutate(PHOURS=ttlVehFshry*MTRIP,
+                  INDHRS=PHOURS*PARTY) %>%
+    dplyr::rename(NINTS=NINTS.x) %>%
+    dplyr::select(SURVEY,ROUTE,UNIT,FISHERY,DAYTYPE,MONTH,ttlVehFshry,
+                  NINTS,HOURS,USSHOURS,PHOURS,INDHRS) %>%
+    as.data.frame()
+  
+  ## Summarize across Daytypes
+  eff1 <- dplyr::group_by(eff,SURVEY,ROUTE,UNIT,FISHERY,MONTH) %>%
+    dplyr::summarize(ttlVehFshry=sum(ttlVehFshry,na.rm=TRUE),
+                     NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     USSHOURS=sum(USSHOURS,na.rm=TRUE),
+                     PHOURS=sum(PHOURS,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    dplyr::mutate(DAYTYPE="All") %>%
+    dplyr::select(names(eff)) %>%
+    as.data.frame()
+  ## Combine those summaries to original data.frame
+  eff <- rbind(eff,eff1)
+  
+  ## Summarize across Months
+  eff2 <- dplyr::group_by(eff,SURVEY,ROUTE,UNIT,FISHERY,DAYTYPE) %>%
+    dplyr::summarize(ttlVehFshry=sum(ttlVehFshry,na.rm=TRUE),
+                     NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     USSHOURS=sum(USSHOURS,na.rm=TRUE),
+                     PHOURS=sum(PHOURS,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    dplyr::mutate(MONTH="All") %>%
+    dplyr::select(names(eff)) %>%
+    as.data.frame()
+  ## Combine those summaries to original data.frame
+  eff <- rbind(eff,eff2)
+  
+  ## Summarize across Fisheries
+  eff3 <- dplyr::group_by(eff,SURVEY,ROUTE,UNIT,MONTH,DAYTYPE) %>%
+    dplyr::summarize(ttlVehFshry=sum(ttlVehFshry,na.rm=TRUE),
+                     NINTS=sum(NINTS,na.rm=TRUE),
+                     HOURS=sum(HOURS,na.rm=TRUE),
+                     USSHOURS=sum(USSHOURS,na.rm=TRUE),
+                     PHOURS=sum(PHOURS,na.rm=TRUE),
+                     INDHRS=sum(INDHRS,na.rm=TRUE)) %>%
+    dplyr::mutate(FISHERY="All") %>%
+    dplyr::select(names(eff)) %>%
+    as.data.frame()
+  ## Combine those summaries to original data.frame
+  eff <- rbind(eff,eff3) %>%
+    ## Add on mean persons per party and mean trip length
+    dplyr::mutate(PARTY=INDHRS/PHOURS,MTRIP=PHOURS/ttlVehFshry) %>%
+    ## Put variables in specific order
+    dplyr::select(SURVEY,ROUTE,UNIT,FISHERY,DAYTYPE,MONTH,ttlVehFshry,
+                  PHOURS,PARTY,INDHRS,MTRIP,
+                  NINTS,HOURS,USSHOURS) %>%
+    ## Arrange
+    dplyr::arrange(SURVEY,ROUTE,UNIT,FISHERY,DAYTYPE,MONTH)
+  # return final data.frame
+  eff
+}
+
 expandHarv <- function(intvsNF,intvsO,pcs) {
   ## Summarized observations about angling effort and success by MONTH, FISHERY,
   ## and DAYTYPE.

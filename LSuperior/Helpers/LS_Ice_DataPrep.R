@@ -102,7 +102,7 @@ fdays <- dplyr::select(fdays,SURVEY:TTLDAYS)
 # NOTES:
 #   * Same (with some issues and slightly different format of variables) as
 #     2019 ASHLAND ICE CREEL MONTHLY PRESSURE.XLSX
-pressureCount <-
+pressureCountBySite <-
   readxl::read_excel(file.path(RDIR,"data",CNTS_FILE)) %>%
   ## Filter to the route in LOC and survey year
   dplyr::filter(ROUTE==LOC,SURVEY==YEAR) %>%
@@ -201,6 +201,7 @@ intvs_NOFISH <-
   dplyr::distinct()
 
 
+
 # DESCRIPTION: This creates a data.frame of pressure count data expanded to
 #              represent the total number of vehicles at each SITE in each
 #              FISHERY by MONTH and DAYTYPE. Ultimately this is an intermediate
@@ -217,7 +218,7 @@ intvs_NOFISH <-
 #   * ttlVehSiteFshry: Total vehicles at the SITE in each FISHERY (this used
 #                      pIntsInFishery)
 # NOTES: This is the bulk of 2019 ASHLAND ICE CREEL EXPANDED PRESSURE.XLSX.
-ttlEffortBySite <- expandPressureCount(pressureCount,intvs_NOFISH,pints)
+pressureCountBySiteFishery <- expandPressureCount(pressureCountBySite,intvs_NOFISH,pints)
 
 
 # DESCRIPTION: This creates a data.frame of pressure count data expanded to
@@ -231,12 +232,54 @@ ttlEffortBySite <- expandPressureCount(pressureCount,intvs_NOFISH,pints)
 # NOTES:
 #   * This is the summaries in 2019 ASHLAND ICE CREEL EXPANDED PRESSURE.XLSX 
 #     that are carried forward to 2019 ASHLAND ICE CREEL HARVEST.XLSX.
-ttlEffort <- ttlEffortBySite %>%
+pressureCount <- pressureCountBySiteFishery %>%
   dplyr::group_by(SURVEY,ROUTE,UNIT,MONTH,FISHERY,DAYTYPE) %>%
   dplyr::summarize(NINTS=sum(NINTS,na.rm=TRUE),
                    ttlVehFshry=sum(ttlVehSiteFshry,na.rm=TRUE)) %>%
   as.data.frame()
+
+
+# DESCRIPTION: This creates a data.frame that summarizes the number of OBSERVED
+#              interviews and reported hours of fishing effort by "strata"
+#              (SURVEY, ROUTE, UNIT, DAYTYPE, FISHERY, MONTH) ... across sites and
+#              individual interviews. This is still observed results which have
+#              not yet been expanded to the population of days. This is used 
+#              later for computing total effort (i.e., expanded to the
+#              population of days).
+# RESULT: A data.frame with ...
+#   * SURVEY, ROUTE, UNIT, FISHERY, DAYTYPE, MONTH: as defined above
+#   * NINTS: Total number of interviews in the strata
+#   * HOURS: Total interviewed effort (hours) of ALL parties in the strata
+#   * MTRIP: Mean interviewed effort (hours) by party
+#   * PROP: Proportion of total interviewed effort for month-daytype that is in
+#           a given unit-fishery. Should sum to 1 within each month-daytype.
+#           Check with: 
+#             group_by(intvdEffortWaters,MONTH,DAYTYPE) %>% summarize(sum(PROP))
+#   * PARTY: Mean party size (person's per party)
+intvdEffort <- sumInterviewedEffort(intvs_NOFISH)
+
+## Combining Counts and Effort -------------------------------------------------
+# DESCRIPTION: This creates a data.frame that summarizes (see below) total 
+#              (expanded) fishing effort by strata (UNIT, FISHERY,
+#              DAYTYPE, MONTH). This is expanded to the entire population of
+#              days (not just observations from the sample of days) and will be
+#              used to expand catch to harvest further below.
+# RESULT: A data.frame with ...
+#   * SURVEY, UNIT, FISHERY, DAYTYPE, MONTH: defined above.
+#   * ttlVehFshry: Total vehicles in each FISHERY
+#   * PHOURS: Total party hours of fishing
+#   * PARTY: Mean party size (person's per party)
+#   * INDHRS: Total individual/person hours of fishing
+#   * MTRIP: Mean interviewed effort (hours) by COMPLETED parties
+#   * TRIPS: Total number of fishing trips
+#
+#   The following are intermediate calculations returned for completeness.
+#   * NINTS: Number of actual interviews
+#   * HOURS: Total interviewed effort (hours) of ALL parties
+ttlEffort <- sumEffort(intvdEffort,pressureCount)
+
 writeDF(ttlEffort,fnpre)
+
 
 
 ## Harvest ---------------------------------------------------------------------
@@ -339,7 +382,7 @@ ttlHarvest <-
   bind_rows(sumExpHarvAll) %>%
   mutate(SPECIES=factor(SPECIES,levels=lvlsSPECIES)) %>%
   arrange(SURVEY,ROUTE,UNIT,SPECIES,FISHERY,MONTH,DAYTYPE)
-writeDF(ttlEffort,fnpre)
+writeDF(ttlHarvest,fnpre)
 
 
 ## Fish Lengths ----

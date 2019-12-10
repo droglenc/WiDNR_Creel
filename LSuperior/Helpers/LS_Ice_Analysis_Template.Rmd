@@ -165,7 +165,7 @@ cat("<hr>")
 cat(tables("Table1"))
 
 # Compare this to 'ICE CREEL MONTHLY PRESSURE' Excel file.
-table1(pressureCount)
+table1(pressureCountBySite)
 ```
 
 ```{r table2}
@@ -262,7 +262,7 @@ cat("<hr>")
 cat(tables("Table2"))
 
 # Compare this to 'ICE CREEL EXPANDED PRESSURE' Excel file.
-table2(ttlEffortBySite,FISHERYS2remove4TABSFIGS)
+table2(pressureCountBySiteFishery,FISHERYS2remove4TABSFIGS)
 ```
 
 ```{r table3}
