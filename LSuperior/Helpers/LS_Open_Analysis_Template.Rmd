@@ -549,7 +549,7 @@ table7 <- function(dlen) {
   tmp <- dlen %>%
     ##   Remove fish for which a length was not recorded
     dplyr::filter(!is.na(LENGTH))
-  ## Find only those species for which a fin-slip was recorded
+  ## Find only those species for which a fin-clip was recorded
   specClipped <- as.character(unique(dplyr::filter(lengths,CLIPPED=="Clip")$SPECIES))
   ##   Summarize lengths by whether clipped or not
   tmp <- sumLengths(filter(tmp,SPECIES %in% specClipped),CLIP) %>%
@@ -887,6 +887,8 @@ cat("<hr>")
 
 ```{r figure6, eval=MAKE_FIGURES, fig.width=7, fig.height=8}
 figure6 <- function(dlen,topN=3) {
+  # Remove records without measured lengths
+  dlen %<>% filter(!is.na(LENGTH))
   # Sample size by species and month
   SUM <- dlen %>%
     dplyr::group_by(SPECIES,MONTH) %>%
