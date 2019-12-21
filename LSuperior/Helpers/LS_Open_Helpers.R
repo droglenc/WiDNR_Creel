@@ -402,7 +402,8 @@ sumLengths <- function(d,var) {
            MONTH=iOrderMonths(MONTH,addAll=TRUE))
   if (tmp=="CLIPPED") {
     lenSum %<>%
-      dplyr::mutate(CLIPPED=factor(CLIPPED,levels=c("No Clip","Clip","All"))) %>%
+      dplyr::mutate(CLIPPED=factor(CLIPPED,levels=c("No Clip","Clip",
+                                                    "Not Checked","All"))) %>%
       dplyr::arrange(MUNIT,SPECIES,MONTH,CLIPPED)
   } else {
     lenSum %<>% 
