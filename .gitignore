@@ -1,8 +1,11 @@
 WiDNR_Creel.Rproj
 
 zzzOgleOnly/zzzAdministrative/
-## Ignored Access databases
+zzzOgleOnly/zzzOld/
+
+## Ignore Access databases
 /LSuperior/LS_Creel*
+
 ## Intermediate or output files not needed in repository
 /LSuperior/LS_ANALYSIS*
 /LSuperior/LS_ICE_2*
