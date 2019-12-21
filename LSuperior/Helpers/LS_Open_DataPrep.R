@@ -111,16 +111,15 @@ pressureCount <-
     SITE=paste0(SITE,"-",FSA::capFirst(SITEDESC)),
     ## Calculate "WAIT" time (hours at the site)
     WAIT=hndlHours(STARTHH,STARTMM,STOPHH,STOPMM,DATE,SDATE,FDATE),
-  ) %>% 
+    ## Convert avg counts (original TOTAL) to "total hours" during shift
+    TOTAL=TOTAL*WAIT) %>% 
   ## Remove records with "bad" wait times (see hndlHours description)
   dplyr::filter(!is.na(WAIT)) %>%
   ## Combine WAIT and COUNT from multiple visits to the same SITE in same day
   dplyr::group_by(YEAR,MONTH,DAY,DAYTYPE,SITE) %>%
   dplyr::summarize(TOTAL=sum(TOTAL),WAIT=sum(WAIT)) %>%
-  ## Convert avg counts (original TOTAL) to "total hours" during shift
-  dplyr::mutate(COUNT=TOTAL*WAIT) %>%
-  ## Remove TOTAL variable that is no longer needed
-  dplyr::select(-TOTAL) %>%
+  ## Rename TOTAL variable to COUNT for later
+  dplyr::rename(COUNT=TOTAL) %>%
   ## Convert to regular data.frame (rather than tibble)
   as.data.frame()
 
@@ -380,9 +379,13 @@ lengths <-
     WATERS=ifelse(MUNIT %in% c("MN","MI"),"Non-Wisconsin","Wisconsin"),
     WATERS=droplevels(factor(WATERS,levels=c("Wisconsin","Non-Wisconsin"))),
     CLIP=droplevels(factor(CLIP,levels=lvlsCLIP)),
-    CLIPPED=ifelse(CLIP=="Native","No Clip","Clip")) %>%
+    CLIPPED=dplyr::case_when(
+      CLIP=="Native" ~ "No Clip",
+      CLIP=="Not checked" ~ "Not Checked",
+      TRUE ~ "Clip"
+    ),
+    CLIPPED=factor(CLIPPED,levels=c("No Clip","Clip","Not Checked"))) %>%
   dplyr::select(YEAR,ROUTE,WATERS,MUNIT,FISHERY,MONTH,
                 DATE,SITE,SPECIES,CLIP,CLIPPED,LENGTH) %>%
   addWeights(RDIR,YEAR)
 writeDF(lengths,fnpre)
-
