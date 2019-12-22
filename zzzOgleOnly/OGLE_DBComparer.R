@@ -1,42 +1,15 @@
-## The following tests that the three main CSV files written from the
-## LS_Analyzer.R script are the same. This does not ensure that the tables and
-## figures in the results HTML page are equal but it does mean that they are
-## based on the same data (if this returns all TRUEs)
-
-## Set some directories and get list of CSV in the matching directory
-WDIR <- file.path(here::here(),"LSuperior","LS_OPEN_2014")
-RFNs <- list.files(WDIR,pattern = "\\.csv$")
-MDIR <- file.path(WDIR,"R_RESULTS_PRIOR_TO_CHANGING_TO_HANDLE_ONE_MONTH")
-MFNs <- list.files(MDIR,pattern = "\\.csv$")
-FNs <- MFNs[MFNs %in% RFNs]
-
-## Compare the files in results and matching directory
+## The following can be used to test files written by LS_Open_Analysis.R.
 cat("\014")
-for (i in seq_along(FNs)) {
-  cat("Comparing",FNs[i],"\n")
-  Rdf <- read.csv(file.path(WDIR,FNs[i]),stringsAsFactors=FALSE)
-  Mdf <- read.csv(file.path(MDIR,FNs[i]),stringsAsFactors=FALSE)
-  res <- dplyr::all_equal(Rdf,Mdf)
-  cat("  Results from dplyr::all_equal():")
-  if (isTRUE(res)) cat(" TRUE\n")
-  else {
-    cat("\n")
-    print(res)
-  }
-  cat("  Results from cell-by-cell comps:")
-  res <- Map("==",Rdf,Mdf)
-  res <- unlist(lapply(res,FUN=all,na.rm=TRUE))
-  if (all(res)) cat(" TRUE\n")
-  else {
-    cat("\n")
-    print(res)
-  }
-  cat("\n")
-}
 
-## You can try this on the html pages but there are differences due to dates, etc.
-## Probably not worth it.
-#tmpM <- file.path(MDIR,"Analysis_Ashland_2014.html")
-#tmpR <- file.path(RDIR,"Analysis_Ashland_2014.html")
-#diffr::diffr(tmpM,tmpR)
+## Choose two database (i.e., CSV) files to compare
+dfR <- read.csv(file.choose())  # new file
+dfM <- read.csv(file.choose())  # old (base) file
+### two types of comparisons ... if both are true then CSV files match
+res <- dplyr::all_equal(Rdf,Mdf)
+res <- unlist(lapply(Map("==",Rdf,Mdf),FUN=all,na.rm=TRUE))
 
+## Choose two report (i.e., HTML) files to compare
+tmpM <- file.choose()
+tmpR <- file.choose()
+### If only difference is in the date run, then HTML files match
+diffr::diffr(tmpM,tmpR)

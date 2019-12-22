@@ -7,10 +7,11 @@
 #  1. Create a "LS_OPEN_YEAR" folder (where YEAR is replaced with the year
 #     to be analyzed ... e.g., LS_OPEN_2019) inside "LSuperior" folder.
 #  2. Use Access macro to extract interview, count, and fish data files into a
-#     "data" folder inside the folder from 1.
+#     "data" folder inside the folder from 1. Make sure the year is set properly
+#     (i.e., to the desired year) in the Access query before running the macro.
 #  3. Put length-weight regression Excel file in the "data" folder from 2.
 #  4. Complete an information file for each route (see example from a previous
-#     year; e.g., Ashland_Open_2014_info.R) and save in same folder from 1.
+#     year; e.g., Ashland_Open_2019_info.R) and save in same folder from 1.
 #  5. Source this script (and choose the information file(s) in the dialog box).
 #     The figures and Table 9 can be excluded by setting both below to FALSE.
 MAKE_FIGURES <- TRUE

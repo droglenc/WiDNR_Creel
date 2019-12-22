@@ -964,10 +964,3 @@ cat(tables("Table9"))
 
 table9(lengths)
 ```
-
-
-```{r}
-cat("<br><br>")
-cat("<hr>")
-FSA::reproInfo(out="markdown",rqrdPkgs=rqrd,addTOC=FALSE)
-```
