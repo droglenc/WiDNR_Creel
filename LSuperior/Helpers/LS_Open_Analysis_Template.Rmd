@@ -201,7 +201,7 @@ table2 <- function(d,rmvFISHERYS="") {
       dplyr::select(names(tmp)) %>%
       as.data.frame()
     tmp <- rbind(tmp,tmp1) %>%
-      dplyr::mutate(STATE=factor(STATE,levels=c("Wisconsin","Wisconsin/Minnesota",                                          "Wisconsin/Michigan","Michigan","Minnesota","All")))
+      dplyr::mutate(STATE=factor(STATE,levels=c("Wisconsin","Wisconsin/Minnesota",                                       "Wisconsin/Michigan","Michigan","Minnesota","All")))
   }
 
   ## Remove FISHERYs if asked to do so
@@ -220,7 +220,7 @@ table2 <- function(d,rmvFISHERYS="") {
     dplyr::arrange(STATE,DAYTYPE,FISHERY) %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(STATE=iRemoveRepeatLabels(.,"STATE"),
-                  DAYTYPE=iRemoveRepeatLabels(.,"DAYTYPE"))
+                  DAYTYPE=iRemoveRepeatLabels(.,"DAYTYPE","STATE"))
   
   ## Rows with "All" (except last) get extra space below
   allRows <- which(tmpTbl1$FISHERY=="All")
@@ -347,8 +347,8 @@ table4 <- function(fnpre,rmvFISHERYS="") {
     dplyr::arrange(WATERS,FISHERY,MONTH,DAYTYPE) %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(WATERS=iRemoveRepeatLabels(.,"WATERS"),
-                  FISHERY=iRemoveRepeatLabels(.,"FISHERY"),
-                  MONTH=iRemoveRepeatLabels(.,"MONTH")) %>%
+                  FISHERY=iRemoveRepeatLabels(.,"FISHERY","WATERS"),
+                  MONTH=iRemoveRepeatLabels(.,"MONTH",c("WATERS","FISHERY"))) %>%
     ## Remove rows that are repeats (for the numeric variables) of the row above
     ## it, which happens if the species was captured in only one month
     dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("WATERS","FISHERY",
@@ -433,8 +433,8 @@ table5 <- function(fnpre,rmvFISHERYS) {
     dplyr::arrange(MUNIT,FISHERY,SPECIES,MONTH) %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
-                  FISHERY=iRemoveRepeatLabels(.,"FISHERY"),
-                  SPECIES=iRemoveRepeatLabels(.,"SPECIES")) %>%
+                  FISHERY=iRemoveRepeatLabels(.,"FISHERY","MUNIT"),
+                  SPECIES=iRemoveRepeatLabels(.,"SPECIES",c("MUNIT","FISHERY"))) %>%
     ## Remove rows that are repeats (for the numeric variables) of the row above
     ## it, which happens if the species was captured in only one month
     dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("MUNIT","FISHERY",
@@ -500,8 +500,8 @@ table6 <- function(dlen) {
     droplevels() %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
-                  SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
-                  MONTH=iRemoveRepeatLabels(.,"MONTH"))
+                  SPECIES=iRemoveRepeatLabels(.,"SPECIES","MUNIT"),
+                  MONTH=iRemoveRepeatLabels(.,"MONTH",c("MUNIT","SPECIES")))
 
   ## Add some more space above where SPECIES & MONTH name is (except for first)
   breakRows1 <- which(tmp$MONTH!="")[-1]
@@ -556,8 +556,8 @@ table7 <- function(dlen) {
     droplevels() %>%
     ## Remove repeated items in the first three variables
     dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
-                  SPECIES=iRemoveRepeatLabels(.,"SPECIES"),
-                  MONTH=iRemoveRepeatLabels(.,"MONTH"))
+                  SPECIES=iRemoveRepeatLabels(.,"SPECIES","MUNIT"),
+                  MONTH=iRemoveRepeatLabels(.,"MONTH",c("MUNIT","SPECIES")))
 
   ## Which rows to add some more space above
   breakRows1 <- which(tmp$MONTH!="")[-1]
@@ -639,7 +639,7 @@ table8 <- function(dlen) {
     arrange(MUNIT,SPECIES,CLIP) %>%
     ## Remove repeated items in the munit and species variables
     dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
-                  SPECIES=iRemoveRepeatLabels(.,"SPECIES")) %>%
+                  SPECIES=iRemoveRepeatLabels(.,"SPECIES","MUNIT")) %>%
     ## Remove repeated rows (for numeric variables)
     dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("MUNIT","SPECIES","CLIP")))
   
