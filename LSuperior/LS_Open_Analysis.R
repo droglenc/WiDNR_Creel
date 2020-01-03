@@ -20,7 +20,7 @@ MAKE_TABLE9 <- FALSE
 #     report and the CSV files are intermediate data files that may be loaded
 #     into a database for future analyses.
 #  7. Combine CSV files across routes by setting the following to TRUE
-COMBINE_CSV_FILES <- TRUE
+COMBINE_CSV_FILES <- FALSE
 
 # R VERSIONS (CONVERTED FROM SAS): 
 #     XXXX, 2019 (version 3 - Derek O)
