@@ -114,13 +114,13 @@ table1 <- function(fnpre,calSum) {
     tidyr::spread(DAYTYPE,DAYS) %>%
     ## Add a TOTAL days column
     ## Convert months to a character type (needed to add the total row later)
-    dplyr::mutate(All=Weekday+Weekend,
+    dplyr::mutate(All=tidyr::replace_na(Weekday,0)+tidyr::replace_na(Weekend,0),
                   MONTH=as.character(MONTH)) %>%
     ## Rearrange and rename some columns
     dplyr::select(MONTH,Weekday,Weekend,All,DAYLEN) %>%
     dplyr::rename(`Length`=DAYLEN) %>%
     ##  Add on a total row with a 'All' label
-    dplyr::bind_rows(dplyr::summarize_at(.,vars(Weekday:All),'sum')) %>%
+    dplyr::bind_rows(dplyr::summarize_at(.,vars(Weekday:All),'sum',na.rm=TRUE)) %>%
     dplyr::mutate(MONTH=replace(MONTH,is.na(MONTH),"All"))
   names(calTbl1)[which(names(calTbl1)=="All")] <- "All Days"
   
@@ -298,6 +298,8 @@ table3 <- function(pressureCount) {
     set_number_format(row=everywhere,col=ends_with(".TCOUNT"),value=0) %>%
     # One decimal on SD
     set_number_format(row=everywhere,col=ends_with(".SDCOUNT"),value=1) %>%
+    # Change NAs to dashes
+    set_na_string(row=everywhere,col=-(1:3),value="--") %>%
     rbind(c("MONTH",rep(c("Sampled","Total","SD"),3)),.) %>%
     rbind(c("",rep(c("Days","Party Hours",""),3)),.) %>%
     rbind(c("","Weekday","","","Weekend","","","All Days","",""),.) %>%
