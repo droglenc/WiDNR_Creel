@@ -27,7 +27,7 @@ lvlsSPECIES <- c('lake trout','siscowet lake trout','splake','brook trout',
 lvlsSPECIES <- FSA::capFirst(lvlsSPECIES)
 
 lvlsFISHERY <- c('< 60 ft - Shallow','> 60 ft - Bobbing','Pleasure',
-                 'Post LT Open-Water','Tribal','NOP Spearing')
+                 'Dec Open-Water','Tribal','NOP Spearing')
 
 ## Main Helpers ----------------------------------------------------------------
 # Convert NAs to zeroes
