@@ -339,21 +339,23 @@ table4 <- function(fnpre,rmvFISHERYS="") {
     dplyr::mutate(MONTH=iOrderMonths(MONTH,addAll=TRUE),
                   WATERS=droplevels(factor(WATERS,
                                     levels=c("Wisconsin","Non-Wisconsin","All"))),
+                  MUNIT=droplevels(factor(MUNIT,
+                                          levels=c("WI-1","WI-2","MI","MN"))),
                   FISHERY=droplevels(factor(FISHERY,
                                     levels=c(lvlsFISHERY,"All"))),
                   DAYTYPE=droplevels(factor(DAYTYPE,
                                     levels=c("Weekday","Weekend","All")))) %>%
     ## Select only variables for the table
-    dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,PHOURS,SDPHOURS,PARTY,
+    dplyr::select(MUNIT,FISHERY,MONTH,DAYTYPE,PHOURS,SDPHOURS,PARTY,
                   INDHRS,SDINDHRS,MTRIP,TRIPS,SDTRIPS) %>%
-    dplyr::arrange(WATERS,FISHERY,MONTH,DAYTYPE) %>%
+    dplyr::arrange(MUNIT,FISHERY,MONTH,DAYTYPE) %>%
     ## Remove repeated items in the first three variables
-    dplyr::mutate(WATERS=iRemoveRepeatLabels(.,"WATERS"),
-                  FISHERY=iRemoveRepeatLabels(.,"FISHERY","WATERS"),
-                  MONTH=iRemoveRepeatLabels(.,"MONTH",c("WATERS","FISHERY"))) %>%
+    dplyr::mutate(MUNIT=iRemoveRepeatLabels(.,"MUNIT"),
+                  FISHERY=iRemoveRepeatLabels(.,"FISHERY","MUNIT"),
+                  MONTH=iRemoveRepeatLabels(.,"MONTH",c("MUNIT","FISHERY"))) %>%
     ## Remove rows that are repeats (for the numeric variables) of the row above
     ## it, which happens if the species was captured in only one month
-    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("WATERS","FISHERY",
+    dplyr::filter(FSA::repeatedRows2Keep(.,cols2ignore=c("MUNIT","FISHERY",
                                                          "MONTH","DAYTYPE"))) %>%
   as.data.frame()
 
@@ -377,7 +379,7 @@ table4 <- function(fnpre,rmvFISHERYS="") {
                       value=1) %>%
     set_number_format(row=everywhere,col=c("PARTY","MTRIP"),value=2) %>%
     # Creating column headers
-    rbind(c("WATERS","FISHERY","MONTH","DAY TYPE","Total","SD","Party",
+    rbind(c("MUNIT","FISHERY","MONTH","DAY TYPE","Total","SD","Party",
             "Total","SD","Length","Total","SD"),.) %>%
     rbind(c("","","","","Party Hours","","per","Ind. Hours","","Trip",
             "Trips",""),.) %>%
@@ -680,11 +682,11 @@ cat(tables("Table8"))
 table8(lengths)
 ```
 
-```{r figure1, eval=MAKE_FIGURES, fig.width=5, fig.height=3.5}
+```{r figure1, eval=MAKE_FIGURES, fig.width=6, fig.height=4}
 figure1 <- function(d) {
   tmp <- d %>%
     ## Select only variables for the figure
-    dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
+    dplyr::select(WATERS,MUNIT,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or fisheries
     dplyr::filter(WATERS=="Wisconsin",MONTH!="All") %>%
     ## Drop unused levels
@@ -697,14 +699,15 @@ figure1 <- function(d) {
     dplyr::mutate(DAYTYPE=NA,FISHERY=NA)
   
   ## Make the plot
-  p <- ggplot(data=tmp1,aes(x=MONTH,y=INDHRS,fill=DAYTYPE)) +
-    geom_bar(stat="identity") +
-    geom_errorbar(data=tmp2,aes(ymin=INDHRS-SDINDHRS,ymax=INDHRS+SDINDHRS),
+  p <- ggplot() +
+    geom_bar(data=tmp1,aes(x=MONTH,y=INDHRS,fill=DAYTYPE),stat="identity") +
+    geom_errorbar(data=tmp2,aes(x=MONTH,ymin=INDHRS-SDINDHRS,ymax=INDHRS+SDINDHRS),
                   width=0.2) +
     xlab("Month") +
     ylab("Total Effort (Angler-Hrs)") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
     theme_creel()
+  if (length(unique(tmp1$MUNIT))>1) p <- p + facet_grid(~MUNIT,scales="free")
   p
 }
 
@@ -722,13 +725,13 @@ cat("<br><br>")
 cat("<hr>")
 ```
 
-```{r figure2, eval=MAKE_FIGURES, fig.width=5, fig.height=5}
+```{r figure2, eval=MAKE_FIGURES, fig.width=6, fig.height=6}
 figure2 <- function(d,rmvFISHERYS) {
   tmp <- d %>%
     ## Remove fisheries for figure
     dplyr::filter(!FISHERY %in% rmvFISHERYS) %>%
     ## Select only variables for the figuree
-    dplyr::select(WATERS,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
+    dplyr::select(WATERS,MUNIT,FISHERY,MONTH,DAYTYPE,INDHRS,SDINDHRS) %>%
     ## Select only WI waters and not All months or Fisheries
     dplyr::filter(WATERS=="Wisconsin",MONTH!="All") %>%
     dplyr::filter(FISHERY!="All") %>%
@@ -741,15 +744,19 @@ figure2 <- function(d,rmvFISHERYS) {
     dplyr::mutate(DAYTYPE=NA)
   
   ## Make the plot
-  p <- ggplot(data=tmp1,aes(x=MONTH,y=INDHRS,fill=DAYTYPE)) +
-    geom_bar(stat="identity") +
-    geom_errorbar(data=tmp2,aes(ymin=INDHRS-SDINDHRS,ymax=INDHRS+SDINDHRS),
+  p <- ggplot() +
+    geom_bar(data=tmp1,aes(x=MONTH,y=INDHRS,fill=DAYTYPE),stat="identity") +
+    geom_errorbar(data=tmp2,aes(x=MONTH,ymin=INDHRS-SDINDHRS,ymax=INDHRS+SDINDHRS),
                   width=0.2) +
-    facet_grid(FISHERY~.) +
     xlab("Month") +
     ylab("Total Effort (Angler-Hrs)") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
     theme_creel()
+  if (length(unique(tmp1$MUNIT))>1) {
+    p <- p + facet_grid(FISHERY~MUNIT,scales="free")
+  } else { 
+    p <- p + facet_grid(FISHERY~.)
+  }
   p
 }
 
@@ -766,7 +773,7 @@ cat("<hr>")
 
 ```
 
-```{r figure3, eval=MAKE_FIGURES, fig.width=5, fig.height=3.5}
+```{r figure3, eval=MAKE_FIGURES, fig.width=6, fig.height=4}
 figure3 <- function(d) {
   tmp <- d %>%
     ## Just WI waters and not "All Fish"
@@ -786,6 +793,7 @@ figure3 <- function(d) {
       axis.title.x.bottom=element_blank(),
       axis.text.x=element_text(angle=90,vjust=0.25,hjust=1)
     )
+  if (length(unique(tmp$MUNIT))>1) p <- p + facet_grid(~MUNIT,scales="free")
   p
 }
 
@@ -800,7 +808,7 @@ cat("<br><br>")
 cat("<hr>")
 ```
 
-```{r figure4, eval=MAKE_FIGURES, fig.width=5}
+```{r figure4, eval=MAKE_FIGURES, fig.width=6}
 figure4 <- function(d,rmvFISHERYS="",topN=3) {
   tmp <- d %>%
     ## Remove fisheries for figure
@@ -827,11 +835,15 @@ figure4 <- function(d,rmvFISHERYS="",topN=3) {
     geom_bar(stat="identity") +
     geom_errorbar(data=tmp2,aes(ymin=HARVEST-SDHARVEST,ymax=HARVEST+SDHARVEST),
                   width=0.2) +
-    facet_grid(SPECIES~FISHERY,scales="free") +
     xlab("Month") +
     ylab("Total Harvest") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
     theme_creel()
+  if (length(unique(tmp$MUNIT))>1) {
+    p <- p + facet_grid(SPECIES~MUNIT+FISHERY,scales="free")
+  } else {
+    p <- p + facet_grid(SPECIES~FISHERY,scales="free")
+  }
   p
 }
 
@@ -848,7 +860,7 @@ cat("<br><br>")
 cat("<hr>")
 ```
 
-```{r figure5, eval=MAKE_FIGURES, fig.width=5, fig.height=3.5}
+```{r figure5, eval=MAKE_FIGURES, fig.width=6, fig.height=4}
 figure5 <- function(d,topN=3) {
   tmp <- d %>%
     ## Just WI waters and not "All fish"
@@ -873,6 +885,7 @@ figure5 <- function(d,topN=3) {
     ylab("Harvest per Angler-Hr") +
     scale_y_continuous(limits=c(0,NA),expand=expand_scale(mult=c(0,0.1))) +
     theme_creel()
+  if (length(unique(tmp1$MUNIT))>1) p <- p + facet_grid(~MUNIT,scales="free")
   p
 }
 
@@ -910,13 +923,17 @@ figure6 <- function(dlen,topN=3) {
     xlab("Length (Inches)") +
     ylab("Relative Frequency") +
     scale_y_continuous(expand=expand_scale(mult=c(0,0.1))) +
-    facet_grid(MONTH~SPECIES,scales='free') +
     geom_text(data=SUM,aes(x=Inf,y=Inf,label=paste0("n=",n)),
               size=5,vjust=1.1,hjust=1.1) +
     theme_creel() +
     theme(
       axis.text.y.left = element_blank()
     )
+  if (length(unique(tmp$MUNIT))>1) {
+    p <- p + facet_grid(MONTH~MUNIT+SPECIES,scales="free")
+  } else {
+    p <- p + facet_grid(MONTH~SPECIES,scales='free')
+  }
   p
 }
 
